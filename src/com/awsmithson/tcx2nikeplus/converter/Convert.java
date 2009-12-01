@@ -336,23 +336,34 @@ public class Convert
 			// Deal with pause/resumes
 			if ((trackPointDataLength == 3) && (i+1 < trackPointsLength)) {
 
+				//System.out.println(Util.getSimpleNodeValue(trackPointData.item(1)));
+
 				// I have one workout in which the first trackpoint is just a time, ignore this in case it is a regular occurance/bug.
-				if (i == 0) continue;
+				// This can also occur when the user has unpaused immeadiately before beginning a new lap, we deal with it below.
+				//if (i == 0) continue;
 
 				// Save the pause/resume points so that we can create the snapshot event later (once we can interpolate to get the distance).
-				Calendar tpPauseTime = getCalendarNodeValue(trackPointData.item(1));
-				pauseResumeTimes.add(tpPauseTime.getTimeInMillis() - startDurationAdjusted);
+				long tpPauseTime = getCalendarNodeValue(trackPointData.item(1)).getTimeInMillis();
 
+				// Get what we are expecting to be the resume track-point-data.
 				trackPointData = trackPoints.item(++i).getChildNodes();
-				Calendar tpResumeTime = getCalendarNodeValue(trackPointData.item(1));
-				pauseResumeTimes.add(tpResumeTime.getTimeInMillis() - startDurationAdjusted);
 
-				// Adjust the start time so that future splits are not affected by the paused time period.
-				long pauseDuration = tpResumeTime.getTimeInMillis() - tpPauseTime.getTimeInMillis();
-				startDurationAdjusted += pauseDuration;
+				// As we are expecting it to be a resume trackPointData it must also be of length 3, otherwise we are not dealing with a pause/resume pair so ignore the pause.
+				if ((trackPointData.getLength()) == 3) {
+					long tpResumeTime = getCalendarNodeValue(trackPointData.item(1)).getTimeInMillis();
 
-				// Continue onto the next trackpoint, we've stored our pause/resume data for later use.
-				continue;
+					// 2009-12-01: Looking at various runs on nike+ it seems the each pause/resume pair now has the same
+					// duration/distance.  I can't find my nike+ stuff to check this is 100% accurate but will go with it for now.
+					pauseResumeTimes.add(tpPauseTime - startDurationAdjusted);
+					pauseResumeTimes.add(tpPauseTime - startDurationAdjusted);
+
+					// Adjust the start time so that future splits are not affected by the paused time period.
+					long pauseDuration = tpResumeTime - tpPauseTime;
+					startDurationAdjusted += pauseDuration;
+
+					// Continue onto the next trackpoint, we've stored our pause/resume data for later use.
+					continue;
+				}
 			}
 
 
@@ -399,10 +410,14 @@ public class Convert
 
 		// Pause/Resume splits.
 		boolean paused = false;
+		double distance = 0;
 		Iterator<Long> it = pauseResumeTimes.iterator();
 		while (it.hasNext()) {
 			long time = it.next();
-			appendSnapShot(snapShotClickListElement, time, interpolate(durationToDistance, (time/1000)), "event", (paused) ? "resume" : "pause");
+			
+			// If we are doing a resume the the distance is always equal to the previous pause, no need to interpolate.
+			distance = (!paused) ? interpolate(durationToDistance, (time/1000)) : distance;
+			appendSnapShot(snapShotClickListElement, time, distance, "event", (paused) ? "resume" : "pause");
 			paused = !paused;
 		}
 
