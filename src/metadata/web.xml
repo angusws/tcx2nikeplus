@@ -1,0 +1,21 @@
+<web-app>
+	
+	<!-- Default page to serve -->
+	<!--
+	<welcome-file-list>
+		<welcome-file>upload-form.html</welcome-file>
+	</welcome-file-list>
+	-->
+
+	<!-- Servlets -->
+	<servlet>
+		<servlet-name>ConvertService</servlet-name>
+		<servlet-class>com.awsmithson.tcx2nikeplus.servlet.ConvertServlet</servlet-class>
+	</servlet>
+	<servlet-mapping>
+		<servlet-name>ConvertService</servlet-name>
+		<url-pattern>/convert</url-pattern>
+	</servlet-mapping>
+
+
+</web-app>

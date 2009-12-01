@@ -1,0 +1,26 @@
+#!/bin/bash
+
+if [[ $# -lt 1 ]]
+then
+    echo "Usage: $0 [tcx file] [durations]"
+    echo ""
+    exit 1
+fi
+
+NIKEPLUSFILE=$1
+#echo $NIKEPLUSFILE
+shift
+
+ROOT=${0%/*}/../
+LIB=$ROOT/lib
+
+# Create the classpath
+for i in $LIB/*.jar
+do
+    CP=$CP:$i
+done
+
+
+# Execeute the application with supplied arguments
+#/System/Library/Frameworks/JavaVM.framework/Versions/1.6/Home/bin/java -classpath $CP com.tcx2nikeplus.converter.Convert $TCXFILE
+java -classpath $CP com.awsmithson.tcx2nikeplus.test.SnapShotPace "$NIKEPLUSFILE" $*

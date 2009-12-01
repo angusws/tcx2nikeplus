@@ -1,0 +1,190 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<project basedir="../.." default="all" name="tcx2nikeplus">
+
+	<description>tcx2nikeplus ant build.xmlx</description>
+
+	<!-- Top Level directories -->
+	<property name="etc.dir" location="${basedir}/etc"/>
+	<property name="git.dir" location="${basedir}/git"/>
+	<property name="out.dir" location="${basedir}/out"/>
+	<property name="dist.dir" location="${basedir}/dist"/>
+
+	<!-- Directories under git -->
+	<property name="src.dir" location="${git.dir}/src"/>
+	<property name="war.dir" location="${git.dir}/war"/>
+	<property name="lib.dir" location="${git.dir}/lib"/>
+	<property name="html.dir" location="${git.dir}/html"/>
+	<property name="build.dir" location="${git.dir}/build"/>
+	<property name="bin.dir" location="${git.dir}/bin"/>
+
+	<!-- Directories under out -->
+	<property name="classes.dir" location="${out.dir}/classes"/>
+
+	<!-- Directories under dist/app -->
+	<property name="dist.app.dir" location="${dist.dir}/app"/>
+	<property name="dist.app.lib.dir" location="${dist.app.dir}/lib"/>
+
+	<!-- Directories under dist/test -->
+	<property name="dist.test.dir" location="${dist.dir}/test"/>
+	<property name="dist.test.lib.dir" location="${dist.test.dir}/lib"/>
+
+	<!-- Import the bldconf -->
+	<property name="bldconf.dir" location="${etc.dir}/bldconf"/>
+	<property file="${bldconf.dir}/tcx2nikeplus.properties"/>
+
+	<!-- Tomcat webapps directory -->
+	<property name="tomcat.webapps.dir" location="${tomcat.dir}/webapps"/>
+
+
+
+	<target name="all" depends="clean,compile,build,dist,deploy.local"/>
+
+
+
+	<target name="clean">
+		<!-- Delete the output directories -->
+		<echo message="Deleting output directories..."/>
+		<delete dir="${out.dir}"/>
+		<delete dir="${dist.dir}"/>
+	</target>
+
+
+
+	<target name="compile" if="tomcat.dir">
+
+		<mkdir dir="${out.dir}"/>
+		<mkdir dir="${classes.dir}"/>
+
+		<!-- Compile java source from ${src.dir} into ${classes.dir} -->
+		<echo message="Compiling converter source..."/>
+		
+		<!-- Create a classpath -->
+		<path id="compile.classpath">
+			<!--
+			<pathelement path="${lib.dir}/flanagan.jar"/>
+			<fileset dir="${war.dir}/WEB-INF/lib" includes="**/*.jar"/>
+			-->
+			<fileset dir="${lib.dir}" includes="**/*.jar"/>
+			<pathelement path="${tomcat.dir}/lib/servlet-api.jar"/>
+		</path>
+
+		<javac destdir="${classes.dir}"
+			debug="yes"
+			classpathref="compile.classpath">
+			<src path="${src.dir}"/>
+		</javac>
+	</target>
+
+
+	<target name="build.app" depends="compile">
+		<jar destfile="${out.dir}/tcx2nikeplus.jar"
+			basedir="${classes.dir}"
+			includes="com/awsmithson/tcx2nikeplus/converter/**,com/awsmithson/tcx2nikeplus/uploader/**"/>
+	</target>
+
+
+	<target name="build.test" depends="compile">
+		<jar destfile="${out.dir}/tcx2nikeplus-test.jar"
+			basedir="${classes.dir}"
+			includes="com/awsmithson/tcx2nikeplus/converter/**,com/awsmithson/tcx2nikeplus/uploader/**,com/awsmithson/tcx2nikeplus/test/**"/>
+	</target>
+
+
+
+	<!--<target name="build" depends="build.app, build.war">-->
+	<target name="build" depends="build.app">
+	</target>
+
+
+
+
+	<target name="dist.app" depends="build.app">
+
+		<mkdir dir="${dist.app.dir}"/>
+		<mkdir dir="${dist.app.lib.dir}"/>
+		<mkdir dir="${dist.app.dir}/bin"/>
+
+		<!-- Copy the jars required to the dist/lib directory. -->
+		<copy todir="${dist.app.lib.dir}">
+			<fileset dir="${lib.dir}" includes="flanagan.jar"/>
+			<fileset dir="${out.dir}" includes="tcx2nikeplus.jar"/>
+		</copy>
+
+		<exec executable="cp">
+			<arg value="${bin.dir}/convert"/>
+			<arg value="${bin.dir}/upload"/>
+			<arg value="${dist.app.dir}/bin/"/>
+		</exec>
+
+		<!-- Delete any *~ files from ${dist.dir}. -->
+		<delete>
+			<fileset dir="${dist.app.dir}" includes="**/*~" defaultexcludes="false"/>
+		</delete>
+
+	</target>
+
+
+
+	<target name="dist.test" depends="build.test">
+
+		<mkdir dir="${dist.test.dir}"/>
+		<mkdir dir="${dist.test.lib.dir}"/>
+		<mkdir dir="${dist.test.dir}/bin"/>
+
+		<!-- Copy the jars required to the dist/lib directory. -->
+		<copy todir="${dist.test.lib.dir}">
+			<fileset dir="${lib.dir}" includes="flanagan.jar"/>
+			<fileset dir="${out.dir}" includes="tcx2nikeplus-test.jar"/>
+		</copy>
+
+		<!-- Copy the bin files to the dist/bin directory. We use exec to preserve file permissions. -->
+		<!--
+		<copy todir="${dist.bin.dir}">
+		  <fileset dir="${bin.dir}"/>
+		</copy>
+		-->
+
+		<exec executable="cp">
+			<arg value="${bin.dir}/testsnpace"/>
+			<arg value="${dist.test.dir}/bin/"/>
+		</exec>
+
+		<!-- Delete any *~ files from ${dist.dir}. -->
+		<delete>
+			<fileset dir="${dist.test.dir}" includes="**/*~" defaultexcludes="false"/>
+		</delete>
+
+	</target>
+
+
+
+	<target name="dist.war" depends="compile">
+
+		<mkdir dir="${dist.dir}"/>
+
+		<!-- Create the war file -->
+		<war destfile="${dist.dir}/tcx2nikeplus.war" webxml="${src.dir}/metadata/web.xml">
+			<fileset dir="${html.dir}"/>
+			<lib dir="${lib.dir}"/>
+			<classes dir="${classes.dir}" includes="**/Convert.class,**/ConvertServlet.class,**/Util.class,**/Upload.class"/>
+		</war>
+
+	</target>
+
+
+
+
+	<target name="dist" depends="dist.app, dist.test, dist.war">
+	</target>
+
+
+
+	<!-- Copy the war to local tomcat instance -->
+	<target name="deploy.local" depends="dist.war" if="tomcat.dir">
+		<copy file="${dist.dir}/tcx2nikeplus.war" todir="${tomcat.webapps.dir}"/>
+	</target>
+
+
+</project>
+

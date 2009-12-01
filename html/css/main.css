@@ -1,0 +1,52 @@
+body
+{
+   font-size: 8pt;
+   font-family: Verdana,Helvetica,Arial,sans-serif;
+   /*color: #404040;*/
+   color: #000000;
+   /*background-color: #303036;*/
+}
+
+.codeText, .codeTextItalic
+{
+   font-family: Monospace;
+}
+
+.codeTextItalic
+{
+   font-style: italic;
+}
+
+
+.section
+{
+   margin-top: 10px;
+   margin-bottom: 30px;
+}
+
+.sectionHeading, .sectionSubHeading
+{
+   color: #ffffff;
+}
+
+.sectionHeading
+{
+   background-color: #000020;
+   font-size: 10pt;
+   padding: 4px 0px 4px 4px;
+   margin-bottom: 4px;
+}
+
+.sectionSubHeading
+{
+   background-color: #606070;
+   padding: 2px 0px 2px 2px;
+   margin-bottom: 2px;
+   margin-left: 8px;
+}
+
+.sectionContent
+{
+   margin-left: 12px;
+   margin-bottom: 10px;
+}
