@@ -23,27 +23,16 @@
 	</head>
 	<body onload="initForm();">
 
-		<!-- News -->
+
+		<!-- Introduction -->
 		<div class="section">
-			<div class="sectionHeading">News</div>
-			<div class="sectionSubHeading">Contact Me</div>
-			<div class="sectionContent">
-				<img src="img/email_address.png" alt=""/>
-			</div>
-			<div class="sectionSubHeading">September 3 2009</div>
+			<div class="sectionHeading">Introduction</div>
 			<div class="sectionContent">
 				<ul>
-					<li>Please be aware this project is very much in an alpha stage and may not always work as expected during this early stage of development. At the moment there may also be downtime when the site doesn't work at all due to server upgrades being carried out.</li>
-					<li>Apologies to all who have contacted me in the past week or so with comments/suggestions/bugs. My day-to-day job has been very busy and it takes priority over this project. All your feedback is appreciated and your queries will be dealt with as soon as I get some spare time to work on the garmin to Nike+ converter.</li>
+					<li>This service enables users of garmin forerunner devices to upload their workouts to the <a href="http://nikerunning.nike.com/" target="_blank">Nike+/NikeRunning</a> website.</li>
+					<li>If you have not used the service before please read the <a href="#instructions">instructions.</a></li>
+					<li>If you have any problems using the service then please contact me: <img src="img/email_address.png" alt=""/></li>
 				</ul>
-			</div>
-			<div class="sectionSubHeading">December 1 2009</div>
-			<div class="sectionContent">
-				<ul>
-					<li>Added source to github: <a href="http://github.com/angusws/tcx2nikeplus" target="_blank">http://github.com/angusws/tcx2nikeplus</a>.</li>
-					<li>Fixed problem which prevented successful conversion of workouts if a pause/unpause was present right before start of a new lap (km/mile/whatever split) on garmin.</li>
-				</ul>
-				
 			</div>
 		</div>
 
@@ -73,7 +62,7 @@
 			<div class ="sectionSubHeading">Notes</div>
 			<div class="sectionContent">
 				<ul>
-					<li>If you just want to convert to Nike+ xml format without uploading to the Nike+ site then leave the <span class="codeTextItalic">Nike+ pin</span> textbox blank</li>
+					<li>If you just want to convert to Nike+ xml format without uploading to the Nike+ site then leave the <span class="codeTextItalic">Nike+ pin</span> textbox blank.</li>
 					<li>Emped ID is not currently required by Nike+ although if you know what yours is you may wish to include it.</li>
 					<li>
 						You can auto-populate the pin &amp; emped ID fields in the form by including them in the HTTP request: <span class="codeTextItalic">http://www.awsmithson.com/tcx2nikeplus/?pin=12345678-1234-1234-1234-123456789012&amp;empedID=4H123ABCDEF</span><br />
@@ -82,16 +71,55 @@
 			</div>
 		</div>
 
+		
+		<!-- News -->
+		<div class="section">
+			<div class="sectionHeading">News</div>
+			<div class="sectionSubHeading">September 3 2009</div>
+			<div class="sectionContent">
+				<ul>
+					<li>Please be aware this project is very much in an alpha stage and may not always work as expected during this early stage of development. At the moment there may also be downtime when the site doesn't work at all due to server upgrades being carried out.</li>
+					<li>Apologies to all who have contacted me in the past week or so with comments/suggestions/bugs. My day-to-day job has been very busy and it takes priority over this project. All your feedback is appreciated and your queries will be dealt with as soon as I get some spare time to work on the garmin to Nike+ converter.</li>
+				</ul>
+			</div>
+			<div class="sectionSubHeading">December 1 2009</div>
+			<div class="sectionContent">
+				<ul>
+					<li>Added source to github: <a href="http://github.com/angusws/tcx2nikeplus" target="_blank">http://github.com/angusws/tcx2nikeplus</a>.</li>
+					<li>Fixed problem which prevented successful conversion of workouts if a pause/unpause was present right before start of a new lap (km/mile/whatever split) on garmin.</li>
+				</ul>
+			</div>
+			<div class="sectionSubHeading">December 18 2009</div>
+			<div class="sectionContent">
+				<ul>
+					<li>Updated instructions for obtaining pin.</li>
+				</ul>
+			</div>
+		</div>
+
 
 		<!-- Instructions -->
 		<div class="section">
+			<a NAME="instructions"</a>
 			<div class="sectionHeading">Instructions</div>
 
 			<div class="sectionSubHeading">Obtain tcx file</div>
 			<div class="sectionContent">
-				After synchronising your garmin device with your computer the option is available to export the run to a tcx file both in the 'Garmin Training Center' and at <a href="http://connect.garmin.com" target="_blank">Garmin Connect</a>.
+				After synchronising your garmin device with your computer the option is available to export the run to a tcx file both in the 'Garmin Training Center' and at <a href="http://connect.garmin.com" target="_blank">Garmin Connect.</a>.
 			</div>
 
+			<div class="sectionSubHeading">Obtain Nike+ pin (only need to do this the first time you use the service)</div>
+			<div class="sectionContent">
+				<ol>
+					<li>Open a new window/tab in your web browser.</li>
+					<li>Visit https://secure-nikerunning.nike.com/nikeplus/v2/services/app/generate_pin.jsp?login=<span class="codeTextItalic">LOGIN</span>&password=<span class="codeTextItalic">PASSWORD</span> (replacing the italics with your login details).</li>
+					<li>The resultant page should have a section "pin", this is the value to use as the pin on this page.</li>
+					<li>If you cannot see a section "pin" then contact me (see top of this page) with details of which browser you are using and I'll help you through the process.</li>
+				</ol>
+			</div>
+
+
+			<!--
 			<div class="sectionSubHeading">Obtain Nike+ pin (only need to do this the first time you use the service)</div>
 			<div class="sectionContent">
 				<ol>
@@ -123,6 +151,7 @@
 					<li>Close and (if you wish) delete the IECookiesView application, you will not need it again.</li>
 				</ol>
 			</div>
+			-->
 
 			<div class="sectionSubHeading">Obtain Emped ID (not essential)</div>
 			<div class="sectionContent">
@@ -132,7 +161,7 @@
 			<!--
 			<div class="sectionSubHeading">Obtain Garmin activity ID</div>
 			<div class="sectionContent">
-			View your workout on <a href="http://connect.garmin.com//" target="_blank">connect.garmin.com</a>, the activity ID is the number at the end of the url (address).  For example if the url is http://connect.garmin.com/activity/1234567 then the activity ID is 1234567.
+			View your workout on <a href="http://connect.garmin.com/" target="_blank">connect.garmin.com</a>, the activity ID is the number at the end of the url (address).  For example if the url is http://connect.garmin.com/activity/1234567 then the activity ID is 1234567.
 			</div>
 			-->
 
