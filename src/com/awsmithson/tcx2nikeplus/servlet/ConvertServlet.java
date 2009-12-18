@@ -33,74 +33,77 @@ public class ConvertServlet extends HttpServlet {
      */
     protected void processRequest(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
 
+		PrintWriter out = response.getWriter();
 
-		if (ServletFileUpload.isMultipartContent(request)) {
-			try {
-				FileItemFactory factory = new DiskFileItemFactory();
-				ServletFileUpload upload = new ServletFileUpload(factory);
-				List<DiskFileItem> items = upload.parseRequest(request);
+		try {
 
-				if (items.size() > 0) {
+			if (ServletFileUpload.isMultipartContent(request)) {
+				try {
+					FileItemFactory factory = new DiskFileItemFactory();
+					ServletFileUpload upload = new ServletFileUpload(factory);
+					List<DiskFileItem> items = upload.parseRequest(request);
 
-					File inFile = null;
-					String empedID = null;
-					String pin = null;
+					if (items.size() > 0) {
 
-					Iterator it = items.iterator();
+						File inFile = null;
+						String empedID = null;
+						String pin = null;
 
-					while (it.hasNext()) {
-						DiskFileItem item = (DiskFileItem) it.next();
+						Iterator it = items.iterator();
 
-						String fieldName = item.getFieldName();
+						while (it.hasNext()) {
+							DiskFileItem item = (DiskFileItem) it.next();
 
-						if (item.isFormField()) {
-							// Emped ID
-							if ((fieldName.equals("empedID")) && (item.getString().length() > 0))
-								empedID = item.getString();
+							String fieldName = item.getFieldName();
 
-							// Pin
-							if ((fieldName.equals("pin")) && (item.getString().length() > 0))
-								pin = item.getString();
+							if (item.isFormField()) {
+								// Emped ID
+								if ((fieldName.equals("empedID")) && (item.getString().length() > 0))
+									empedID = item.getString();
+
+								// Pin
+								if ((fieldName.equals("pin")) && (item.getString().length() > 0))
+									pin = item.getString();
+							}
+							else {
+								// Input File
+								if (fieldName.equals("datafile")) {
+									inFile = item.getStoreLocation();
+
+									try {
+										// HACK: If we have for whatever reason the file has not been saved then write it's data to where it should be saved.
+										if (!(inFile.exists())) item.write(item.getStoreLocation());
+									}
+									catch (Exception e) {
+										e.printStackTrace();
+										out.println(String.format("There was an error uploading your tcx file...:<br />%s", e.getStackTrace().toString()));
+										return;
+									}
+								}
+							}
 						}
-						else {
-							// Input File
-							if (fieldName.equals("datafile"))
-								inFile = item.getStoreLocation();
-						}
-					}
 
 
+						// If we have a file to convert then carry on.
+						if ((inFile != null) && (inFile.exists())) {
+							Convert c = new Convert();
+							Document doc = c.generateNikePlusXml(inFile, empedID);
+							String filename = c.generateFileName();
 
-					if (inFile != null) {
-						Convert c = new Convert();
-						Document doc = c.generateNikePlusXml(inFile, empedID);
-						String filename = c.generateFileName();
-						
-						// If a nikeplus pin hasn't been supplied then just return the nikeplus xml document.
-						if (pin == null) {
-							String output = Util.generateStringOutput(doc);
-							System.out.printf("\ntcx2nikeplus outputting '%s'\n", filename);
-							response.setContentType("application/x-download");
-							response.setHeader("Content-Disposition", String.format("attachment; filename=\"%s\"", filename));
-
-							PrintWriter out = response.getWriter();
-
-							try {
+							// If a nikeplus pin hasn't been supplied then just return the nikeplus xml document.
+							if (pin == null) {
+								String output = Util.generateStringOutput(doc);
+								System.out.printf("\ntcx2nikeplus outputting '%s'\n", filename);
+								response.setContentType("application/x-download");
+								response.setHeader("Content-Disposition", String.format("attachment; filename=\"%s\"", filename));
 								out.print(output);
 							}
-							finally {
-								out.close();
-							}
-						}
 
-						// If we do have a pin then try to send the data to nikeplus.
-						else {
-							
-							response.setContentType("text/html");
-							PrintWriter out = response.getWriter();
+							// If we do have a pin then try to send the data to nikeplus.
+							else {
 
+								response.setContentType("text/html");
 
-							try {
 								Upload u = new Upload();
 
 								try {
@@ -116,6 +119,7 @@ public class ConvertServlet extends HttpServlet {
 										u.endSync(pin);
 									}
 									catch (Exception e) {
+										e.printStackTrace();
 										out.println(String.format("There was an error...:<br />%s", e.getStackTrace().toString()));
 									}
 								}
@@ -135,16 +139,21 @@ public class ConvertServlet extends HttpServlet {
 								out.println("</script>");
 
 								out.println("</body></html>");
-							}
-							finally {
-								out.close();
+
 							}
 						}
 					}
 				}
+				catch (FileUploadException fue) {}
 			}
-			catch (FileUploadException fue) {}
+
 		}
+
+		finally {
+			// Make sure the PrintWriter is closed.
+			out.close();
+		}
+
 	}
 
     // <editor-fold defaultstate="collapsed" desc="HttpServlet methods. Click on the + sign on the left to edit the code.">
