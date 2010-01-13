@@ -1,6 +1,6 @@
 package com.awsmithson.tcx2nikeplus.uploader;
 
-import com.awsmithson.tcx2nikeplus.converter.Util;
+import com.awsmithson.tcx2nikeplus.util.Util;
 import java.io.File;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
@@ -66,7 +66,7 @@ public class Upload
 		syncData(pin, doc);
 	}
 
-	public void syncData(String pin, Document doc) throws MalformedURLException, IOException, ParserConfigurationException, SAXException {
+	public Document syncData(String pin, Document doc) throws MalformedURLException, IOException, ParserConfigurationException, SAXException {
 
 		String data = Util.generateStringOutput(doc);
 
@@ -83,13 +83,13 @@ public class Upload
         wr.flush();
 
 		// Get the response
-		DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
-		DocumentBuilder db = dbf.newDocumentBuilder();
-		Document outDoc = db.parse(conn.getInputStream());
+		Document outDoc = DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(conn.getInputStream());
 		outDoc.normalize();
-		Util.printDocument(outDoc);
+		//Util.printDocument(outDoc);
 
 		wr.close();
+
+		return outDoc;
 	}
 
 

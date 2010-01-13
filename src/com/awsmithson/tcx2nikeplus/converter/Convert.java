@@ -1,15 +1,18 @@
 package com.awsmithson.tcx2nikeplus.converter;
 
+import com.awsmithson.tcx2nikeplus.util.Log;
+import com.awsmithson.tcx2nikeplus.util.Util;
 import flanagan.interpolation.CubicSpline;
 import java.io.File;
 import java.io.IOException;
+import java.net.MalformedURLException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collections;
+import java.util.Date;
 import java.util.Iterator;
-import java.util.logging.Level;
-import java.util.logging.Logger;
+import java.util.TimeZone;
 import javax.xml.datatype.DatatypeConfigurationException;
 import javax.xml.datatype.DatatypeFactory;
 import javax.xml.parsers.DocumentBuilder;
@@ -26,15 +29,20 @@ import org.xml.sax.SAXException;
 public class Convert
 {
 
-	private static double D_METRES_PER_KM = 1609.344;
+	private static final double				D_METRES_PER_KM = 1609.344;
+	private static final String				DATE_TIME_FORMAT_NIKE = "yyyy-MM-dd'T'HH:mm:ssZ";
+	private static final String				DATE_TIME_FORMAT_HUMAN = "d MMM yyyy HH:mm:ss z";
 
 	private long _totalDuration;
 	private double _totalDistance;
 
+	private TimeZone _workoutTimeZone;
 	private Calendar _calStart;
 	private Calendar _calEnd;
 	private String _startTimeString;
+	private String _startTimeStringHuman;
 
+	private final static Log log = Log.getInstance();
 
 
 	public Convert() {
@@ -42,14 +50,23 @@ public class Convert
 
 
 	public Document generateNikePlusXml(File tcxFile, String empedID) {
+		try {
+			Document tcxDoc = Util.generateDocument(tcxFile);
+			return generateNikePlusXml(tcxDoc, empedID);
+		}
+		catch (Exception e) {
+			log.out(e);
+			return null;
+		}
+	}
 
+
+	public Document generateNikePlusXml(Document inDoc, String empedID) {
 		DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
 
 		try {
 			// Create and load input document
 			DocumentBuilder db = dbf.newDocumentBuilder();
-			Document inDoc = db.parse(tcxFile);
-			inDoc.getDocumentElement().normalize();
 
 			// Create output document
 			Document outDoc = db.newDocument();
@@ -90,22 +107,11 @@ public class Convert
 			//return new String[] { generateString(outDoc), generateFileName() };
 
 			return outDoc;
-			
 		}
-		catch (DatatypeConfigurationException ex) {
-			Logger.getLogger(Convert.class.getName()).log(Level.SEVERE, null, ex);
+		catch (Exception e) {
+			log.out(e);
+			return null;
 		}
-		catch (IOException ex) {
-			Logger.getLogger(Convert.class.getName()).log(Level.SEVERE, null, ex);
-		}
-		catch (ParserConfigurationException ex) {
-			Logger.getLogger(Convert.class.getName()).log(Level.SEVERE, null, ex);
-		}
-		catch (SAXException ex) {
-			Logger.getLogger(Convert.class.getName()).log(Level.SEVERE, null, ex);
-		}
-
-		return null;
 	}
 
 
@@ -129,7 +135,7 @@ public class Convert
 	  </stepCounts>
 	</runSummary>
 	*/
-	private Element appendRunSummary(Document inDoc, Element sportsDataElement) throws DatatypeConfigurationException {
+	private Element appendRunSummary(Document inDoc, Element sportsDataElement) throws DatatypeConfigurationException, IOException, MalformedURLException, ParserConfigurationException, SAXException {
 		Element runSummaryElement = appendElement(sportsDataElement, "runSummary");
 
 		// Workout Name
@@ -152,53 +158,92 @@ public class Convert
 
 
 
-	/*
-	 * I do not do much with the time-zone on the Calendar object created from the garmin xml data.
-	 * SimpleDateFormat automatically formats it to the users TimeZone when formatting.
-	 *
-	 * FIXME: This is fine when the user is in the same timezone as where we are running this app
-	 * but if the servlet is calling it we should pass the users timezone from their browser.
-	 */
-	private void appendStartTime(Document inDoc, Element runSummaryElement) throws DatatypeConfigurationException {
+
+	private void appendStartTime(Document inDoc, Element runSummaryElement) throws DatatypeConfigurationException, IOException, MalformedURLException, ParserConfigurationException, SAXException {
 
 		// Garmin:	 2009-06-03T16:59:27.000Z
 		// Nike:	 2009-06-03T17:59:27+01:00
-
-		//TimeZone.setDefault(TimeZone.getTimeZone("EST"));
-
-		//SimpleDateFormat gformat = new SimpleDateFormat("yyyy-mm-dd'T'HH:mm:ss.SSS'Z'");
-		SimpleDateFormat nikeFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssZ");
-
-		Calendar gc = getCalendarValue(Util.getSimpleNodeValue(inDoc, "Id"));
-		//_timeStartGMT = (Calendar)(gc.clone());
-		//gc.setTimeZone(TimeZone.getDefault());
 		
-		//System.out.println(gc.getTimeInMillis());
+		// Get the timezone based on the Latitude, Longitude & Time (UTC) of the first TrackPoint
+		_workoutTimeZone = getWorkoutTimeZone(inDoc);
+		if (_workoutTimeZone == null)
+			TimeZone.getTimeZone("Etc/UTC");
 
-		//System.out.println(nikeFormat.format(_timeStartGMT.getTime()));
+		// Set the the SimpleDateFormat object so that it prints the time correctly:
+		// local-time + UTC-difference.
+		SimpleDateFormat df = new SimpleDateFormat(DATE_TIME_FORMAT_NIKE);
+		df.setTimeZone(_workoutTimeZone);
+		
+		// Get the workout start-time, format for nike+ and add it to the out-document
+		Calendar calStart = getCalendarValue(Util.getSimpleNodeValue(inDoc, "Id"));
+		Date dateStart = calStart.getTime();
+		_startTimeString = df.format(dateStart);
+		_startTimeString = String.format("%s:%s", _startTimeString.substring(0, 22), _startTimeString.substring(22));
+		appendElement(runSummaryElement, "time", _startTimeString);
 
-		//TimeZone tzGarmin = TimeZone.getTimeZone("GMT");
-		//System.out.println(tzGarmin);
+		// Generate a human readable start-string we can use for debugging.
+		df.applyPattern(DATE_TIME_FORMAT_HUMAN);
+		_startTimeStringHuman = df.format(dateStart);
 
-		//DatatypeFactory.newInstance().newXMLGregorianCalendar(garminDate).toGregorianCalendar();
-		//_timeZoneOffset = TimeZone.getDefault().getOffset(_timeStartGMT.getTimeInMillis());
-		//System.out.println(_timeZoneOffset);
-
-		//gc.add(Calendar.MILLISECOND, _timeZoneOffset);
-
-		String startTimeString = nikeFormat.format(gc.getTime());
-
-		 // This startTime element has a colon between the hours/minutes in the timezone part!
-		startTimeString = String.format("%s:%s", startTimeString.substring(0, 22), startTimeString.substring(22));
-
-		appendElement(runSummaryElement, "time", startTimeString);
-
-		_calStart = gc;
-		_startTimeString = startTimeString;
+		// We need these later.
+		_calStart = calStart;
 	}
 
-	private void appendTotals(Document inDoc, Node parent) {
 
+
+	// We use the latitude & longitude data along with the http://ws.geonames.org/timezone webservice to
+	// deduce in which time zone the workout began.
+	private TimeZone getWorkoutTimeZone(Document inDoc) throws DatatypeConfigurationException, IOException, MalformedURLException, ParserConfigurationException, SAXException {
+		NodeList positions = inDoc.getElementsByTagName("Position");
+		int positionsLength = positions.getLength();
+
+		// Loop through the Position data, we will return as soon as we find one
+		// with the required data (latitude & longitude).
+		for (int i = 0; i < positionsLength; ++i) {
+
+			Double latitude = null;
+			Double longitude = null;
+			
+			NodeList positionData = positions.item(i).getChildNodes();
+			int positionDataLength = positionData.getLength();
+
+			for (int j = 0; j < positionDataLength; ++j) {
+
+				Node n = positionData.item(j);
+				String nodeName = n.getNodeName();
+
+				// Latitude at this point
+				if (nodeName.equals("LatitudeDegrees")) {
+					latitude = Double.parseDouble(Util.getSimpleNodeValue(n));
+				}
+
+				// Longitude at this point
+				else if (nodeName.equals("LongitudeDegrees")) {
+					longitude = Double.parseDouble(Util.getSimpleNodeValue(n));
+				}
+
+
+				if ((latitude != null) && (longitude != null)) {
+					// Send a post to the geonames.org webservice with the lat & lng parameters.
+					String url = "http://ws.geonames.org/timezone";
+					String parameters = String.format("lat=%s&lng=%s", latitude, longitude);
+					
+					log.out("Looking up time zone for lat/lon: %.4f / %.4f", latitude, longitude);
+					Document response = Util.downloadFile(url, parameters);
+					String timeZoneId = Util.getSimpleNodeValue(response, "timezoneId");
+					log.out(" - %s", timeZoneId);
+
+					return TimeZone.getTimeZone(timeZoneId);
+				}
+			}
+		}
+
+		return null;
+	}
+
+
+
+	private void appendTotals(Document inDoc, Node parent) {
 		double totalSeconds = 0d;
 		double totalDistance = 0d;
 		int totalCalories = 0;
@@ -236,7 +281,7 @@ public class Convert
 
 		// Calculate the end-time of the run (for use late to generate the xml filename).
 		_calEnd = (Calendar)(_calStart.clone());
-		_calEnd.add(Calendar.SECOND, (int)totalDuration);
+		_calEnd.add(Calendar.MILLISECOND, (int)totalDuration);
 
 		// Total Duration
 		appendElement(parent, "duration", totalDuration);
@@ -255,8 +300,9 @@ public class Convert
 		appendElement(parent, "calories", totalCalories);
 	}
 
-	private void appendStepCounts(Node parent) {
 
+
+	private void appendStepCounts(Node parent) {
 		Element stepCountsElement = appendElement(parent, "stepCounts");
 
 		appendElement(stepCountsElement, "walkBegin", "0");
@@ -306,7 +352,6 @@ public class Convert
 
 
 	private void appendWorkoutDetail(Document inDoc, Element sportsDataElement) throws DatatypeConfigurationException {
-
 		ArrayList<Trackpoint> trackpoints = new ArrayList<Trackpoint>();
 		ArrayList<Long> pauseResumeTimes = new ArrayList<Long>();
 
@@ -324,9 +369,7 @@ public class Convert
 	}
 
 
-
 	private void generateCubicSplineData(Document inDoc, ArrayList<Trackpoint> trackpoints, ArrayList<Long> pauseResumeTimes) throws DatatypeConfigurationException {
-
 		long startDurationAdjusted = _calStart.getTimeInMillis();
 
 		NodeList trackPoints = inDoc.getElementsByTagName("Trackpoint");
@@ -371,13 +414,11 @@ public class Convert
 				if (nodeName.equals("Time")) {
 					Calendar tpTime = getCalendarNodeValue(n);
 					duration = (tpTime.getTimeInMillis() - startDurationAdjusted);
-					continue;
 				}
 
 				// Distance to this point
-				if (nodeName.equals("DistanceMeters")) {
+				else if (nodeName.equals("DistanceMeters")) {
 					distance = Double.parseDouble(Util.getSimpleNodeValue(n));
-					continue;
 				}
 
 				// We require valid duration & distance data to create a Trackpoint - otherwise just ignore and move on to the next iteration.
@@ -412,7 +453,6 @@ public class Convert
 	// duration I create pause/resumes until I have valid data.
 	// Nike+ currently allows a threshold of 30000ms over the "total duration".
 	private void validateCubicSplineData(ArrayList<Trackpoint> trackpoints, ArrayList<Long> pauseResumeTimes) {
-
 		long calculatedDuration = trackpoints.get(trackpoints.size()-1).getDuration();
 		boolean retry = true;
 
@@ -466,7 +506,7 @@ public class Convert
 				retry = true;
 
 				// Leave this debug statement in for now, I am interested to see in the logs how often this happens.
-				System.out.printf("Removing trackpoint with duration %d\n", pauseDuration);
+				log.out("Removing trackpoint with duration %d", pauseDuration);
 
 				// Remove the pause/resume trackpoints from the list that will be used for the cubic-spline data.
 				trackpoints.remove(tp.getPreviousTrackPoint());
@@ -491,7 +531,6 @@ public class Convert
 
 
 	private void appendSnapShotListAndExtendedData(Element sportsDataElement, ArrayList<Trackpoint> trackpoints, ArrayList<Long> pauseResumeTimes) {
-
 		int tpsSize = trackpoints.size();
 		double[] durationsArray = new double[tpsSize];
 		double[] distancesArray = new double[tpsSize];
@@ -641,17 +680,8 @@ public class Convert
 		return (int)((duration)/distance);
 	}
 
-	private double[] convertToPrimitaveDoubleArray(ArrayList<Double> al) {
-		int size = al.size();
-		double[] ar = new double[size];
-		for (int i = 0; i < size; ++i)
-			ar[i] = al.get(i);
 
-		return ar;
-	}
-	
 	private String getTimeStringFromMillis(long totalMillis) {
-
 		long totalSeconds = totalMillis / 1000;
 
 		int hours = (int)(totalSeconds / 3600);
@@ -671,9 +701,13 @@ public class Convert
 
 	public String generateFileName() {
 		SimpleDateFormat outfileFormat	= new SimpleDateFormat("yyyy-MM-dd HH;mm;ss'.xml'");
+		outfileFormat.setTimeZone(_workoutTimeZone);
 		return outfileFormat.format(_calEnd.getTime());
 	}
 
+	public String getStartTimeHumanReadable() {
+		return _startTimeStringHuman;
+	}
 
 
 
@@ -729,12 +763,6 @@ public class Convert
 		protected boolean isRepeatDistance() {
 			return (_previousTrackPoint != null) && (_distance == _previousTrackPoint.getDistance());
 		}
-
-		/*
-		protected long getPreviousDuration() {
-			return (_previousTrackPoint == null) ? 0 : _previousTrackPoint.getDuration();
-		}
-		*/
 
 		protected double getPreviousDistance() {
 			return (_previousTrackPoint == null) ? 0 : _previousTrackPoint.getDistance();
@@ -867,5 +895,17 @@ public class Convert
 	}
 	*/
 
+
+	/*
+	private double[] convertToPrimitaveDoubleArray(ArrayList<Double> al) {
+		int size = al.size();
+		double[] ar = new double[size];
+		for (int i = 0; i < size; ++i)
+			ar[i] = al.get(i);
+
+		return ar;
+	}
+	*/
+	
 }
 

@@ -1,247 +1,143 @@
-<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
 <html>
 	<head>
-		<title>Garmin Forerunner TCX file to Nike+ converter</title>
-		<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-		<link rel="stylesheet" type="text/css" href="css/main.css">
+		<title>Garmin Forerunner TCX file to Nike+ Converter &amp; Uploader</title>
 
-		<script type="text/javascript">
-			function initForm() {
-				//alert(getURLParam("empedID"));
-				document.forms[0].empedID.value = getURLParam("empedID");
-				document.forms[0].pin.value = getURLParam("pin");
-			}
+		<!-- ** CSS ** -->
+		<!-- base library -->
+		<link rel="stylesheet" type="text/css" href="extjs/resources/css/ext-all.css" />
 
-			function getURLParam(name) {
-				name = name.replace(/[\[]/,"\\\[").replace(/[\]]/,"\\\]");
-				var regexS = "[\\?&]" + name + "=([^&#]*)";
-				var regex = new RegExp(regexS);
-				var results = regex.exec(window.location.href);
-				return (results == null) ? "" : results[1];
+		<!-- overrides to base library -->
+		<!-- page specific -->
+		<link rel="stylesheet" type="text/css" href="css/fileuploadfield.css"/>
+		<link rel="stylesheet" type="text/css" href="css/main.css" />
+
+
+		<style type=text/css>
+			#fi-button-msg {
+				border: 2px solid #ccc;
+				padding: 5px 10px;
+				background: #eee;
+				margin: 5px;
+				float: left;
 			}
-		</script>
+		</style>
+
+		<!-- ** Javascript ** -->
+		<!-- ExtJS library: base/adapter -->
+		<script type="text/javascript" src="extjs/adapter/ext/ext-base.js"></script>
+
+		<!-- ExtJS library: all widgets -->
+		<script type="text/javascript" src="extjs/ext-all.js"></script>
+
+		<!-- overrides to base library -->
+		<script type="text/javascript" src="extjs/js/FileUploadField.js"></script>
+
+		<!-- page specific -->
+		<script type="text/javascript" src="js/index.js"></script>
 	</head>
-	<body onload="initForm();">
+
+	<body>
+
+		<center>
+
+			<div style="margin-bottom: 20px;" id="divConverter"></div>
+			<div id="tabs"></div>
 
 
-		<!-- Introduction -->
-		<div class="section">
-			<div class="sectionHeading">Introduction</div>
-			<div class="sectionContent">
-				<ul>
-					<li>This service enables users of garmin forerunner devices to upload their workouts to the <a href="http://nikerunning.nike.com/" target="_blank">Nike+/NikeRunning</a> website.</li>
-					<li>If you have not used the service before please read the <a href="#instructions">instructions.</a></li>
-					<li>If you have any problems using the service then please contact me: <img src="img/email_address.png" alt=""/></li>
-				</ul>
-			</div>
-		</div>
 
 
-		<!-- Converter form -->
-		<div class="section">
-			<div class="sectionHeading">Garmin Forerunner TCX file to Nike+ Converter</div>
-			<div class="sectionContent">
-			<form action="convert" enctype="multipart/form-data" method="post" onsubmit="this.submit.disabled=true; this.submit.value='Please be patient, conversion &amp; upload can take up to 1 minute...'; return true;">
-				<div style="margin-bottom: 5px;">
-					Specify the location of the garmin tcx file to convert:<br />
-					<input type="file" name="datafile" size="60" />
+			<!-- Instructions -->
+			<div id="tabInstructions" class="x-hide-display">
+
+				<div class="sectionSubHeading">Garmin TCX file / Garmin Activity ID</div>
+				<div class="sectionContent">
+					Option 1 (TCX file): After synchronising your garmin device with your computer the option is available to export the run to a tcx file both in the 'Garmin Training Center' and at <a href="http://connect.garmin.com" target="_blank">Garmin Connect.</a>.
+					<br /><br />Option 2 (Garmin Activity ID): After synchronising your garmin device to <a href="http://connect.garmin.com" target="_blank">Garmin Connect.</a> the activity ID is in the url for the workout details page.  For example, for the workout http://connect.garmin.com/activity/21742933 the activity ID is 21742933.
 				</div>
-				<div style="margin-bottom: 10px;">
-					Nike+ pin:<br />
-					<input type="text" id="pin" name="pin" size="36" />
+
+				<div class="sectionSubHeading">Nike+ PIN</div>
+				<div class="sectionContent">
+					Open a new window/tab in your web browser.
+					<br /><br />Visit https://secure-nikerunning.nike.com/nikeplus/v2/services/app/generate_pin.jsp?login=<span class="codeTextItalic">LOGIN</span>&password=<span class="codeTextItalic">PASSWORD</span> (replacing the italics with your login details).
+					<br /><br />The resultant page should have a section "pin", this is the value to use as the pin on this page.  Your pin will never change.
+					<br /><br />If you cannot see a section "pin" then contact me (see top of this page) with details of which browser you are using and I'll help you through the process.
 				</div>
-				<div style="margin-bottom: 5px;">
-					Emped ID (optional):<br />
-					<input type="text" id="empedID" name="empedID" size="11" />
+
+
+				<div class="sectionSubHeading">Emped ID (not essential)</div>
+				<div class="sectionContent">
+					The easiest way to obtain your emped ID is probably to look at the list of your runs on <a href="http://www.slowgeek.com/" target="_blank">slowgeek.com</a>, there is a column for each run with the emped ID.
 				</div>
-				<div>
-					<input type="submit" id="submit" value="Convert &amp; Upload" />
+
+				<div class="sectionSubHeading">Tips</div>
+				<div class="sectionContent">
+					You can auto-populate the pin &amp; emped ID fields in the form by including them in the URL.
+					<br />For example, I use something like:
+					<br /> <span class="codeTextItalic">http://www.awsmithson.com/tcx2nikeplus/?type=garminActivityID&pin=12345678-1234-1234-1234-123456789012&amp;empedID=4H123ABCDEF</span>
 				</div>
-			</form>
-			</div>
-			<div class ="sectionSubHeading">Notes</div>
-			<div class="sectionContent">
-				<ul>
-					<li>If you just want to convert to Nike+ xml format without uploading to the Nike+ site then leave the <span class="codeTextItalic">Nike+ pin</span> textbox blank.</li>
-					<li>Emped ID is not currently required by Nike+ although if you know what yours is you may wish to include it.</li>
-					<li>
-						You can auto-populate the pin &amp; emped ID fields in the form by including them in the HTTP request: <span class="codeTextItalic">http://www.awsmithson.com/tcx2nikeplus/?pin=12345678-1234-1234-1234-123456789012&amp;empedID=4H123ABCDEF</span><br />
-						If you are going to use the service regularly I recommend you creating a url like this and saving it in your favourites to avoid having to enter the details every time.</li>
-				</ul>
-			</div>
-		</div>
-
-		
-		<!-- News -->
-		<div class="section">
-			<div class="sectionHeading">News</div>
-			<div class="sectionSubHeading">September 3 2009</div>
-			<div class="sectionContent">
-				<ul>
-					<li>Please be aware this project is very much in an alpha stage and may not always work as expected during this early stage of development. At the moment there may also be downtime when the site doesn't work at all due to server upgrades being carried out.</li>
-					<li>Apologies to all who have contacted me in the past week or so with comments/suggestions/bugs. My day-to-day job has been very busy and it takes priority over this project. All your feedback is appreciated and your queries will be dealt with as soon as I get some spare time to work on the garmin to Nike+ converter.</li>
-				</ul>
-			</div>
-			<div class="sectionSubHeading">December 1 2009</div>
-			<div class="sectionContent">
-				<ul>
-					<li>Added source to github: <a href="http://github.com/angusws/tcx2nikeplus" target="_blank">http://github.com/angusws/tcx2nikeplus</a>.</li>
-					<li>Fixed problem which prevented successful conversion of workouts if a pause/unpause was present right before start of a new lap (km/mile/whatever split) on garmin.</li>
-				</ul>
-			</div>
-			<div class="sectionSubHeading">December 18 2009</div>
-			<div class="sectionContent">
-				<ul>
-					<li>Updated instructions for obtaining pin.</li>
-				</ul>
-			</div>
-		</div>
-
-
-		<!-- Instructions -->
-		<div class="section">
-			<a NAME="instructions"</a>
-			<div class="sectionHeading">Instructions</div>
-
-			<div class="sectionSubHeading">Obtain tcx file</div>
-			<div class="sectionContent">
-				After synchronising your garmin device with your computer the option is available to export the run to a tcx file both in the 'Garmin Training Center' and at <a href="http://connect.garmin.com" target="_blank">Garmin Connect.</a>.
-			</div>
-
-			<div class="sectionSubHeading">Obtain Nike+ pin (only need to do this the first time you use the service)</div>
-			<div class="sectionContent">
-				<ol>
-					<li>Open a new window/tab in your web browser.</li>
-					<li>Visit https://secure-nikerunning.nike.com/nikeplus/v2/services/app/generate_pin.jsp?login=<span class="codeTextItalic">LOGIN</span>&password=<span class="codeTextItalic">PASSWORD</span> (replacing the italics with your login details).</li>
-					<li>The resultant page should have a section "pin", this is the value to use as the pin on this page.</li>
-					<li>If you cannot see a section "pin" then contact me (see top of this page) with details of which browser you are using and I'll help you through the process.</li>
-				</ol>
 			</div>
 
 
-			<!--
-			<div class="sectionSubHeading">Obtain Nike+ pin (only need to do this the first time you use the service)</div>
-			<div class="sectionContent">
-				<ol>
-					<li>Log onto the old <a href="http://nikerunning.nike.com/nikeplus/?classic" target="_blank">Nike+</a> site using one of the two browsers below (I'd recommend using <a href="http://www.mozilla.com/firefox/" target="_blank">Firefox</a>).</li>
-					<li>Under your account name (near the top-left of screen) click the "EDIT" link.</li>
-					<li>In the new window set the "Remember me" setting to "YES" then click "SAVE SETTINGS".</li>
-				</ol>
-
-				The above instructions will have created a cookie file on your computer with a pin that you need to use this service.  Now you need to read that cookie file to find out your unique pin.  If you know how to read the cookie file for nikerunning.nike.com then the pin will be in that cookie file, if not then follow these instructions.
+			<!-- About -->
+			<div id="tabAbout" class="x-hide-display">
+				<div class="sectionSubHeading">Purpose</div>
+				<div class="sectionContent">
+					I bought the Nike+ iPod system for my iPod nano when I started running to motivate me and keep track of my training. Friends of mine used the system so
+					we set up challenges to compete against each other at <a href="http://www.nikeplus.com" target="_blank">nikeplus.com</a>. It is a great product for a
+					beginner but soon I wanted more and invested in a <a href="http://www.garmin.com/uk/405/">Garmin Forerunner 405</a>.  I still wanted to compete in the Nike+
+					challenges so wrote this converter so that I can record runs using my 405 and upload them to <a href="http://www.nikeplus.com" target="_blank">nikeplus.com</a>.
+					<br /><br />The Garmin Forerunner TCX file to Nike+ converter will convert workouts recorded on a garmin forerunner device (see tested devices below) to a file which will
+					allow them to be posted to the Nike+ system.  When provided with a Nike+ pin it will also upload the workout to Nike+.
+				</div>
+				<div class="sectionSubHeading">Tested Devices</div>
+				<div class="sectionContent">
+					Garmin Forerunner 405 (firmware versions 2.3 & 2.5).
+				</div>
+				<div class="sectionSubHeading">Technical</div>
+				<div class="sectionContent">
+					The converter is written in java and uses cubic spline interpolation to convert the garmin 'track-points' to the 10-second splits required by Nike+.
+				</div>
+				<div class="sectionSubHeading">Thanks to...</div>
+				<div class="sectionContent">
+					<a href="http://www.ee.ucl.ac.uk/~mflanaga/" target="_blank">Dr. Michael Thomas Flanagan</a> - Dr. Flanigan's "Java Scientific Library" is used for the cubic spline interpolation.
+					<br /><a href="http://www.geonames.org/" target="_blank">GeoNames</a> - GeoName's services are used to determine which timezone a workout is in.
+				</div>
 			</div>
 
 
-			<div class="sectionContent">
-				<span style="font-weight: bold;">Firefox (3 or later)</span>
-				<ol>
-					<li>Install the <a href="https://addons.mozilla.org/en-US/firefox/addon/315" target="_blank">View Cookies</a> firefox add-on &amp; restart firefox when required.</li>
-					<li>Go back to the old <a href="http://nikerunning.nike.com/nikeplus/?classic" target="_blank">Nike+</a> site.</li>
-					<li>Go to the "Tools" menu in firefox then "Page Info"</li>
-					<li>Click the "Cookies" button at the top-right of the new window and there should be one in the list with the name "pin", the corresponding value is your Nike+ pin to use on this page.</li>
-				</ol>
+
+			<!-- News -->
+			<div id="tabNews" class="x-hide-display">
+				<div class="sectionSubHeading">January 11 2010</div>
+				<div class="sectionContent">
+					Added validation which will attempt to fix corrupt garmin data (I'm presuming occurs due to poor satellite coverage) before converting to nike.
+					<br /><br />Cleaned up user-interface - now using Ext JS.
+					<br /><br />The converter will now automatically determine your time zone based on the latitude/longitude of where your workout began.
+				</div>
+				<div class="sectionSubHeading">December 1 2009</div>
+				<div class="sectionContent">
+					Added source to github: <a href="http://github.com/angusws/tcx2nikeplus" target="_blank">http://github.com/angusws/tcx2nikeplus</a>.
+					<br /><br />Fixed problem which prevented successful conversion of workouts if a pause/unpause was present right before start of a new lap (km/mile/whatever split) on garmin.
+				</div>
+				<div class="sectionSubHeading">September 3 2009</div>
+				<div class="sectionContent">
+					Please be aware this project is very much in an alpha stage and may not always work as expected during this early stage of development. At the moment there may also be downtime when the site doesn't work at all due to server upgrades being carried out.
+					<br /><br />Apologies to all who have contacted me in the past week or so with comments/suggestions/bugs. My day-to-day job has been very busy and it takes priority over this project. All your feedback is appreciated and your queries will be dealt with as soon as I get some spare time to work on the garmin to Nike+ converter.
+				</div>
 			</div>
 
-			<div class="sectionContent">
-				<span style="font-weight: bold;">Internet Explorer</span>
-				<ol>
-					<li>Download and unzip <a href="http://www.nirsoft.net/utils/iecv.zip">IECookiesView</a>.</li>
-					<li>Execute (double-click) the iecv.exe application.</li>
-					<li>Scroll down to the list of nike.com entries and click through them until you see a row with the "pin" in the key column in the bottom section of the application.  The corresponding "value" column for this row is what you need to remember so save it or write it down.</li>
-					<li>Close and (if you wish) delete the IECookiesView application, you will not need it again.</li>
-				</ol>
+
+			<!-- Contact -->
+			<div id="tabContact" class="x-hide-display">
+				<div class="sectionSubHeading">Contact Me</div>
+				<div class="sectionContent"><img src="img/email_address.png" alt=""/></div>
 			</div>
-			-->
-
-			<div class="sectionSubHeading">Obtain Emped ID (not essential)</div>
-			<div class="sectionContent">
-				The easiest way to obtain your emped ID is probably to look at the list of your runs on <a href="http://www.slowgeek.com/" target="_blank">slowgeek.com</a>, there is a column for each run with the emped ID.
-			</div>
-
-			<!--
-			<div class="sectionSubHeading">Obtain Garmin activity ID</div>
-			<div class="sectionContent">
-			View your workout on <a href="http://connect.garmin.com/" target="_blank">connect.garmin.com</a>, the activity ID is the number at the end of the url (address).  For example if the url is http://connect.garmin.com/activity/1234567 then the activity ID is 1234567.
-			</div>
-			-->
+			
+		</center>
 
 
 
-			<!--
-			<div class="sectionSubHeading">Obtain tcx file</div>
-			<div class="sectionContent">
-			After synchronising your garmin device with your computer the option is available to export the run to a tcx file both in the 'Garmin Training Center' and at <a href="http://connect.garmin.com" target="_blank">Garmin Connect</a>.
-			</div>
-			<div class="sectionSubHeading">Convert tcx file to Nike+ file</div>
-			<div class="sectionContent">
-			Use the Converter section at the top of this page.
-			</div>
-			<div class="sectionSubHeading">Sync the converted file with Nike+</div>
-			<div class="sectionContent">
-			Plug your iPod into your computer.
-			</div>
-			<div class="sectionContent">
-			<span style="font-weight: bold;">Microsoft Windows (PC)</span>
-			<ol>
-			<li>Open Windows Explorer <span class="codeTextItalic">(Windows Key + E)</span></li>
-			<li>Enable display of hidden files &amp; folders (<span class="codeTextItalic">Tools Menu > Folder Options > View > Show hidden files and folders</span>).</li>
-			<li>Navigate to the <span class="codeTextItalic">latest</span> folder on your iPod: <span class="codeTextItalic">iPod > iPod_Control > Device > Trainer > Workouts > Empeds > </span>A folder which will be alpha-numeric<span class="codeTextItalic"> > latest</span></li>
-			<li>Move the the xml file(s) created by the converter into this <span class="codeTextItalic">latest</span> Directory</li>
-			<li>Quit iTunes if it is open.</li>
-			<li>Open iTunes which should now sync your workouts to <a href="http://www.nikeplus.com" target="_blank">nikeplus.com</a>. If this fails you may need to eject your iPod then plug it in again.</li>
-			</ol>
-
-			<span style="font-weight: bold;">Mac OS X</span>
-			<ol>
-			<li>Open the <span class="codeTextItalic">Go > Go to Folder</span> from the Finder menu</li>
-			<li>Enter <span class="codeTextItalic">/Volumes/ipod_name/iPod_Control/Device/Trainer/Workouts/Empeds</span> (where <span class="codeTextItalic">ipod_name</span> is the name of your iPod as it appears in iTunes or in Finder) then click <span class="codeTextItalic">Go</span>.</li>
-			<li>Enter the folder with alpha-numeric name (eg. <span class="codeTextItalic">4H123ABCDEF</span>) then <span class="codeTextItalic">latest</span>.</li>
-			<li>Move the the xml file(s) created by the converter into this <span class="codeTextItalic">latest</span> Directory</li>
-			<li>Quit iTunes if it is open.</li>
-			<li>Open iTunes which should now sync your workouts to <a href="http://www.nikeplus.com" target="_blank">nikeplus.com</a>. If this fails you may need to eject your iPod then plug it in again.</li>
-			</ol>
-
-			<span style="font-weight: bold;">Other/Mac OS X</span>
-			<ol>
-			<li>Use a terminal, something like: <span class="codeTextItalic">mv ~/downloads/new/2009-*.xml  /media/IPOD/iPod_Control/Device/Trainer/Workouts/Empeds/4*/latest/</span></li>
-			<li>Quit iTunes if it is open.</li>
-			<li>Open iTunes which should now sync your workouts to <a href="http://www.nikeplus.com" target="_blank">nikeplus.com</a>. If this fails you may need to eject your iPod then plug it in again.</li>
-			</ol>
-			</div>
-			-->
-		</div>
-
-
-		<!-- About -->
-		<div class="section">
-			<div class="sectionHeading">About</div>
-			<div class="sectionContent">
-				When I first started running I bought the Nike+ iPod system for my iPod nano to motivate me and keep track of my training. Friends of mine used the system so we set up challenges to compete against each other at <a href="http://www.nikeplus.com" target="_blank">nikeplus.com</a>. It is a great product for a beginner but soon I wanted more and invested in a <a href="http://www.garmin.com/uk/405/">Garmin Forerunner 405</a>.  I still wanted to compete in the Nike+ challenges so wrote this converter so that I can record runs using my 405 and upload them to <a href="http://www.nikeplus.com" target="_blank">nikeplus.com</a>.
-				The Garmin Forerunner TCX file to Nike+ converter will convert workouts recorded on a garmin forerunner device (see tested devices below) to a file which will allow them to be posted to the Nike+ system.  When provided with a Nike+ pin it will also upload the workout to Nike+.
-			</div>
-			<div class="sectionSubHeading">Tested Devices</div>
-			<div class="sectionContent">
-				Garmin Forerunner 405 (firmware versions 2.3 & 2.5).
-			</div>
-			<div class="sectionSubHeading">Technical</div>
-			<div class="sectionContent">
-				The converter is written in java and uses cubic spline interpolation to convert the garmin 'track-points' to the 10-second splits required by Nike+.
-			</div>
-		</div>
-
-
-		<!-- Coming soon -->
-		<div class="section">
-			<div class="sectionHeading">Coming soon</div>
-			<div class="sectionContent">
-				<ul>
-					<li>The ability to provide a garmin activity ID rather than the hassle of having to export to tcx file.</li>
-				</ul>
-			</div>
-		</div>
-
-
-		<!-- Google analytics stuff -->
+		<!-- Google analytics -->
 		<script type="text/javascript">
 			var gaJsHost = (("https:" == document.location.protocol) ? "https://ssl." : "http://www.");
 			document.write(unescape("%3Cscript src='" + gaJsHost + "google-analytics.com/ga.js' type='text/javascript'%3E%3C/script%3E"));

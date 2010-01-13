@@ -12,7 +12,7 @@
 
 	<!-- Directories under git -->
 	<property name="src.dir" location="${git.dir}/src"/>
-	<property name="war.dir" location="${git.dir}/war"/>
+	<property name="conf.dir" location="${git.dir}/conf"/>
 	<property name="lib.dir" location="${git.dir}/lib"/>
 	<property name="html.dir" location="${git.dir}/html"/>
 	<property name="build.dir" location="${git.dir}/build"/>
@@ -61,10 +61,6 @@
 		
 		<!-- Create a classpath -->
 		<path id="compile.classpath">
-			<!--
-			<pathelement path="${lib.dir}/flanagan.jar"/>
-			<fileset dir="${war.dir}/WEB-INF/lib" includes="**/*.jar"/>
-			-->
 			<fileset dir="${lib.dir}" includes="**/*.jar"/>
 			<pathelement path="${tomcat.dir}/lib/servlet-api.jar"/>
 		</path>
@@ -80,14 +76,14 @@
 	<target name="build.app" depends="compile">
 		<jar destfile="${out.dir}/tcx2nikeplus.jar"
 			basedir="${classes.dir}"
-			includes="com/awsmithson/tcx2nikeplus/converter/**,com/awsmithson/tcx2nikeplus/uploader/**"/>
+			includes="com/awsmithson/tcx2nikeplus/converter/**,com/awsmithson/tcx2nikeplus/uploader/**,com/awsmithson/tcx2nikeplus/util/**"/>
 	</target>
 
 
 	<target name="build.test" depends="compile">
 		<jar destfile="${out.dir}/tcx2nikeplus-test.jar"
 			basedir="${classes.dir}"
-			includes="com/awsmithson/tcx2nikeplus/converter/**,com/awsmithson/tcx2nikeplus/uploader/**,com/awsmithson/tcx2nikeplus/test/**"/>
+			includes="com/awsmithson/tcx2nikeplus/converter/**,com/awsmithson/tcx2nikeplus/uploader/**,com/awsmithson/tcx2nikeplus/util/**,com/awsmithson/tcx2nikeplus/test/**"/>
 	</target>
 
 
@@ -167,7 +163,8 @@
 		<war destfile="${dist.dir}/tcx2nikeplus.war" webxml="${src.dir}/metadata/web.xml">
 			<fileset dir="${html.dir}"/>
 			<lib dir="${lib.dir}"/>
-			<classes dir="${classes.dir}" includes="**/Convert.class,**/Convert$Trackpoint.class,**/ConvertServlet.class,**/Util.class,**/Upload.class"/>
+			<classes dir="${classes.dir}" includes="**/Convert.class,**/Convert$Trackpoint.class,**/ConvertServlet.class,**/Log.class,**/LogFormatter.class,**/Util.class,**/Upload.class"/>
+			<classes dir="${conf.dir}" includes = "**/logging.properties"/>
 		</war>
 
 	</target>
