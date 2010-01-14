@@ -95,7 +95,7 @@ public class ConvertServlet extends HttpServlet
 
 
 				// If we have a tcx file to convert...
-				if ((garminTcxFile != null) && (garminTcxFile.exists())){
+				if ((garminTcxFile != null) && (garminTcxFile.exists())) {
 					log.out("Received convert-tcx-file request");
 					Document garminTcxDocument = Util.generateDocument(garminTcxFile);
 					convertTcxDocument(garminTcxDocument, nikeEmpedId, nikePin, response, out);
@@ -170,7 +170,7 @@ public class ConvertServlet extends HttpServlet
 				Document nikeResponse = u.syncData(nikePin, doc);
 				//<?xml version="1.0" encoding="UTF-8" standalone="no"?><plusService><status>success</status></plusService>
 				if (Util.getSimpleNodeValue(nikeResponse, "status").equals(NIKE_SUCCESS)) {
-					log.out(" - upload successful.");
+					log.out(" - Upload successful.");
 					return;
 				}
 
