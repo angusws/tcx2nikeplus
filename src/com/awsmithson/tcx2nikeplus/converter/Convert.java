@@ -167,7 +167,7 @@ public class Convert
 		// Get the timezone based on the Latitude, Longitude & Time (UTC) of the first TrackPoint
 		_workoutTimeZone = getWorkoutTimeZone(inDoc);
 		if (_workoutTimeZone == null)
-			TimeZone.getTimeZone("Etc/UTC");
+			_workoutTimeZone = TimeZone.getTimeZone("Etc/UTC");
 
 		// Set the the SimpleDateFormat object so that it prints the time correctly:
 		// local-time + UTC-difference.
