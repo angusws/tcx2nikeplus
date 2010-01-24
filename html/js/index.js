@@ -219,6 +219,7 @@ Ext.onReady(function() {
 			text: 'Reset',
 			handler: function() {
 				fp.getForm().reset();
+				fp.findById('fileFieldSet').expand();
 			}
 		}]
 	});
