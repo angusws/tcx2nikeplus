@@ -180,7 +180,7 @@ public class ConvertServlet extends HttpServlet
 			}
 			finally {
 				u.endSync(nikePin);
-				log.out("Closed connection to Nike+.");
+				log.out(" - Closing connection to Nike+...");
 			}
 		}
 	}

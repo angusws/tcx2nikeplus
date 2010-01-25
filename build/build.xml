@@ -163,7 +163,7 @@
 		<war destfile="${dist.dir}/tcx2nikeplus.war" webxml="${src.dir}/metadata/web.xml">
 			<fileset dir="${html.dir}"/>
 			<lib dir="${lib.dir}"/>
-			<classes dir="${classes.dir}" includes="**/Convert.class,**/Convert$Trackpoint.class,**/ConvertServlet.class,**/Log.class,**/LogFormatter.class,**/Util.class,**/Upload.class"/>
+			<classes dir="${classes.dir}" includes="**/Convert.class,**/Convert$Trackpoint.class,**/ConvertServlet.class,**/Log.class,**/LogFormatter.class,**/Util.class,**/Upload.class,**/Upload$1.class"/>
 			<classes dir="${conf.dir}" includes = "**/logging.properties"/>
 		</war>
 

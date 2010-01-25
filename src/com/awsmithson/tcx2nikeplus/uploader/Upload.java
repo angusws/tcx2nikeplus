@@ -1,5 +1,6 @@
 package com.awsmithson.tcx2nikeplus.uploader;
 
+import com.awsmithson.tcx2nikeplus.util.Log;
 import com.awsmithson.tcx2nikeplus.util.Util;
 import java.io.File;
 import java.io.IOException;
@@ -24,6 +25,8 @@ public class Upload
 	private static String URL_DATA_SYNC_COMPLETE = "https://secure-nikerunning.nike.com/nikeplus/v2/services/device/sync_complete.jsp";
 
 	private static String USER_AGENT = "iTunes/8.1.1 (Macintosh; N; Intel)";
+
+	private final static Log log = Log.getInstance();
 
 	public Upload() {
 	}
@@ -92,29 +95,43 @@ public class Upload
 		return outDoc;
 	}
 
+	
 
 	public void endSync(String pin) throws MalformedURLException, IOException, ParserConfigurationException, SAXException {
 
-		String data = generateParameter("pin", pin);
+		final String data = generateParameter("pin", pin);
 
-		// Send data
-		URL url = new URL(URL_DATA_SYNC_COMPLETE);
-		URLConnection conn = url.openConnection();
-		conn.setRequestProperty("user-agent", USER_AGENT);
-		conn.setDoOutput(true);
-		OutputStreamWriter wr = new OutputStreamWriter(conn.getOutputStream());
-        wr.write(data);
-        wr.flush();
+		Thread t = new Thread(new Runnable() {
+			public void run() {
+				OutputStreamWriter wr = null;
+				try {
+					// Send data
+					URL url = new URL(URL_DATA_SYNC_COMPLETE);
+					URLConnection conn = url.openConnection();
+					conn.setRequestProperty("user-agent", USER_AGENT);
+					conn.setDoOutput(true);
+					wr = new OutputStreamWriter(conn.getOutputStream());
+					wr.write(data);
+					wr.flush();
+				}
+				catch (Throwable t) {
+					log.out(t);
+				}
+				finally {
+					try {
+						if (wr != null) wr.close();
+					}
+					catch (Throwable t) {
+						log.out(t);
+					}
+				}
+			}
+		});
 
-		// Get the response
-		DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
-		DocumentBuilder db = dbf.newDocumentBuilder();
-		Document doc = db.parse(conn.getInputStream());
-		doc.normalize();
-
-        wr.close();
+		// Start the end-sync thread - and leave it to run in the background.
+		t.start();
 	}
-
+	
 
 	private String generateParameter(String key, String val) throws UnsupportedEncodingException {
 		return String.format("%s=%s", URLEncoder.encode(key, "UTF-8"), URLEncoder.encode(val, "UTF-8"));
