@@ -66,8 +66,13 @@ public class ConvertServlet extends HttpServlet
 
 					if (item.isFormField()) {
 						// Garmin activity id
-						if ((fieldName.equals("garminActivityId")) && (item.getString().length() > 0))
-							garminActivityId = Integer.parseInt(item.getString());
+						if ((fieldName.equals("garminActivityId")) && (item.getString().length() > 0)) {
+							// Split the string to obtain the activity-id in case the user
+							// enters the full url "http://connect.garmin.com/activity/23512599"
+							// instead of just the activityid "23512599".
+							String[] split = item.getString().split("/"); 
+							garminActivityId = Integer.parseInt(split[split.length-1]);
+						}
 
 						// Nike emped id
 						if ((fieldName.equals("nikeEmpedId")) && (item.getString().length() > 0))
