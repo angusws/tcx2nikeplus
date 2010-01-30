@@ -57,6 +57,7 @@ public class Util {
 		}
 	}
 
+	/*
 	public static void printDocument(Document doc) {
 		try {
 			TransformerFactory transformerFactory = TransformerFactory.newInstance();
@@ -70,6 +71,26 @@ public class Util {
 			log.out(e);
 		}
 	}
+	*/
+
+	public static String DocumentToString(Document doc) {
+		try {
+			TransformerFactory factory = TransformerFactory.newInstance();
+			Transformer transformer = factory.newTransformer();
+			DOMSource source = new DOMSource(doc);
+			StringWriter stringWriter = new StringWriter();
+			Result result = new StreamResult(stringWriter);
+			transformer.transform(source, result);
+			return stringWriter.getBuffer().toString();
+		}
+		catch (Exception e) {
+			log.out(e);
+		}
+		return null;
+	}
+
+
+
 
 	public static void writeDocument(Document doc, String filename) {
 		Source source = new DOMSource(doc);

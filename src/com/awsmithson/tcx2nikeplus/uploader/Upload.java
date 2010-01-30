@@ -87,10 +87,10 @@ public class Upload
 
 		// Get the response
 		Document outDoc = DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(conn.getInputStream());
-		outDoc.normalize();
-		//Util.printDocument(outDoc);
-
 		wr.close();
+		
+		outDoc.normalize();
+		log.out("    %s", Util.DocumentToString(outDoc));
 
 		return outDoc;
 	}
