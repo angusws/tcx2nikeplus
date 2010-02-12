@@ -175,7 +175,7 @@ public class ConvertServlet extends HttpServlet
 				Document nikeResponse = u.syncData(nikePin, doc);
 				//<?xml version="1.0" encoding="UTF-8" standalone="no"?><plusService><status>success</status></plusService>
 				if (Util.getSimpleNodeValue(nikeResponse, "status").equals(NIKE_SUCCESS)) {
-					log.out(" - Upload successful.");
+					log.out(" - Sync successful.");
 					return;
 				}
 
@@ -184,8 +184,13 @@ public class ConvertServlet extends HttpServlet
 				throw new Exception(String.format("%s: %s", nikeServiceException.getAttributes().item(0).getNodeValue(), nikeServiceException.getNodeValue()));
 			}
 			finally {
-				u.endSync(nikePin);
-				log.out(" - Closing connection to Nike+...");
+				log.out(" - Ending sync...");
+				Document nikeResponse = u.endSync(nikePin);
+				String message = (Util.getSimpleNodeValue(nikeResponse, "status").equals(NIKE_SUCCESS))
+					? " - End sync successful."
+					: String.format(" - End sync failed: %s", Util.DocumentToString(nikeResponse))
+				;
+				log.out(message);
 			}
 		}
 	}

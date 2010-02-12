@@ -24,7 +24,7 @@ public class Upload
 	private static String URL_DATA_SYNC = "https://secure-nikerunning.nike.com/nikeplus/v2/services/device/sync.jsp";
 	private static String URL_DATA_SYNC_COMPLETE = "https://secure-nikerunning.nike.com/nikeplus/v2/services/device/sync_complete.jsp";
 
-	private static String USER_AGENT = "iTunes/8.1.1 (Macintosh; N; Intel)";
+	private static String USER_AGENT = "iTunes/9.0.3 (Macintosh; N; Intel)";
 
 	private final static Log log = Log.getInstance();
 
@@ -34,26 +34,18 @@ public class Upload
 
 	public void checkPinStatus(String pin) throws IOException, MalformedURLException, ParserConfigurationException, SAXException, UnsupportedEncodingException {
 
-		String data = generateParameter("pin", pin);
-
 		// Send data
-		URL url = new URL(URL_CHECK_PIN_STATUS);
+		URL url = new URL(String.format("%s?%s", URL_CHECK_PIN_STATUS, generateParameter("pin", pin)));
 		URLConnection conn = url.openConnection();
 		conn.setRequestProperty("user-agent", USER_AGENT);
-		conn.setDoOutput(true);
-		OutputStreamWriter wr = new OutputStreamWriter(conn.getOutputStream());
-        wr.write(data);
-        wr.flush();
 
 		// Get the response
-		DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
-		DocumentBuilder db = dbf.newDocumentBuilder();
+		DocumentBuilder db = DocumentBuilderFactory.newInstance().newDocumentBuilder();
 		Document doc = db.parse(conn.getInputStream());
 		doc.normalize();
+		//log.out(Util.DocumentToString(doc));
 
 		String pinStatus = Util.getSimpleNodeValue(doc, "pinStatus");
-
-        wr.close();
 
 		if (!(pinStatus.equals("confirmed")))
 			throw new IllegalArgumentException("The PIN supplied is not valid");
@@ -90,29 +82,36 @@ public class Upload
 		wr.close();
 		
 		outDoc.normalize();
-		log.out("    %s", Util.DocumentToString(outDoc));
+		//log.out("    %s", Util.DocumentToString(outDoc));
 
 		return outDoc;
 	}
 
 	
 
-	public void endSync(String pin) throws MalformedURLException, IOException, ParserConfigurationException, SAXException {
+	public Document endSync(final String pin) throws MalformedURLException, IOException, ParserConfigurationException, SAXException {
+		URL url = new URL(String.format("%s?%s", URL_DATA_SYNC_COMPLETE, generateParameter("pin", pin)));
+		URLConnection conn = url.openConnection();
+		conn.setRequestProperty("user-agent", USER_AGENT);
 
-		final String data = generateParameter("pin", pin);
 
+		// Get the response
+		DocumentBuilder db = DocumentBuilderFactory.newInstance().newDocumentBuilder();
+		Document doc = db.parse(conn.getInputStream());
+		doc.normalize();
+		//log.out("end sync reply: %s", Util.DocumentToString(doc));
+
+		return doc;
+
+		/*
 		Thread t = new Thread(new Runnable() {
 			public void run() {
 				OutputStreamWriter wr = null;
 				try {
 					// Send data
-					URL url = new URL(URL_DATA_SYNC_COMPLETE);
+					URL url = new URL(String.format("%s?%s", URL_DATA_SYNC_COMPLETE, generateParameter("pin", pin)));
 					URLConnection conn = url.openConnection();
 					conn.setRequestProperty("user-agent", USER_AGENT);
-					conn.setDoOutput(true);
-					wr = new OutputStreamWriter(conn.getOutputStream());
-					wr.write(data);
-					wr.flush();
 				}
 				catch (Throwable t) {
 					log.out(t);
@@ -130,6 +129,7 @@ public class Upload
 
 		// Start the end-sync thread - and leave it to run in the background.
 		t.start();
+		*/
 	}
 	
 
