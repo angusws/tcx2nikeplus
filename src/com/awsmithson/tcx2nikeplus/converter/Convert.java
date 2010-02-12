@@ -369,13 +369,15 @@ public class Convert
 	}
 
 
-	private void generateCubicSplineData(Document inDoc, ArrayList<Trackpoint> trackpoints, ArrayList<Long> pauseResumeTimes) throws DatatypeConfigurationException {
+	private void generateCubicSplineData(Document inDoc, ArrayList<Trackpoint> trackpointsStore, ArrayList<Long> pauseResumeTimes) throws DatatypeConfigurationException {
 		long startDurationAdjusted = _calStart.getTimeInMillis();
 
 		NodeList trackPoints = inDoc.getElementsByTagName("Trackpoint");
 		int trackPointsLength = trackPoints.getLength();
 
-		Trackpoint previousTp = null;
+		// Setup a trackpoint based on the very start of the run in case there is a long pause right at the start.
+		Trackpoint previousTp = new Trackpoint(0l, 0d, null);
+		trackpointsStore.add(previousTp);
 
 		for (int i = 0; i < trackPointsLength; ++i) {
 
@@ -436,11 +438,30 @@ public class Convert
 						tp.generatePotentialPauseDuration();
 
 					// We have valid and new duration/distance combinations so store them for use later and move onto the next Trackpoint.
-					trackpoints.add(tp);
+					trackpointsStore.add(tp);
 					break;
 				}
 			}
 		}
+
+		// Always genrate a potential-pause on the first trackpoint in case the watch was paused at the start.
+		if (trackpointsStore.size() > 0)
+			trackpointsStore.get(1).generatePotentialPauseDuration();
+	}
+
+
+
+	private long createPauseResume(ArrayList<Long> pauseResumeTimes, NodeList trackPoints, int pauseIndex, int resumeIndex, long startDurationAdjusted) throws DatatypeConfigurationException {
+		long tpPauseTime = getCalendarNodeValue(trackPoints.item(pauseIndex).getChildNodes().item(1)).getTimeInMillis();
+		long tpResumeTime = getCalendarNodeValue(trackPoints.item(resumeIndex).getChildNodes().item(1)).getTimeInMillis();
+
+		// Save the pause/resume points so that we can create the snapshot event later (once we can interpolate to get the distance).
+		// 2009-12-01: Looking at various runs on nike+ it seems the each pause/resume pair now has the same duration/distance
+		// (using the pause event).  I can't find my nike+ stuff to check this is 100% accurate but will go with it for now.
+		pauseResumeTimes.add(tpPauseTime - startDurationAdjusted);
+
+		// Return the length of time (in millis) that the device was paused.
+		return tpResumeTime - tpPauseTime;
 	}
 
 
@@ -605,21 +626,6 @@ public class Convert
 
 		Element extendedDataListElement	= appendElement(sportsDataElement, "extendedDataList");
 		appendElement(extendedDataListElement, "extendedData", sb, "dataType", "distance", "intervalType", "time", "intervalUnit", "s", "intervalValue", "10");
-	}
-
-
-
-	private long createPauseResume(ArrayList<Long> pauseResumeTimes, NodeList trackPoints, int pauseIndex, int resumeIndex, long startDurationAdjusted) throws DatatypeConfigurationException {
-		long tpPauseTime = getCalendarNodeValue(trackPoints.item(pauseIndex).getChildNodes().item(1)).getTimeInMillis();
-		long tpResumeTime = getCalendarNodeValue(trackPoints.item(resumeIndex).getChildNodes().item(1)).getTimeInMillis();
-
-		// Save the pause/resume points so that we can create the snapshot event later (once we can interpolate to get the distance).
-		// 2009-12-01: Looking at various runs on nike+ it seems the each pause/resume pair now has the same duration/distance
-		// (using the pause event).  I can't find my nike+ stuff to check this is 100% accurate but will go with it for now.
-		pauseResumeTimes.add(tpPauseTime - startDurationAdjusted);
-
-		// Return the length of time (in millis) that the device was paused.
-		return tpResumeTime - tpPauseTime;
 	}
 
 
