@@ -388,13 +388,20 @@ public class Convert
 			if ((trackPointDataLength == 3) && (i+1 < trackPointsLength)) {
 
 				// Get what we are expecting to be the resume track-point-data.
-				trackPointData = trackPoints.item(++i).getChildNodes();
+				// 2010-03-15: This doesn't work because there are workouts (see garmin-connect-id 25956404) that have a big list of times whilst the device is paused.
+				//trackPointData = trackPoints.item(++i).getChildNodes();
+				
+				int pauseIndex = i;
+
+				// The trackpoint before the next "full" trackpoint will be used as our resume time.
+				while ((trackPoints.item(i+1).getChildNodes().getLength() == 3) && (i+2 < trackPointsLength))
+					trackPointData = trackPoints.item(++i).getChildNodes();
 
 				// As we are expecting it to be a resume trackPointData it must also be of length 3, otherwise we are not dealing with a pause/resume pair so ignore the pause.
 				if ((trackPointData.getLength()) == 3) {
 
 					// Create a pause/resume event.
-					startDurationAdjusted += createPauseResume(pauseResumeTimes, trackPoints, (i-1), i, startDurationAdjusted);
+					startDurationAdjusted += createPauseResume(pauseResumeTimes, trackPoints, pauseIndex, i, startDurationAdjusted);
 
 					// Continue onto the next trackpoint, we've stored our pause/resume data for later use.
 					continue;
