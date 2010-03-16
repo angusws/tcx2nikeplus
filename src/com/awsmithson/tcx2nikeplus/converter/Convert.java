@@ -371,6 +371,7 @@ public class Convert
 
 	private void generateCubicSplineData(Document inDoc, ArrayList<Trackpoint> trackpointsStore, ArrayList<Long> pauseResumeTimes) throws DatatypeConfigurationException {
 		long startDurationAdjusted = _calStart.getTimeInMillis();
+		boolean forcePotentialPause = false;
 
 		NodeList trackPoints = inDoc.getElementsByTagName("Trackpoint");
 		int trackPointsLength = trackPoints.getLength();
@@ -433,6 +434,15 @@ public class Convert
 				// We require valid duration & distance data to create a Trackpoint - otherwise just ignore and move on to the next iteration.
 				if ((duration != null) && (distance != null)) {
 
+					// I have a run where my 405 froze and when it rebooted it started recording distances lower than what it
+					// had already recorded!  Garmin Connect ID: 27181644 trackpoint at 2010-03-16T18:12:11.000Z.
+					// If we find a workout like this then ignore the trackpoints that are "wrong" and force a potential-pause addition
+					// for the next valid trackpoint we find.
+					if (distance < previousTp.getDistance()) {
+						forcePotentialPause = true;
+						break;
+					}
+
 					Trackpoint tp = new Trackpoint(duration, distance, previousTp);
 					previousTp = tp;
 
@@ -441,11 +451,15 @@ public class Convert
 
 					// If this trackpoint distance is the same as the previous one then keep track of it, we might need to
 					// create a pause/resume pair from it later to ensure our calculated distance does not exceed the total distance.
-					if (tp.isRepeatDistance())
+					if ((forcePotentialPause) || (tp.isRepeatDistance())) {
 						tp.generatePotentialPauseDuration();
+						forcePotentialPause = false;
+					}
 
 					// We have valid and new duration/distance combinations so store them for use later and move onto the next Trackpoint.
 					trackpointsStore.add(tp);
+
+					// Break out of the loop and look at the next trackpoint - we have all the data we require from this one.
 					break;
 				}
 			}
