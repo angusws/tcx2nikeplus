@@ -389,7 +389,6 @@ public class Convert
 	private void generateCubicSplineData(Document inDoc, ArrayList<Trackpoint> trackpointsStore, ArrayList<Long> pauseResumeTimes) throws DatatypeConfigurationException {
 		long startDurationOriginal = _calStart.getTimeInMillis();
 		long startDurationAdjusted = startDurationOriginal;
-		boolean forcePotentialPause = false;
 		
 		// Setup a trackpoint based on the very start of the run in case there is a long pause right at the start.
 		Trackpoint previousTp = new Trackpoint(0l, 0d, null);
@@ -430,8 +429,10 @@ public class Convert
 				Node[] trackPoints = al.toArray(new Node[0]);
 				int trackPointsLength = trackPoints.length;
 
-				// Always genrate a potential-pause on the first trackpoint of each lap/track in case the watch was paused at the start.
-				for (int j = 0; j < trackPointsLength; ++j, forcePotentialPause = true) {
+				// Always generate a potential-pause on the first trackpoint of each lap/track in case the watch was paused at the start.
+				boolean forcePotentialPause = true;
+
+				for (int j = 0; j < trackPointsLength; ++j) {
 
 					NodeList trackPointData = trackPoints[j].getChildNodes();
 					int trackPointDataLength = trackPointData.getLength();
@@ -513,7 +514,11 @@ public class Convert
 							previousTp = tp;
 
 							// If this trackpoint has the same duration as the last trackpoint do not add it to the trackpoints list.
-							if (tp.isRepeatDuration()) break;
+							// 2010-04-06: We now also generate a potential-pause on the previous trackpoint in the device was paused prior to these identical-duration trackpoints.
+							if (tp.isRepeatDuration()) {
+								tp.getPreviousTrackPoint().generatePotentialPauseDuration();
+								break;
+							}
 
 							// If this trackpoint distance is the same as the previous one then keep track of it, we might need to
 							// create a pause/resume pair from it later to ensure our calculated distance does not exceed the total distance.
