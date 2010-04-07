@@ -7,6 +7,7 @@ import java.io.PrintStream;
 import java.io.StringWriter;
 import java.io.Writer;
 import java.net.MalformedURLException;
+import java.net.SocketTimeoutException;
 import java.net.URL;
 import java.net.URLConnection;
 import java.util.logging.Level;
@@ -26,6 +27,9 @@ import org.xml.sax.SAXException;
 
 
 public class Util {
+
+	private final static int Connection_Timeout = 20 * 1000;
+
 
 	private final static Log log = Log.getInstance();
 
@@ -114,7 +118,7 @@ public class Util {
 		return downloadFile(location, null);
 	}
 
-	public static Document downloadFile(String location, String parameters) throws MalformedURLException, IOException, ParserConfigurationException, SAXException, FileNotFoundException {
+	public static Document downloadFile(String location, String parameters) throws MalformedURLException, IOException, ParserConfigurationException, SAXException, FileNotFoundException, SocketTimeoutException {
 		URL url = new URL(location);
 		URLConnection conn = url.openConnection();
 
@@ -122,6 +126,7 @@ public class Util {
 			// Use post mode
 			conn.setDoOutput(true);
 			conn.setAllowUserInteraction(false);
+			conn.setConnectTimeout(Connection_Timeout);
 
 			// Send query
 			PrintStream ps = new PrintStream(conn.getOutputStream());

@@ -137,8 +137,8 @@ public class ConvertServlet extends HttpServlet
 					succeed(out, jout, "Conversion & Upload Successful");
 			}
 		}
-		catch (Exception e) {
-			fail(out, jout, e.getMessage(), e);
+		catch (Throwable t) {
+			fail(out, jout, t.getMessage(), t);
 		}
 		finally {
 			out.close();
@@ -147,7 +147,7 @@ public class ConvertServlet extends HttpServlet
 
 
 
-	private void convertTcxDocument(Document garminTcxDocument, String nikeEmpedId, String nikePin, HttpServletResponse response, PrintWriter out) throws Exception {
+	private void convertTcxDocument(Document garminTcxDocument, String nikeEmpedId, String nikePin, HttpServletResponse response, PrintWriter out) throws Throwable {
 		// Generate the nike+ xml.
 		Convert c = new Convert();
 		Document doc = c.generateNikePlusXml(garminTcxDocument, nikeEmpedId);
@@ -198,9 +198,9 @@ public class ConvertServlet extends HttpServlet
 	
 	
 
-	private void fail(PrintWriter out, JsonObject jout, String errorMessage, Exception e) throws ServletException {
-		if (e != null)
-			log.out(Level.SEVERE, e, e.getMessage());
+	private void fail(PrintWriter out, JsonObject jout, String errorMessage, Throwable t) throws ServletException {
+		if (t != null)
+			log.out(Level.SEVERE, t, t.getMessage());
 
 		jout.addProperty("success", false);
 		exit(out, jout, -1, errorMessage);

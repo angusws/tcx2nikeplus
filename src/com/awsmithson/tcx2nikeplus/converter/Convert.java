@@ -6,6 +6,7 @@ import flanagan.interpolation.CubicSpline;
 import java.io.File;
 import java.io.IOException;
 import java.net.MalformedURLException;
+import java.net.SocketTimeoutException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -49,22 +50,22 @@ public class Convert
 	}
 
 
-	public Document generateNikePlusXml(File tcxFile, String empedID) {
-		try {
+	public Document generateNikePlusXml(File tcxFile, String empedID) throws Throwable {
+		//try {
 			Document tcxDoc = Util.generateDocument(tcxFile);
 			return generateNikePlusXml(tcxDoc, empedID);
-		}
-		catch (Exception e) {
-			log.out(e);
-			return null;
-		}
+		//}
+		//catch (Exception e) {
+		//	log.out(e);
+		//	return null;
+		//}
 	}
 
 
-	public Document generateNikePlusXml(Document inDoc, String empedID) {
+	public Document generateNikePlusXml(Document inDoc, String empedID) throws Throwable {
 		DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
 
-		try {
+		//try {
 			// Create and load input document
 			DocumentBuilder db = dbf.newDocumentBuilder();
 
@@ -107,11 +108,11 @@ public class Convert
 			//return new String[] { generateString(outDoc), generateFileName() };
 
 			return outDoc;
-		}
-		catch (Exception e) {
-			log.out(e);
-			return null;
-		}
+		//}
+		//catch (Exception e) {
+		//	log.out(e);
+		//	return null;
+		//}
 	}
 
 
@@ -229,11 +230,15 @@ public class Convert
 					String parameters = String.format("lat=%s&lng=%s", latitude, longitude);
 					
 					log.out("Looking up time zone for lat/lon: %.4f / %.4f", latitude, longitude);
-					Document response = Util.downloadFile(url, parameters);
-					String timeZoneId = Util.getSimpleNodeValue(response, "timezoneId");
-					log.out(" - %s", timeZoneId);
-
-					return TimeZone.getTimeZone(timeZoneId);
+					try {
+						Document response = Util.downloadFile(url, parameters);
+						String timeZoneId = Util.getSimpleNodeValue(response, "timezoneId");
+						log.out(" - %s", timeZoneId);
+						return TimeZone.getTimeZone(timeZoneId);
+					}
+					catch (SocketTimeoutException ste) {
+						throw new SocketTimeoutException("Unable to retrieve workout timezone (http://ws.geonames.org is not available right now).  Please try again later.");
+					}
 				}
 			}
 		}
@@ -816,8 +821,13 @@ public class Convert
 		String empedID = (args.length >= 2) ? args[1] : null;
 
 		Convert c = new Convert();
-		Document doc = c.generateNikePlusXml(inFile, empedID);
-		Util.writeDocument(doc, c.generateFileName());
+		try {
+			Document doc = c.generateNikePlusXml(inFile, empedID);
+			Util.writeDocument(doc, c.generateFileName());
+		}
+		catch (Throwable t) {
+			log.out(t);
+		}
 	}
 
 
