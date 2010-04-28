@@ -6,7 +6,6 @@ import flanagan.interpolation.CubicSpline;
 import java.io.File;
 import java.io.IOException;
 import java.net.MalformedURLException;
-import java.net.SocketTimeoutException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -428,8 +427,8 @@ public class Convert
 			if (tracks == null) continue;
 
 			// Get the lap start & end duration so that if there are any trackpoints outwith these times we can ignore them.
-			long lapStartDuration = getCalendarNodeValue(laps.item(i).getAttributes().getNamedItem("StartTime")).getTimeInMillis();
-			long lapEndDuration = lapStartDuration + (long)(Double.parseDouble(Util.getSimpleNodeValue(getChildrenByNodeName(laps.item(i), "TotalTimeSeconds")[0])) * 1000);
+			//long lapStartDuration = getCalendarNodeValue(laps.item(i).getAttributes().getNamedItem("StartTime")).getTimeInMillis();
+			//long lapEndDuration = lapStartDuration + (long)(Double.parseDouble(Util.getSimpleNodeValue(getChildrenByNodeName(laps.item(i), "TotalTimeSeconds")[0])) * 1000);
 
 			for (Node track : tracks) {
 
@@ -464,7 +463,8 @@ public class Convert
 					//System.out.printf("%s\t%d\n", trackPointData.toString(), trackPointData.getLength());
 
 					// First deal with pause/resume pairs.
-					if ((trackPointDataLength == 3) && (j+1 < trackPointsLength)) {
+					// 2010-04-28: Some workouts have multiple tracks and the first trackpoint in each is a simple time-only trackpoint - ignore these.
+					if ((trackPointDataLength == 3) && (j+1 < trackPointsLength) && (j > 0)) {
 
 						// Get what we are expecting to be the resume track-point-data.
 						// 2010-03-15: This doesn't work because there are workouts (see garmin-connect-id 25956404) that have a big list of times whilst the device is paused.
@@ -487,7 +487,7 @@ public class Convert
 							// Create a pause/resume event.
 							long timePaused = createPauseResume(pauseResumeTimes, trackPoints, pauseIndex, resumeIndex, startDurationAdjusted);
 							startDurationAdjusted += timePaused;
-							lapEndDuration += timePaused;
+							//lapEndDuration += timePaused;
 							forcePotentialPause = false;
 
 							// Continue onto the next trackpoint, we've stored our pause/resume data for later use.
