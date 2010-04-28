@@ -109,7 +109,7 @@ Ext.onReady(function() {
 				checkboxToggle: true,
 				title: 'Garmin TCX file',
 				autoHeight: true,
-				defaults: { width: 250 },
+				defaults: {width: 250},
 
 				listeners: {
 					expand: function() {
@@ -135,7 +135,7 @@ Ext.onReady(function() {
 				checkboxToggle: true,
 				title: 'Garmin Connect Activity ID',
 				autoHeight: true,
-				defaults: { width: 100 },
+				defaults: {width: 100},
 				collapsed: true,
 
 				listeners: {
@@ -202,6 +202,7 @@ Ext.onReady(function() {
 					else {
 						fp.getForm().submit({
 							url: 'convert',
+							params:{clientTimeZoneOffset : (0 - (new Date().getTimezoneOffset()))},
 							timeout: 60,
 							waitMsg: 'Converting &amp; Uploading your workout, please wait...',
 							success: function(fp, o){

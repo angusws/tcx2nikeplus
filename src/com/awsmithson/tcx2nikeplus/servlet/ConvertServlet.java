@@ -57,6 +57,7 @@ public class ConvertServlet extends HttpServlet
 				Integer garminActivityId = null;
 				String nikeEmpedId = null;
 				String nikePin = null;
+				Integer clientTimeZoneOffset = null;
 
 				// Iterate through the uploaded items
 				Iterator it = items.iterator();
@@ -75,12 +76,16 @@ public class ConvertServlet extends HttpServlet
 						}
 
 						// Nike emped id
-						if ((fieldName.equals("nikeEmpedId")) && (item.getString().length() > 0))
+						else if ((fieldName.equals("nikeEmpedId")) && (item.getString().length() > 0))
 							nikeEmpedId = item.getString();
 
 						// Nike pin
-						if ((fieldName.equals("nikePin")) && (item.getString().length() > 0))
+						else if ((fieldName.equals("nikePin")) && (item.getString().length() > 0))
 							nikePin = item.getString();
+
+						// Client Timezone Offset - will only be used when geonames timezone webservice is unavailable.
+						else if ((fieldName.equals("clientTimeZoneOffset")) && (item.getString().length() > 0))
+							clientTimeZoneOffset = Integer.parseInt(item.getString());
 					}
 					else {
 						// Garmin tcx file
@@ -98,12 +103,11 @@ public class ConvertServlet extends HttpServlet
 					}
 				}
 
-
 				// If we have a tcx file to convert...
 				if ((garminTcxFile != null) && (garminTcxFile.exists())) {
 					log.out("Received convert-tcx-file request");
 					Document garminTcxDocument = Util.generateDocument(garminTcxFile);
-					convertTcxDocument(garminTcxDocument, nikeEmpedId, nikePin, response, out);
+					convertTcxDocument(garminTcxDocument, nikeEmpedId, nikePin, clientTimeZoneOffset, response, out);
 				}
 
 				// If we have a garmin activity id then download the garmin tcx file then convert it.
@@ -125,7 +129,7 @@ public class ConvertServlet extends HttpServlet
 
 					log.out("Successfully downloaded garmin activity %d.", garminActivityId);
 
-					convertTcxDocument(garminTcxDocument, nikeEmpedId, nikePin, response, out);
+					convertTcxDocument(garminTcxDocument, nikeEmpedId, nikePin, clientTimeZoneOffset, response, out);
 				}
 
 				// If we didn't find a garmin tcx file or garmin activity id then we can't continue...
@@ -147,10 +151,10 @@ public class ConvertServlet extends HttpServlet
 
 
 
-	private void convertTcxDocument(Document garminTcxDocument, String nikeEmpedId, String nikePin, HttpServletResponse response, PrintWriter out) throws Throwable {
+	private void convertTcxDocument(Document garminTcxDocument, String nikeEmpedId, String nikePin, Integer clientTimeZoneOffset, HttpServletResponse response, PrintWriter out) throws Throwable {
 		// Generate the nike+ xml.
 		Convert c = new Convert();
-		Document doc = c.generateNikePlusXml(garminTcxDocument, nikeEmpedId);
+		Document doc = c.generateNikePlusXml(garminTcxDocument, nikeEmpedId, clientTimeZoneOffset);
 		log.out("Generated nike+ xml, workout start time: %s.", c.getStartTimeHumanReadable());
 
 		String filename = c.generateFileName();

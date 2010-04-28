@@ -28,7 +28,7 @@ import org.xml.sax.SAXException;
 
 public class Util {
 
-	private final static int Connection_Timeout = 20 * 1000;
+	private final static int Connection_Timeout = 12 * 1000;
 
 
 	private final static Log log = Log.getInstance();

@@ -63,6 +63,11 @@ public class Convert
 
 
 	public Document generateNikePlusXml(Document inDoc, String empedID) throws Throwable {
+		return generateNikePlusXml(inDoc, empedID, null);
+	}
+
+
+	public Document generateNikePlusXml(Document inDoc, String empedID, Integer clientTimeZoneOffset) throws Throwable {
 		DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
 
 		//try {
@@ -81,7 +86,7 @@ public class Convert
 			appendElement(sportsDataElement, "vers", "2");
 
 			// Run Summary
-			appendRunSummary(inDoc, sportsDataElement);
+			appendRunSummary(inDoc, sportsDataElement, clientTimeZoneOffset);
 
 			// Template
 			appendTemplate(sportsDataElement);
@@ -136,14 +141,14 @@ public class Convert
 	  </stepCounts>
 	</runSummary>
 	*/
-	private Element appendRunSummary(Document inDoc, Element sportsDataElement) throws DatatypeConfigurationException, IOException, MalformedURLException, ParserConfigurationException, SAXException {
+	private Element appendRunSummary(Document inDoc, Element sportsDataElement, Integer clientTimeZoneOffset) throws DatatypeConfigurationException, IOException, MalformedURLException, ParserConfigurationException, SAXException {
 		Element runSummaryElement = appendElement(sportsDataElement, "runSummary");
 
 		// Workout Name
 		appendCDATASection(runSummaryElement, "workoutName", "Basic");
 
 		// Start Time
-		appendStartTime(inDoc, runSummaryElement);
+		appendStartTime(inDoc, runSummaryElement, clientTimeZoneOffset);
 
 		// Duration, Duration, Pace & Calories
 		appendTotals(inDoc, runSummaryElement);
@@ -160,15 +165,17 @@ public class Convert
 
 
 
-	private void appendStartTime(Document inDoc, Element runSummaryElement) throws DatatypeConfigurationException, IOException, MalformedURLException, ParserConfigurationException, SAXException {
+	private void appendStartTime(Document inDoc, Element runSummaryElement, Integer clientTimeZoneOffset) throws DatatypeConfigurationException, IOException, MalformedURLException, ParserConfigurationException, SAXException {
 
 		// Garmin:	 2009-06-03T16:59:27.000Z
 		// Nike:	 2009-06-03T17:59:27+01:00
 		
 		// Get the timezone based on the Latitude, Longitude & Time (UTC) of the first TrackPoint
-		_workoutTimeZone = getWorkoutTimeZone(inDoc);
+		_workoutTimeZone = getWorkoutTimeZone(inDoc, clientTimeZoneOffset);
 		if (_workoutTimeZone == null)
 			_workoutTimeZone = TimeZone.getTimeZone("Etc/UTC");
+
+		log.out(_workoutTimeZone.getRawOffset());
 
 		// Set the the SimpleDateFormat object so that it prints the time correctly:
 		// local-time + UTC-difference.
@@ -194,7 +201,7 @@ public class Convert
 
 	// We use the latitude & longitude data along with the http://ws.geonames.org/timezone webservice to
 	// deduce in which time zone the workout began.
-	private TimeZone getWorkoutTimeZone(Document inDoc) throws DatatypeConfigurationException, IOException, MalformedURLException, ParserConfigurationException, SAXException {
+	private TimeZone getWorkoutTimeZone(Document inDoc, Integer clientTimeZoneOffset) throws DatatypeConfigurationException, IOException, MalformedURLException, ParserConfigurationException, SAXException {
 		NodeList positions = inDoc.getElementsByTagName("Position");
 		int positionsLength = positions.getLength();
 
@@ -236,8 +243,20 @@ public class Convert
 						log.out(" - %s", timeZoneId);
 						return TimeZone.getTimeZone(timeZoneId);
 					}
-					catch (SocketTimeoutException ste) {
-						throw new SocketTimeoutException("Unable to retrieve workout timezone (http://ws.geonames.org is not available right now).  Please try again later.");
+					catch (Throwable t) {
+
+						// If, for whatever reason we are unable to get the timezone and we have a clientTimeZoneOffset then use that.
+						if (clientTimeZoneOffset != null) {
+							int hours = clientTimeZoneOffset / 60;
+							int minutes = Math.abs(clientTimeZoneOffset) % 60;
+							String mm = String.format(((minutes < 10) ? "0%d" : "%d"), minutes);
+							String tz = String.format("GMT%s%d:%s", (hours < 0) ? "" : "+", hours, mm);
+
+							log.out("Unable to retrieve workout timezone from http://ws.geonames.org, attempting to use client-timezone %s instead.", tz);
+							return TimeZone.getTimeZone(tz);
+						}
+						else
+							throw new IOException("Unable to retrieve workout timezone (http://ws.geonames.org is not available right now).  Please try again later.", t);
 					}
 				}
 			}
