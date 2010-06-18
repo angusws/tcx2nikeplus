@@ -734,10 +734,18 @@ public class Convert
 	*/
 	private void appendExtendedDataList(Element sportsDataElement, CubicSpline durationToDistance) {
 		int finalReading = (int)(durationToDistance.getXmax());
-
+		double previousDistance = 0;
 		StringBuilder sb = new StringBuilder("0.0");
+
 		for (int i = 10000; i < finalReading; i = i + 10000) {
-			sb.append(String.format(", %.4f", (interpolate(durationToDistance, i))/1000));
+			double distance = (interpolate(durationToDistance, i))/1000;
+
+			// 2010-06-18: Phillip Purcell emailed me two workouts on 2010-06-14 which did not draw graphs on nikeplus.com
+			// A bit of debugging showed that some of the interpolated distances in these workouts wereless than the
+			// previous distance (impossible).  Hacked this fix so that this will never happen.
+			if (distance < previousDistance) distance = previousDistance;
+			sb.append(String.format(", %.4f", distance));
+			previousDistance = distance;
 		}
 
 		Element extendedDataListElement	= appendElement(sportsDataElement, "extendedDataList");
