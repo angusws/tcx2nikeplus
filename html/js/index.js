@@ -60,6 +60,10 @@ Ext.onReady(function() {
 			{
 				title: 'Contact',
 				contentEl: 'tabContact'
+			},
+			{
+				title: 'Donate',
+				contentEl: 'tabDonate'
 			}
 		]
     });

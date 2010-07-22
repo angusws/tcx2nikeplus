@@ -10,6 +10,7 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Random;
 import java.util.logging.Level;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
@@ -121,11 +122,11 @@ public class ConvertServlet extends HttpServlet
 						garminTcxDocument = Util.downloadFile(url);
 					}
 					catch (Exception e) {
-						throw new Exception("Invalid Garmin Activity ID.");
+						throw new Exception("Invalid Garmin Activity ID.  Please ensure your garmin workout is not marked as private.");
 					}
 
 					if (garminTcxDocument == null)
-						throw new Exception("Invalid Garmin Activity ID.");
+						throw new Exception("Invalid Garmin Activity ID.  Please ensure your garmin workout is not marked as private.");
 
 					log.out("Successfully downloaded garmin activity %d.", garminActivityId);
 
@@ -137,8 +138,16 @@ public class ConvertServlet extends HttpServlet
 					throw new Exception("You must supply either a Garmin TCX file or Garmin activity id.");
 
 				// We don't want to call this when we don't have a pin because all we do then is return the xml document as an attachment.
-				if (nikePin != null)
-					succeed(out, jout, "Conversion & Upload Successful");
+				if (nikePin != null) {
+
+					// There is a 1/100 chance that we remind the user it is possible to donate.
+					String message = (new Random().nextInt(100) == 0)
+						? "Conversion & Upload Successful.  Please consider donating to help keep this project alive."
+						: "Conversion & Upload Successful."
+					;
+
+					succeed(out, jout, message);
+				}
 			}
 		}
 		catch (Throwable t) {
