@@ -35,6 +35,7 @@ public class Convert
 
 	private long _totalDuration;
 	private double _totalDistance;
+	private boolean _includeHeartRateData = false;
 
 	private TimeZone _workoutTimeZone;
 	private Calendar _calStart;
@@ -82,10 +83,10 @@ public class Convert
 			Element sportsDataElement = appendElement(outDoc, "sportsData");
 
 			// Vers
-			appendElement(sportsDataElement, "vers", "2");
+			appendElement(sportsDataElement, "vers", "8");
 
 			// Run Summary
-			appendRunSummary(inDoc, sportsDataElement, clientTimeZoneOffset);
+			Element runSummary = appendRunSummary(inDoc, sportsDataElement, clientTimeZoneOffset);
 
 			// Template
 			appendTemplate(sportsDataElement);
@@ -101,7 +102,7 @@ public class Convert
 
 			
 			// Workout Detail
-			appendWorkoutDetail(inDoc, sportsDataElement);
+			appendWorkoutDetail(inDoc, sportsDataElement, runSummary);
 
 
 			// Test lap durations
@@ -374,7 +375,7 @@ public class Convert
 	
 
 
-	private void appendWorkoutDetail(Document inDoc, Element sportsDataElement) throws DatatypeConfigurationException {
+	private void appendWorkoutDetail(Document inDoc, Element sportsDataElement, Element runSummaryElement) throws DatatypeConfigurationException {
 		ArrayList<Trackpoint> trackpoints = new ArrayList<Trackpoint>();
 		ArrayList<Long> pauseResumeTimes = new ArrayList<Long>();
 
@@ -389,6 +390,37 @@ public class Convert
 		validateCubicSplineData(trackpoints, pauseResumeTimes);
 
 		appendSnapShotListAndExtendedData(sportsDataElement, trackpoints, pauseResumeTimes);
+
+		// Append heart rate detail to the run summary if required.
+		if (_includeHeartRateData) {
+
+			Trackpoint min = null;
+			Trackpoint max = null;
+			int average = 0;
+
+			for (Trackpoint tp : trackpoints) {
+				int heartRate = tp.getHeartRate().intValue();
+				if ((min == null) || (heartRate < min.getHeartRate())) min = tp;
+				if ((max == null) || (heartRate > max.getHeartRate())) max = tp;
+				average += heartRate;
+			}
+
+			average /= trackpoints.size();
+
+			Element heartRateElement = appendElement(runSummaryElement, "heartRate");
+			appendElement(heartRateElement, "average", average);
+			appendHeartRateSummary(heartRateElement, "minimum", min);
+			appendHeartRateSummary(heartRateElement, "maximum", max);
+			appendElement(heartRateElement, "battery", 3);
+		}
+	}
+
+	private void appendHeartRateSummary(Element heartRateElement, String type, Trackpoint tp) {
+		Element heartRateTypeElement = appendElement(heartRateElement, type);
+		appendElement(heartRateTypeElement, "duration", tp.getDuration());
+		appendElement(heartRateTypeElement, "distance", String.format("%.3f", tp.getDistance()/1000));
+		appendElement(heartRateTypeElement, "bpm", tp.getHeartRate().intValue());
+
 	}
 
 
@@ -414,7 +446,7 @@ public class Convert
 		long startDurationAdjusted = startDurationOriginal;
 		
 		// Setup a trackpoint based on the very start of the run in case there is a long pause right at the start.
-		Trackpoint previousTp = new Trackpoint(0l, 0d, null);
+		Trackpoint previousTp = new Trackpoint(0l, 0d, 0d, null);
 		trackpointsStore.add(previousTp);
 
 		NodeList laps = inDoc.getElementsByTagName("Lap");
@@ -499,6 +531,7 @@ public class Convert
 					// If we reach this point then this is a normal trackpoint, not a pause/resume.
 					Double distance = null;
 					Long duration = null;
+					Double heartRateBpm = null;
 
 					// Loop through the data for this trackpoint until we have duration & distance data which we can store.
 					for (int k = 0; k < trackPointDataLength; ++k) {
@@ -522,41 +555,53 @@ public class Convert
 						else if (nodeName.equals("DistanceMeters"))
 							distance = Double.parseDouble(Util.getSimpleNodeValue(n));
 
-						// We require valid duration & distance data to create a Trackpoint - otherwise just ignore and move on to the next iteration.
-						if ((duration != null) && (distance != null)) {
-							
-							// I have a run where my 405 froze and when it rebooted it started recording distances lower than what it
-							// had already recorded!  Garmin Connect ID: 27181644 trackpoint at 2010-03-16T18:12:11.000Z.
-							// If we find a workout like this then ignore the trackpoints that are "wrong" and force a potential-pause addition
-							// for the next valid trackpoint we find.
-							if (distance < previousTp.getDistance()) {
-								forcePotentialPause = true;
-								break;
+						// Heart rate bpm
+						else if (nodeName.equals("HeartRateBpm")) {
+							NodeList heartRateData = n.getChildNodes();
+							int heartRateDataLength = heartRateData.getLength();
+
+							for (int l = 0; l < heartRateDataLength; ++l) {
+								Node heartRateNode = heartRateData.item(l);
+								if (heartRateNode.getNodeName().equals("Value")) {
+									_includeHeartRateData = true;
+									heartRateBpm = Double.parseDouble(Util.getSimpleNodeValue(heartRateNode));
+								}
 							}
-
-							Trackpoint tp = new Trackpoint(duration, distance, previousTp);
-							previousTp = tp;
-
-							// If this trackpoint has the same duration as the last trackpoint do not add it to the trackpoints list.
-							// 2010-04-06: We now also generate a potential-pause on the previous trackpoint in the device was paused prior to these identical-duration trackpoints.
-							if (tp.isRepeatDuration()) {
-								tp.getPreviousTrackPoint().generatePotentialPauseDuration();
-								break;
-							}
-
-							// If this trackpoint distance is the same as the previous one then keep track of it, we might need to
-							// create a pause/resume pair from it later to ensure our calculated distance does not exceed the total distance.
-							if ((forcePotentialPause) || (tp.isRepeatDistance())) {
-								tp.generatePotentialPauseDuration();
-								forcePotentialPause = false;
-							}
-
-							// We have valid and new duration/distance combinations so store them for use later and move onto the next Trackpoint.
-							trackpointsStore.add(tp);
-
-							// Break out of the loop and look at the next trackpoint - we have all the data we require from this one.
-							break;
 						}
+					}
+
+
+					// We require valid duration & distance data to create a Trackpoint - otherwise just ignore and move on to the next iteration.
+					if ((duration != null) && (distance != null)) {
+
+						// I have a run where my 405 froze and when it rebooted it started recording distances lower than what it
+						// had already recorded!  Garmin Connect ID: 27181644 trackpoint at 2010-03-16T18:12:11.000Z.
+						// If we find a workout like this then ignore the trackpoints that are "wrong" and force a potential-pause addition
+						// for the next valid trackpoint we find.
+						if (distance < previousTp.getDistance()) {
+							forcePotentialPause = true;
+							continue;
+						}
+
+						Trackpoint tp = new Trackpoint(duration, distance, heartRateBpm, previousTp);
+						previousTp = tp;
+
+						// If this trackpoint has the same duration as the last trackpoint do not add it to the trackpoints list.
+						// 2010-04-06: We now also generate a potential-pause on the previous trackpoint in the device was paused prior to these identical-duration trackpoints.
+						if (tp.isRepeatDuration()) {
+							tp.getPreviousTrackPoint().generatePotentialPauseDuration();
+							continue;
+						}
+
+						// If this trackpoint distance is the same as the previous one then keep track of it, we might need to
+						// create a pause/resume pair from it later to ensure our calculated distance does not exceed the total distance.
+						if ((forcePotentialPause) || (tp.isRepeatDistance())) {
+							tp.generatePotentialPauseDuration();
+							forcePotentialPause = false;
+						}
+
+						// We have valid and new duration/distance combinations so store them for use later and move onto the next Trackpoint.
+						trackpointsStore.add(tp);
 					}
 				}
 			}
@@ -671,14 +716,18 @@ public class Convert
 		int tpsSize = trackpoints.size();
 		double[] durationsArray = new double[tpsSize];
 		double[] distancesArray = new double[tpsSize];
+		double[] heartRatesArray = new double[tpsSize];
 
-		populateDurationsAndDistancesArrays(trackpoints, durationsArray, distancesArray);
+		populateDurationsAndDistancesArrays(trackpoints, durationsArray, distancesArray, heartRatesArray);
 		
 
 		// Generate cubic splines for distance -> duration and duration -> distance.
 		// I'd have thought the flanagan classes would have offered some method of inverting the data, but I've not looked into it and this hack will do for now.
 		CubicSpline distanceToDuration = new CubicSpline(distancesArray, durationsArray);
 		CubicSpline durationToDistance = new CubicSpline(durationsArray, distancesArray);
+
+		// Heartrate cubic spline
+		CubicSpline durationToheartRate = new CubicSpline(durationsArray, heartRatesArray);
 
 		Element snapShotKmListElement = appendElement(sportsDataElement, "snapShotList", null, "snapShotType", "kmSplit");
 		Element snapShotMileListElement = appendElement(sportsDataElement, "snapShotList", null, "snapShotType", "mileSplit");
@@ -693,34 +742,40 @@ public class Convert
 			// 2009-12-01: Looking at various runs on nike+ it seems the each pause/resume pair now has the same duration/distance
 			// (using the pause event).  I can't find my nike+ stuff to check this is 100% accurate but will go with it for now.
 			double distance = interpolate(durationToDistance, time);
-			appendSnapShot(snapShotClickListElement, time, distance, "event", "pause");
-			appendSnapShot(snapShotClickListElement, time, distance, "event", "resume");
+			int heartRateBpm = (int)(interpolate(durationToheartRate, time));
+			appendSnapShot(snapShotClickListElement, time, distance, heartRateBpm, "event", "pause");
+			appendSnapShot(snapShotClickListElement, time, distance, heartRateBpm, "event", "resume");
 		}
 
 		// Km splits
-		for (int i = 1000; i <= _totalDistance; i += 1000)
-			appendSnapShot(snapShotKmListElement, (long)(interpolate(distanceToDuration, i)), i);
+		for (int i = 1000; i <= _totalDistance; i += 1000) {
+			double duration = (long)(interpolate(distanceToDuration, i));
+			appendSnapShot(snapShotKmListElement, (long)duration, i, (int)(interpolate(durationToheartRate, duration)));
+		}
 
 		// Mile splits
-		for (double i = D_METRES_PER_MILE; i <= _totalDistance; i += D_METRES_PER_MILE)
-			appendSnapShot(snapShotMileListElement, (long)(interpolate(distanceToDuration, i)), i);
+		for (double i = D_METRES_PER_MILE; i <= _totalDistance; i += D_METRES_PER_MILE) {
+			double duration = (long)(interpolate(distanceToDuration, i));
+			appendSnapShot(snapShotMileListElement, (long)duration, i, (int)(interpolate(durationToheartRate, duration)));
+		}
 
 		// Stop split
-		appendSnapShot(snapShotClickListElement, _totalDuration, _totalDistance, "event", "stop");
+		appendSnapShot(snapShotClickListElement, _totalDuration, _totalDistance, (int)(heartRatesArray[heartRatesArray.length - 1]), "event", "stop");
 
 
-		// ExtendedDataList
-		appendExtendedDataList(sportsDataElement, durationToDistance);
+		// ExtendedDataLists
+		appendExtendedDataList(sportsDataElement, durationToDistance, durationToheartRate);
 		
 	}
 
 
 	// Copy data from the trackpoint ArrayList into the durations & distances arrays in preparation for creating CubicSplines.
-	private void populateDurationsAndDistancesArrays(ArrayList<Trackpoint> trackpoints, double[] durations, double[] distances) {
+	private void populateDurationsAndDistancesArrays(ArrayList<Trackpoint> trackpoints, double[] durations, double[] distances, double[] heartRates) {
 		Iterator<Trackpoint> tpsIt = trackpoints.iterator();
 		int i = 0;
 		while (tpsIt.hasNext()) {
 			Trackpoint tp = tpsIt.next();
+			if (_includeHeartRateData) heartRates[i] = tp.getHeartRate();
 			durations[i] = tp.getDuration();
 			distances[i++] = tp.getDistance();
 		}
@@ -732,10 +787,13 @@ public class Convert
 	  <extendedData dataType="distance" intervalType="time" intervalUnit="s" intervalValue="10">0.0. 1.1, 2.3, 4.7, etc</extendedData>
 	</extendedDataList>
 	*/
-	private void appendExtendedDataList(Element sportsDataElement, CubicSpline durationToDistance) {
+	private void appendExtendedDataList(Element sportsDataElement, CubicSpline durationToDistance, CubicSpline durationToHeartRate) {
 		int finalReading = (int)(durationToDistance.getXmax());
 		double previousDistance = 0;
-		StringBuilder sb = new StringBuilder("0.0");
+		StringBuilder sbDistance = new StringBuilder("0.0");
+		StringBuilder sbHeartRate = new StringBuilder();
+
+		if (_includeHeartRateData) sbHeartRate.append((int)(interpolate(durationToHeartRate, 0d)));
 
 		for (int i = 10000; i < finalReading; i = i + 10000) {
 			double distance = (interpolate(durationToDistance, i))/1000;
@@ -744,20 +802,29 @@ public class Convert
 			// A bit of debugging showed that some of the interpolated distances in these workouts wereless than the
 			// previous distance (impossible).  Hacked this fix so that this will never happen.
 			if (distance < previousDistance) distance = previousDistance;
-			sb.append(String.format(", %.4f", distance));
+			sbDistance.append(String.format(", %.4f", distance));
 			previousDistance = distance;
+
+
+			if (_includeHeartRateData) sbHeartRate.append(String.format(", %d", (int)(interpolate(durationToHeartRate, i))));
 		}
 
 		Element extendedDataListElement	= appendElement(sportsDataElement, "extendedDataList");
-		appendElement(extendedDataListElement, "extendedData", sb, "dataType", "distance", "intervalType", "time", "intervalUnit", "s", "intervalValue", "10");
+		appendElement(extendedDataListElement, "extendedData", sbDistance, "dataType", "distance", "intervalType", "time", "intervalUnit", "s", "intervalValue", "10");
+
+		if (_includeHeartRateData)
+			appendElement(extendedDataListElement, "extendedData", sbHeartRate, "dataType", "heartRate", "intervalType", "time", "intervalUnit", "s", "intervalValue", "10");
+
 	}
 
 
-	private void appendSnapShot(Element snapShotListElement, long durationMillis, double distanceMetres, String ... attributes) {
+	private void appendSnapShot(Element snapShotListElement, long durationMillis, double distanceMetres, int heartRateBpm, String ... attributes) {
 		Element snapShotElement = appendElement(snapShotListElement, "snapShot", null, attributes);
 
 		appendElement(snapShotElement, "duration", durationMillis);
 		appendElement(snapShotElement, "distance", String.format("%.3f", distanceMetres/1000));
+		if (_includeHeartRateData)
+			appendElement(snapShotElement, "bpm", heartRateBpm);
 		//appendElement(snapShotElement, "pace", generateSnapShotPace(durationToDistance, currentDuration));
 	}
 
@@ -765,7 +832,7 @@ public class Convert
 	private double interpolate(CubicSpline spline, double x) {
 		if (x < spline.getXmin()) x = spline.getXmin();
 		else if (x > spline.getXmax()) x = spline.getXmax();
-		
+
 		return spline.interpolate(x);
 	}
 
@@ -865,12 +932,14 @@ public class Convert
 	{
 		private long		_duration;
 		private double		_distance;
+		private Double		_heartRate;
 		private Trackpoint	_previousTrackPoint;
 		private long		_potentialPauseDuration;
 
-		public Trackpoint(long duration, double distance, Trackpoint previousTrackPoint) {
+		public Trackpoint(long duration, double distance, Double heartRate, Trackpoint previousTrackPoint) {
 			_duration = duration;
 			_distance = distance;
+			_heartRate = heartRate;
 			_previousTrackPoint = previousTrackPoint;
 		}
 
@@ -881,6 +950,10 @@ public class Convert
 
 		protected double getDistance() {
 			return _distance;
+		}
+
+		protected Double getHeartRate() {
+			return _heartRate;
 		}
 
 		protected Trackpoint getPreviousTrackPoint() {
