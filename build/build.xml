@@ -23,6 +23,8 @@
 
 	<!-- Directories under dist/app -->
 	<property name="dist.app.dir" location="${dist.dir}/app"/>
+	<property name="dist.app.bin.dir" location="${dist.app.dir}/bin"/>
+	<property name="dist.app.conf.dir" location="${dist.app.dir}/conf"/>
 	<property name="dist.app.lib.dir" location="${dist.app.dir}/lib"/>
 
 	<!-- Directories under dist/test -->
@@ -98,19 +100,25 @@
 	<target name="dist.app" depends="build.app">
 
 		<mkdir dir="${dist.app.dir}"/>
+		<mkdir dir="${dist.app.bin.dir}"/>
+		<mkdir dir="${dist.app.conf.dir}"/>
 		<mkdir dir="${dist.app.lib.dir}"/>
-		<mkdir dir="${dist.app.dir}/bin"/>
 
-		<!-- Copy the jars required to the dist/lib directory. -->
+		<!-- Copy the jars required to the dist/app/lib directory. -->
 		<copy todir="${dist.app.lib.dir}">
 			<fileset dir="${lib.dir}" includes="flanagan.jar"/>
 			<fileset dir="${out.dir}" includes="tcx2nikeplus.jar"/>
 		</copy>
 
+		<!-- Copy the looging conf to the dist/app/conf directory. -->
+		<copy todir="${dist.app.conf.dir}">
+			<fileset dir="${conf.dir}" includes="logging_app.properties"/>
+		</copy>
+
 		<exec executable="cp">
 			<arg value="${bin.dir}/convert"/>
 			<arg value="${bin.dir}/upload"/>
-			<arg value="${dist.app.dir}/bin/"/>
+			<arg value="${dist.app.bin.dir}"/>
 		</exec>
 
 		<!-- Delete any *~ files from ${dist.dir}. -->

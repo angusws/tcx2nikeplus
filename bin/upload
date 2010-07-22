@@ -9,12 +9,11 @@ fi
 
 PIN=$1
 NIKEFILE=$2
-#echo $PIN
-#echo $TCXFILE
 shift
 
 ROOT=${0%/*}/../
 LIB=$ROOT/lib
+CONF=$ROOT/conf
 
 # Create the classpath
 for i in $LIB/*.jar
@@ -23,5 +22,5 @@ do
 done
 
 
-# Execeute the application with supplied arguments
-java -classpath $CP com.awsmithson.tcx2nikeplus.uploader.Upload $PIN $NIKEFILE
+# Execute the application with supplied arguments
+java -Djava.util.logging.config.file=$CONF/logging_app.properties -classpath $CP com.awsmithson.tcx2nikeplus.uploader.Upload $PIN $NIKEFILE

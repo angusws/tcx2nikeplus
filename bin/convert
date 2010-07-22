@@ -8,11 +8,11 @@ then
 fi
 
 TCXFILE=$1
-#echo $TCXFILE
 shift
 
 ROOT=${0%/*}/../
 LIB=$ROOT/lib
+CONF=$ROOT/conf
 
 # Create the classpath
 for i in $LIB/*.jar
@@ -21,7 +21,5 @@ do
 done
 
 
-# Execeute the application with supplied arguments
-#/System/Library/Frameworks/JavaVM.framework/Versions/1.6/Home/bin/java -classpath $CP com.tcx2nikeplus.converter.Convert $TCXFILE
-java -classpath $CP com.awsmithson.tcx2nikeplus.converter.Convert "$TCXFILE" $*
-
+# Execute the application with supplied arguments
+java -Djava.util.logging.config.file=$CONF/logging_app.properties -classpath $CP com.awsmithson.tcx2nikeplus.converter.Convert "$TCXFILE" $*
