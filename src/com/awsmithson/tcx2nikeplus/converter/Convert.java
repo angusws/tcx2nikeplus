@@ -419,6 +419,7 @@ public class Convert
 		Element heartRateTypeElement = appendElement(heartRateElement, type);
 		appendElement(heartRateTypeElement, "duration", tp.getDuration());
 		appendElement(heartRateTypeElement, "distance", String.format("%.3f", tp.getDistance()/1000));
+		appendElement(heartRateTypeElement, "pace", tp.getPace());
 		appendElement(heartRateTypeElement, "bpm", tp.getHeartRate().intValue());
 
 	}
@@ -589,7 +590,7 @@ public class Convert
 						// If this trackpoint has the same duration as the last trackpoint do not add it to the trackpoints list.
 						// 2010-04-06: We now also generate a potential-pause on the previous trackpoint in the device was paused prior to these identical-duration trackpoints.
 						if (tp.isRepeatDuration()) {
-							tp.getPreviousTrackPoint().generatePotentialPauseDuration();
+							tp.getPreviousTrackpoint().generatePotentialPauseDuration();
 							continue;
 						}
 
@@ -691,11 +692,11 @@ public class Convert
 				log.out("Removing trackpoint with duration %d", pauseDuration);
 
 				// Remove the pause/resume trackpoints from the list that will be used for the cubic-spline data.
-				trackpoints.remove(tp.getPreviousTrackPoint());
+				trackpoints.remove(tp.getPreviousTrackpoint());
 				trackpoints.remove(tp);
 
 				// Add a pause/resume split for the removed trackpoints.
-				pauseResumeTimes.add(tp.getPreviousTrackPoint().getDuration());
+				pauseResumeTimes.add(tp.getPreviousTrackpoint().getDuration());
 			}
 		}
 		
@@ -716,15 +717,17 @@ public class Convert
 		int tpsSize = trackpoints.size();
 		double[] durationsArray = new double[tpsSize];
 		double[] distancesArray = new double[tpsSize];
+		double[] pacesArray = new double[tpsSize];
 		double[] heartRatesArray = new double[tpsSize];
 
-		populateDurationsAndDistancesArrays(trackpoints, durationsArray, distancesArray, heartRatesArray);
+		populateDurationsAndDistancesArrays(trackpoints, durationsArray, distancesArray, pacesArray, heartRatesArray);
 		
 
-		// Generate cubic splines for distance -> duration and duration -> distance.
+		// Generate cubic splines for distance -> duration, duration -> distance & distance -> pace.
 		// I'd have thought the flanagan classes would have offered some method of inverting the data, but I've not looked into it and this hack will do for now.
 		CubicSpline distanceToDuration = new CubicSpline(distancesArray, durationsArray);
 		CubicSpline durationToDistance = new CubicSpline(durationsArray, distancesArray);
+		CubicSpline durationToPace = new CubicSpline(durationsArray, pacesArray);
 
 		// Heartrate cubic spline
 		CubicSpline durationToheartRate = new CubicSpline(durationsArray, heartRatesArray);
@@ -742,25 +745,26 @@ public class Convert
 			// 2009-12-01: Looking at various runs on nike+ it seems the each pause/resume pair now has the same duration/distance
 			// (using the pause event).  I can't find my nike+ stuff to check this is 100% accurate but will go with it for now.
 			double distance = interpolate(durationToDistance, time);
+			long pace = (long)(interpolate(durationToPace, time));
 			int heartRateBpm = (int)(interpolate(durationToheartRate, time));
-			appendSnapShot(snapShotClickListElement, time, distance, heartRateBpm, "event", "pause");
-			appendSnapShot(snapShotClickListElement, time, distance, heartRateBpm, "event", "resume");
+			appendSnapShot(snapShotClickListElement, time, distance, pace, heartRateBpm, "event", "pause");
+			appendSnapShot(snapShotClickListElement, time, distance, pace, heartRateBpm, "event", "resume");
 		}
 
 		// Km splits
 		for (int i = 1000; i <= _totalDistance; i += 1000) {
 			double duration = (long)(interpolate(distanceToDuration, i));
-			appendSnapShot(snapShotKmListElement, (long)duration, i, (int)(interpolate(durationToheartRate, duration)));
+			appendSnapShot(snapShotKmListElement, (long)duration, i, (long)(interpolate(durationToPace, duration)), (int)(interpolate(durationToheartRate, duration)));
 		}
 
 		// Mile splits
 		for (double i = D_METRES_PER_MILE; i <= _totalDistance; i += D_METRES_PER_MILE) {
 			double duration = (long)(interpolate(distanceToDuration, i));
-			appendSnapShot(snapShotMileListElement, (long)duration, i, (int)(interpolate(durationToheartRate, duration)));
+			appendSnapShot(snapShotMileListElement, (long)duration, i, (long)(interpolate(durationToPace, duration)), (int)(interpolate(durationToheartRate, duration)));
 		}
 
 		// Stop split
-		appendSnapShot(snapShotClickListElement, _totalDuration, _totalDistance, (int)(heartRatesArray[heartRatesArray.length - 1]), "event", "stop");
+		appendSnapShot(snapShotClickListElement, _totalDuration, _totalDistance, (long)(interpolate(durationToPace, _totalDuration)), (int)(heartRatesArray[heartRatesArray.length - 1]), "event", "stop");
 
 
 		// ExtendedDataLists
@@ -770,14 +774,15 @@ public class Convert
 
 
 	// Copy data from the trackpoint ArrayList into the durations & distances arrays in preparation for creating CubicSplines.
-	private void populateDurationsAndDistancesArrays(ArrayList<Trackpoint> trackpoints, double[] durations, double[] distances, double[] heartRates) {
+	private void populateDurationsAndDistancesArrays(ArrayList<Trackpoint> trackpoints, double[] durations, double[] distances, double[] paces, double[] heartRates) {
 		Iterator<Trackpoint> tpsIt = trackpoints.iterator();
 		int i = 0;
 		while (tpsIt.hasNext()) {
 			Trackpoint tp = tpsIt.next();
 			if (_includeHeartRateData) heartRates[i] = tp.getHeartRate();
 			durations[i] = tp.getDuration();
-			distances[i++] = tp.getDistance();
+			distances[i] = tp.getDistance();
+			paces[i++] = tp.getPace();
 		}
 	}
 	
@@ -818,11 +823,12 @@ public class Convert
 	}
 
 
-	private void appendSnapShot(Element snapShotListElement, long durationMillis, double distanceMetres, int heartRateBpm, String ... attributes) {
+	private void appendSnapShot(Element snapShotListElement, long durationMillis, double distanceMetres, long paceMillisKm, int heartRateBpm, String ... attributes) {
 		Element snapShotElement = appendElement(snapShotListElement, "snapShot", null, attributes);
 
 		appendElement(snapShotElement, "duration", durationMillis);
 		appendElement(snapShotElement, "distance", String.format("%.3f", distanceMetres/1000));
+		appendElement(snapShotElement, "pace", paceMillisKm);
 		if (_includeHeartRateData)
 			appendElement(snapShotElement, "bpm", heartRateBpm);
 		//appendElement(snapShotElement, "pace", generateSnapShotPace(durationToDistance, currentDuration));
@@ -936,6 +942,13 @@ public class Convert
 		private Trackpoint	_previousTrackPoint;
 		private long		_potentialPauseDuration;
 
+		/**
+		 * A representatino of a garmin <trackpoint> element.
+		 * @param duration Current (relative to start of workout) duration in millis.
+		 * @param distance Current distance in metres.
+		 * @param heartRate Current heartrate in bpm.
+		 * @param previousTrackPoint The previously recorded trackpoint, or null if this is the first trackpoint.
+		 */
 		public Trackpoint(long duration, double distance, Double heartRate, Trackpoint previousTrackPoint) {
 			_duration = duration;
 			_distance = distance;
@@ -956,8 +969,41 @@ public class Convert
 			return _heartRate;
 		}
 
-		protected Trackpoint getPreviousTrackPoint() {
+		/**
+		 * Nike+ uses the number of millis it takes to complete 1km as their pace figure.
+		 * @return Nike+ pace.
+		 */
+		protected long getPace() {
+			// This can give skewed pace figures as we might have a trackpoint 2 seconds ago with slightly inaccurate distance resulting in wildly chaotic pace data.
+			//Trackpoint previous = getPreviousDifferentTrackpoint();		
+
+			// I use the previous 20 seconds of data to calculate pace (avoiding the problem caused by getPreviousDifferntTrackpoint).
+			long startDuration = (_duration > 20000) ? _duration - 20000 : 0;
+			Trackpoint startTp = getPreviousTrackpoint();
+			while ((startTp != null) && (startTp.getDuration() > startDuration))
+				startTp = startTp.getPreviousTrackpoint();
+
+			long splitDuration = (startTp == null) ? _duration : (_duration - startTp.getDuration());
+			double splitDistance = (startTp == null) ? _distance : (_distance - startTp.getDistance());
+
+			return (long)((1000d/splitDistance) * splitDuration);
+		}
+
+		protected Trackpoint getPreviousTrackpoint() {
 			return _previousTrackPoint;
+		}
+
+		/**
+		 * Returns the most recent trackpoint with different duration/distance data to this one.
+		 * @return Previous differnt trackpoint.
+		 */
+		protected Trackpoint getPreviousDifferentTrackpoint() {
+			Trackpoint tp = this;
+
+			while ((tp != null) && (tp.isRepeatDuration() || tp.isRepeatDistance())) 
+				tp = getPreviousTrackpoint();
+
+			return tp.getPreviousTrackpoint();
 		}
 
 		protected long getPotentialPauseDuration() {
