@@ -398,6 +398,8 @@ public class Convert
 			Trackpoint max = null;
 			int average = 0;
 
+			// FIX-ME: The way I calculate average heart rate is nonsense, there might have been 1000 trackpoints in the first 5km and then
+			// only 200 in the final 5km, which would skew the average reading massively on whatever the heart rate readings were in the first 5km.
 			for (Trackpoint tp : trackpoints) {
 				int heartRate = tp.getHeartRate().intValue();
 				if ((min == null) || (heartRate < min.getHeartRate())) min = tp;
@@ -583,6 +585,11 @@ public class Convert
 							forcePotentialPause = true;
 							continue;
 						}
+
+						// 2010-07-28: I have been emailed some workouts which do not convert because not all the Trackpoints have heart-rate data.
+						// This hack will fix it for now but I need to look at something better.
+						if ((_includeHeartRateData) && (heartRateBpm == null))
+							heartRateBpm = previousTp.getHeartRate();
 
 						Trackpoint tp = new Trackpoint(duration, distance, heartRateBpm, previousTp);
 						previousTp = tp;
