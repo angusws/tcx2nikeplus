@@ -44,22 +44,42 @@ public class Upload
 	}
 
 
+	/**
+	 * Calls fullSync converting the File objects to Document.
+	 * @param pin Nike+ pin.
+	 * @param runXml Nike+ workout xml.
+	 * @param gpxXml Nike+ gpx xml.
+	 * @throws ParserConfigurationException
+	 * @throws SAXException
+	 * @throws IOException
+	 * @throws MalformedURLException
+	 * @throws NoSuchAlgorithmException
+	 * @throws KeyManagementException
+	 */
 	private void fullSync(String pin, File runXml, File gpxXml) throws ParserConfigurationException, SAXException, IOException, MalformedURLException, NoSuchAlgorithmException, KeyManagementException {
-		// Load the file, ensuring it is valid xml
 		DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
 		DocumentBuilder db = dbf.newDocumentBuilder();
-
-		Document runXmlDoc = db.parse(runXml);
-		runXmlDoc.normalize();
-
-		Document gpxXmlDoc = db.parse(gpxXml);
-		runXmlDoc.normalize();
-
-		fullSync(pin, runXmlDoc, gpxXmlDoc);
+		fullSync(pin, db.parse(runXml), ((gpxXml != null) ? db.parse(gpxXml) : null));
 	}
 
+	/**
+	 * Does a full synchronisation cycle (check-pin-status, sync, end-sync) with nike+ for the given pin and xml document(s).
+	 * @param pin Nike+ pin.
+	 * @param runXml Nike+ workout xml.
+	 * @param gpxXml Nike+ gpx xml.
+	 * @throws IOException
+	 * @throws MalformedURLException
+	 * @throws ParserConfigurationException
+	 * @throws SAXException
+	 * @throws NoSuchAlgorithmException
+	 * @throws KeyManagementException
+	 */
 	public void fullSync(String pin, Document runXml, Document gpxXml) throws IOException, MalformedURLException, ParserConfigurationException, SAXException, NoSuchAlgorithmException, KeyManagementException {
 		
+		boolean haveGpx = (gpxXml != null);
+		runXml.normalizeDocument();
+		if (haveGpx) gpxXml.normalizeDocument();
+
 		log.out("Uploading to Nike+...");
 		
 		try {
@@ -67,7 +87,7 @@ public class Upload
 			checkPinStatus(pin);
 
 			log.out(" - Syncing data...");
-			Document nikeResponse = (gpxXml != null)
+			Document nikeResponse = (haveGpx)
 				? syncDataGps(pin, runXml, gpxXml)
 				: syncDataNonGps(pin, runXml)
 			;
