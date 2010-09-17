@@ -22,16 +22,17 @@ import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
 import org.w3c.dom.Document;
+import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.xml.sax.SAXException;
 
 
 public class Util {
 
-	private final static int Connection_Timeout = 12 * 1000;
+	private static final int Connection_Timeout = 12 * 1000;
 
 
-	private final static Log log = Log.getInstance();
+	private static final Log log = Log.getInstance();
 
 
 	public static String getSimpleNodeValue(Document doc, String nodeName) {
@@ -42,7 +43,29 @@ public class Util {
 		return node.getChildNodes().item(0).getNodeValue();
 	}
 
-	
+	public static Element appendElement(Node parent, String name) {
+		return appendElement(parent, name, null);
+	}
+
+	public static Element appendElement(Node parent, String name, Object data, String ... attributes) {
+		Document doc = (parent.getNodeType() == Node.DOCUMENT_NODE) ? (Document)parent : parent.getOwnerDocument();
+		Element e = doc.createElement(name);
+		parent.appendChild(e);
+
+		if (data != null) e.appendChild(doc.createTextNode(data.toString()));
+
+		for (int i = 0; i < attributes.length; ++i)
+			e.setAttribute(attributes[i++], attributes[i]);
+
+		return e;
+	}
+
+	public static void appendCDATASection(Node parent, String name, Object data) {
+		Document doc = (parent.getNodeType() == Node.DOCUMENT_NODE) ? (Document)parent : parent.getOwnerDocument();
+		Element e = doc.createElement(name);
+		parent.appendChild(e);
+		e.appendChild(doc.createCDATASection(data.toString()));
+	}
 
 	public static String generateStringOutput(Document doc) {
 		try {

@@ -2,14 +2,13 @@
 
 if [[ $# -lt 2 ]]
 then
-    echo "Usage: $0 pin nike-file"
+    echo "Usage: $0 pin nike-xml-file [gpx file]"
     echo ""
     exit 1
 fi
 
-PIN=$1
-NIKEFILE=$2
-shift
+#PIN=$1
+#NIKEFILE=$2
 
 ROOT=${0%/*}/../
 LIB=$ROOT/lib
@@ -23,4 +22,4 @@ done
 
 
 # Execute the application with supplied arguments
-java -Djava.util.logging.config.file=$CONF/logging_app.properties -classpath $CP com.awsmithson.tcx2nikeplus.uploader.Upload $PIN $NIKEFILE
+java -Djava.util.logging.config.file=$CONF/logging.properties -classpath $CP com.awsmithson.tcx2nikeplus.uploader.Upload $*

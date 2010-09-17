@@ -1,4 +1,4 @@
-package com.awsmithson.tcx2nikeplus.converter;
+package com.awsmithson.tcx2nikeplus.convert;
 
 import com.awsmithson.tcx2nikeplus.util.Log;
 import com.awsmithson.tcx2nikeplus.util.Util;
@@ -26,15 +26,17 @@ import org.xml.sax.SAXException;
 
 
 
-public class Convert
+public class ConvertTcx
 {
 
 	private static final double				D_METRES_PER_MILE = 1609.344;
+	private static final int				MILLIS_PER_HOUR = 60 * 1000 * 60;
 	private static final String				DATE_TIME_FORMAT_NIKE = "yyyy-MM-dd'T'HH:mm:ssZ";
 	private static final String				DATE_TIME_FORMAT_HUMAN = "d MMM yyyy HH:mm:ss z";
 
 	private long _totalDuration;
 	private double _totalDistance;
+	private boolean _forceExcludeHeartRateData;
 	private boolean _includeHeartRateData = false;
 
 	private TimeZone _workoutTimeZone;
@@ -43,15 +45,27 @@ public class Convert
 	private String _startTimeString;
 	private String _startTimeStringHuman;
 
-	private final static Log log = Log.getInstance();
+	private static final Log log = Log.getInstance();
 
 
-	public Convert() {
+	/**
+	 * Converts a garmin tcx file to a nike+ workout xml document.
+	 * <p>
+	 * This class is a hacky mess just now but it does the job.
+	 * @author angus
+	 */
+	public ConvertTcx() {
 	}
 
 
 	public Document generateNikePlusXml(File tcxFile, String empedID) throws Throwable {
+		return generateNikePlusXml(tcxFile, empedID, false);
+	}
+
+
+	public Document generateNikePlusXml(File tcxFile, String empedID, boolean forceExcludeHeartRateData) throws Throwable {
 		//try {
+			_forceExcludeHeartRateData = forceExcludeHeartRateData;
 			Document tcxDoc = Util.generateDocument(tcxFile);
 			return generateNikePlusXml(tcxDoc, empedID);
 		//}
@@ -68,22 +82,23 @@ public class Convert
 
 
 	public Document generateNikePlusXml(Document inDoc, String empedID, Integer clientTimeZoneOffset) throws Throwable {
+		return generateNikePlusXml(inDoc, empedID, clientTimeZoneOffset, false);
+	}
+
+	public Document generateNikePlusXml(Document inDoc, String empedID, Integer clientTimeZoneOffset, boolean forceExcludeHeartRateData) throws Throwable {
+		_forceExcludeHeartRateData = forceExcludeHeartRateData;
 		DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
 
 		//try {
-			// Create and load input document
-			DocumentBuilder db = dbf.newDocumentBuilder();
-
 			// Create output document
+			DocumentBuilder db = dbf.newDocumentBuilder();
 			Document outDoc = db.newDocument();
 			
-
-
 			// Sports Data (root)
-			Element sportsDataElement = appendElement(outDoc, "sportsData");
+			Element sportsDataElement = Util.appendElement(outDoc, "sportsData");
 
 			// Vers
-			appendElement(sportsDataElement, "vers", "8");
+			//Util.appendElement(sportsDataElement, "vers", "8");				// 2010-09-13: I've noticed this is not included in the iphone xml output.
 
 			// Run Summary
 			Element runSummary = appendRunSummary(inDoc, sportsDataElement, clientTimeZoneOffset);
@@ -98,12 +113,11 @@ public class Convert
 			appendUserInfo(inDoc, sportsDataElement, empedID);
 
 			// Start Time
-			appendElement(sportsDataElement, "startTime", _startTimeString);
+			Util.appendElement(sportsDataElement, "startTime", _startTimeString);
 
 			
 			// Workout Detail
 			appendWorkoutDetail(inDoc, sportsDataElement, runSummary);
-
 
 			// Test lap durations
 			//testLapDuration(inDoc);
@@ -111,7 +125,7 @@ public class Convert
 			//printDocument(outDoc);
 			//writeDocument(outDoc);
 			//return new String[] { generateString(outDoc), generateFileName() };
-
+			
 			return outDoc;
 		//}
 		//catch (Exception e) {
@@ -123,29 +137,45 @@ public class Convert
 
 
 	/*
-	<runSummary>
-	  <workoutName><![CDATA[Basic]]></workoutName>
-	  <time>2009-06-12T10:00:00-10:00</time>
-	  <duration>1760000</duration>
-	  <durationString>29:20</durationString>
-	  <distance unit="km">6.47</distance>
-	  <distanceString>6.47 km</distanceString>
-	  <pace>4:32 min/km</pace>
-	  <calories>505</calories>
-	  <battery></battery>
-	  <stepCounts>
-	    <walkBegin>0</walkBegin>
-	    <walkEnd>0</walkEnd>
-	    <runBegin>0</runBegin>
-	    <runEnd>0</runEnd>
-	  </stepCounts>
-	</runSummary>
 	*/
+	/**
+	 * Generates a run summary xml element like:
+	 * <pre>
+	 * {@code
+	 * <runSummary>
+	 *   <workoutName><![CDATA[Basic]]></workoutName>
+	 *   <time>2009-06-12T10:00:00-10:00</time>
+	 *   <duration>1760000</duration>
+	 *   <durationString>29:20</durationString>
+	 *   <distance unit="km">6.47</distance>
+	 *   <distanceString>6.47 km</distanceString>
+	 *   <pace>4:32 min/km</pace>
+	 *   <calories>505</calories>
+	 *   <battery></battery>
+	 *   <stepCounts>
+	 *     <walkBegin>0</walkBegin>
+	 *     <walkEnd>0</walkEnd>
+	 *     <runBegin>0</runBegin>
+	 *     <runEnd>0</runEnd>
+	 *   </stepCounts>
+	 * </runSummary>
+	 * }
+	 * </pre>
+	 * @param inDoc The garmin tcx document we are reading the data from.
+	 * @param sportsDataElement An xml element we have already created "sportsDataElement"
+	 * @param clientTimeZoneOffset The client timezone offset to use in the event we are unable to determine workout timezone from the gps coordinates.
+	 * @return The runSummary xml element.
+	 * @throws DatatypeConfigurationException
+	 * @throws IOException
+	 * @throws MalformedURLException
+	 * @throws ParserConfigurationException
+	 * @throws SAXException
+	 */
 	private Element appendRunSummary(Document inDoc, Element sportsDataElement, Integer clientTimeZoneOffset) throws DatatypeConfigurationException, IOException, MalformedURLException, ParserConfigurationException, SAXException {
-		Element runSummaryElement = appendElement(sportsDataElement, "runSummary");
+		Element runSummaryElement = Util.appendElement(sportsDataElement, "runSummary");
 
 		// Workout Name
-		appendCDATASection(runSummaryElement, "workoutName", "Basic");
+		//Util.appendCDATASection(runSummaryElement, "workoutName", "Basic");		// 2010-09-13: I've noticed this is not included in the iphone xml output.
 
 		// Start Time
 		appendStartTime(inDoc, runSummaryElement, clientTimeZoneOffset);
@@ -154,10 +184,10 @@ public class Convert
 		appendTotals(inDoc, runSummaryElement);
 
 		// Battery
-		appendElement(runSummaryElement, "battery");
+		Util.appendElement(runSummaryElement, "battery");
 
 		// Step Counts
-		appendStepCounts(runSummaryElement);
+		//appendStepCounts(runSummaryElement);									// 2010-09-13: I've noticed this is not included in the iphone xml output.
 
 		return runSummaryElement;
 	}
@@ -187,7 +217,7 @@ public class Convert
 		Date dateStart = calStart.getTime();
 		_startTimeString = df.format(dateStart);
 		_startTimeString = String.format("%s:%s", _startTimeString.substring(0, 22), _startTimeString.substring(22));
-		appendElement(runSummaryElement, "time", _startTimeString);
+		Util.appendElement(runSummaryElement, "time", _startTimeString);
 
 		// Generate a human readable start-string we can use for debugging.
 		df.applyPattern(DATE_TIME_FORMAT_HUMAN);
@@ -308,33 +338,34 @@ public class Convert
 		_calEnd.add(Calendar.MILLISECOND, (int)totalDuration);
 
 		// Total Duration
-		appendElement(parent, "duration", totalDuration);
-		appendElement(parent, "durationString", getTimeStringFromMillis(totalDuration));
+		Util.appendElement(parent, "duration", totalDuration);
+		//Util.appendElement(parent, "durationString", getTimeStringFromMillis(totalDuration));		// 2010-09-13: I've noticed this is not included in the iphone xml output.
 
 		// Total Distance
 		//totalDistance = totalDistance.divide(BD_1000);
 		totalDistance /= 1000;
-		appendElement(parent, "distance", String.format("%.4f", totalDistance), "unit", "km");
-		appendElement(parent, "distanceString", String.format("%.2f km", totalDistance));
+		Util.appendElement(parent, "distance", String.format("%.4f", totalDistance), "unit", "km");
+		//Util.appendElement(parent, "distanceString", String.format("%.2f km", totalDistance));		// 2010-09-13: I've noticed this is not included in the iphone xml output.
 
 		// Pace
-		appendElement(parent, "pace", String.format("%s min/km", getTimeStringFromMillis(calculatePace(totalDuration, totalDistance))));
+		//Util.appendElement(parent, "pace", String.format("%s min/km", getTimeStringFromMillis(calculatePace(totalDuration, totalDistance))));		// 2010-09-13: I've noticed this is not included in the iphone xml output.
 
 		// Calories - FIXME - calories are not calculated properly yet...
-		appendElement(parent, "calories", totalCalories);
+		Util.appendElement(parent, "calories", totalCalories);
 	}
 
 
-
+	/*
+	// 2010-09-13: I've noticed this is not included in the iphone xml output.
 	private void appendStepCounts(Node parent) {
-		Element stepCountsElement = appendElement(parent, "stepCounts");
+		Element stepCountsElement = Util.appendElement(parent, "stepCounts");
 
-		appendElement(stepCountsElement, "walkBegin", "0");
-		appendElement(stepCountsElement, "walkEnd", "0");
-		appendElement(stepCountsElement, "runBegin", "0");
-		appendElement(stepCountsElement, "runEnd", "0");
+		Util.appendElement(stepCountsElement, "walkBegin", "0");
+		Util.appendElement(stepCountsElement, "walkEnd", "0");
+		Util.appendElement(stepCountsElement, "runBegin", "0");
+		Util.appendElement(stepCountsElement, "runEnd", "0");
 	}
-
+	*/
 
 	/*
 	<template><templateID>8D495DCE</templateID>
@@ -342,15 +373,15 @@ public class Convert
 	</template>
 	*/
 	private void appendTemplate(Element sportsDataElement) {
-		Element templateElement = appendElement(sportsDataElement, "template");
-		appendElement(templateElement, "templateID", "8D495DCE");
-		appendCDATASection(templateElement, "templateName", "Basic");
+		Element templateElement = Util.appendElement(sportsDataElement, "template");
+		//Util.appendElement(templateElement, "templateID", "8D495DCE");					// 2010-09-13: I've noticed this is not included in the iphone xml output.
+		Util.appendCDATASection(templateElement, "templateName", "Basic");
 	}
 
 
 	// <goal type="" value="" unit=""></goal>
 	private void appendGoalType(Element sportsDataElement) {
-		appendElement(sportsDataElement, "goal", null, "type", "", "value", "", "unit", "");
+		Util.appendElement(sportsDataElement, "goal", null, "type", "", "value", "", "unit", "");
 	}
 
 	/*
@@ -362,14 +393,14 @@ public class Convert
 	</userInfo>
 	*/
 	private void appendUserInfo(Document inDoc, Element sportsDataElement, String empedID) {
-		Element templateElement = appendElement(sportsDataElement, "userInfo");
-		appendElement(templateElement, "empedID", (empedID == null) ? "XXXXXXXXXXX" : empedID);
-		appendElement(templateElement, "weight");
+		Element templateElement = Util.appendElement(sportsDataElement, "userInfo");
+		Util.appendElement(templateElement, "empedID", (empedID == null) ? "XXXXXXXXXXX" : empedID);
+		Util.appendElement(templateElement, "weight");
 
 		// Upload goes through fine when "Garmin Forerunner 405 is specified as device but on nikeplus.com website some data shows as "invalid"
-		//appendElement(templateElement, "device",	getSimpleNodeValue(inDoc, "Name"));		// Garmin Forerunner 405
-		appendElement(templateElement, "device", "iPod");								// iPod
-		appendElement(templateElement, "calibration");
+		//Util.appendElement(templateElement, "device",	getSimpleNodeValue(inDoc, "Name"));		// Garmin Forerunner 405
+		Util.appendElement(templateElement, "device", "iPod");								// iPod
+		Util.appendElement(templateElement, "calibration");
 	}
 
 	
@@ -382,15 +413,19 @@ public class Convert
 		// Generate the workout detail from the garmin Trackpoint data.
 		generateCubicSplineData(inDoc, trackpoints, pauseResumeTimes);
 
-		//System.out.printf("totalDistance: %.4f\ttpsDistance: %.4f\t\ttotalDuration: %d\ttpsDuration: %d\n",
+		//log.out("totalDistance: %.4f\ttpsDistance: %.4f\t\ttotalDuration: %d\ttpsDuration: %d",
 		//		_totalDistance, trackpoints.get(trackpoints.size()-1).getDistance(),
 		//		_totalDuration, trackpoints.get(trackpoints.size()-1).getDuration());
 
 		// Validate our data and attempt to fix it if there are any problems.
 		validateCubicSplineData(trackpoints, pauseResumeTimes);
 
-		appendSnapShotListAndExtendedData(sportsDataElement, trackpoints, pauseResumeTimes);
+		// Generates the following CubicSplines: distanceToDuration, durationToDistance, durationToPace, durationToHeartRate.
+		CubicSpline[] splines = generateCubicSplines(trackpoints);
+		appendSnapShotListAndExtendedData(sportsDataElement, pauseResumeTimes, splines[0], splines[1], splines[2], splines[3]);
 
+
+		
 		// Append heart rate detail to the run summary if required.
 		if (_includeHeartRateData) {
 
@@ -398,32 +433,30 @@ public class Convert
 			Trackpoint max = null;
 			int average = 0;
 
-			// FIX-ME: The way I calculate average heart rate is nonsense, there might have been 1000 trackpoints in the first 5km and then
-			// only 200 in the final 5km, which would skew the average reading massively on whatever the heart rate readings were in the first 5km.
 			for (Trackpoint tp : trackpoints) {
 				int heartRate = tp.getHeartRate().intValue();
 				if ((min == null) || (heartRate < min.getHeartRate())) min = tp;
 				if ((max == null) || (heartRate > max.getHeartRate())) max = tp;
-				average += heartRate;
+				average += (heartRate * tp.getDurationSinceLastTrackpoint(true));
 			}
 
-			average /= trackpoints.size();
+			average /= _totalDuration;
 
-			Element heartRateElement = appendElement(runSummaryElement, "heartRate");
-			appendElement(heartRateElement, "average", average);
+			Element heartRateElement = Util.appendElement(runSummaryElement, "heartRate");
+			Util.appendElement(heartRateElement, "average", average);
 			appendHeartRateSummary(heartRateElement, "minimum", min);
 			appendHeartRateSummary(heartRateElement, "maximum", max);
-			appendElement(heartRateElement, "battery", 3);
+			//Util.appendElement(heartRateElement, "battery", 3);							// 2010-09-13: I've noticed this is not included in the iphone xml output.
 		}
+		
 	}
 
 	private void appendHeartRateSummary(Element heartRateElement, String type, Trackpoint tp) {
-		Element heartRateTypeElement = appendElement(heartRateElement, type);
-		appendElement(heartRateTypeElement, "duration", tp.getDuration());
-		appendElement(heartRateTypeElement, "distance", String.format("%.3f", tp.getDistance()/1000));
-		appendElement(heartRateTypeElement, "pace", tp.getPace());
-		appendElement(heartRateTypeElement, "bpm", tp.getHeartRate().intValue());
-
+		Element heartRateTypeElement = Util.appendElement(heartRateElement, type);
+		Util.appendElement(heartRateTypeElement, "duration", tp.getDuration());
+		Util.appendElement(heartRateTypeElement, "distance", String.format("%.3f", tp.getDistance()/1000));
+		Util.appendElement(heartRateTypeElement, "pace", tp.getPace());
+		Util.appendElement(heartRateTypeElement, "bpm", tp.getHeartRate().intValue());
 	}
 
 
@@ -495,7 +528,7 @@ public class Convert
 					NodeList trackPointData = trackPoints[j].getChildNodes();
 					int trackPointDataLength = trackPointData.getLength();
 
-					//System.out.printf("%s\t%d\n", trackPointData.toString(), trackPointData.getLength());
+					//log.out("%s\t%d", trackPointData.toString(), trackPointData.getLength());
 
 					// First deal with pause/resume pairs.
 					// 2010-04-28: Some workouts have multiple tracks and the first trackpoint in each is a simple time-only trackpoint - ignore these.
@@ -506,8 +539,8 @@ public class Convert
 						//trackPointData = trackPoints.item(++i).getChildNodes();
 
 						int pauseIndex = j;
-						//System.out.println((trackPoints.item(j+1).getChildNodes().getLength() == 3) && (j+2 < trackPointsLength));
-						//System.out.println(trackPoints.item(j+2).getChildNodes().getLength());
+						//log.out((trackPoints.item(j+1).getChildNodes().getLength() == 3) && (j+2 < trackPointsLength));
+						//log.out(trackPoints.item(j+2).getChildNodes().getLength());
 
 						// The trackpoint before the next "full" trackpoint will be used as our resume time.
 						while ((trackPoints[j+1].getChildNodes().getLength() == 3) && (j+2 < trackPointsLength))
@@ -547,7 +580,7 @@ public class Convert
 							// 2010-04-04: If we have a duration outwith the duration of the current lap then ignore the trackpoint.  See Oliver Schulz's 2010-03-15 workout (emailed to me).
 							// No longer needed since we added the laps/tracks breakdown.
 							//if ((duration < lapStartDuration) || (duration > lapEndDuration)) {
-								//System.out.printf("%d\t%d\t%d\n", duration, lapEndDuration, (duration - lapEndDuration));
+								//log.oug("%d\t%d\t%d", duration, lapEndDuration, (duration - lapEndDuration));
 								//break;
 							//}
 
@@ -559,7 +592,7 @@ public class Convert
 							distance = Double.parseDouble(Util.getSimpleNodeValue(n));
 
 						// Heart rate bpm
-						else if (nodeName.equals("HeartRateBpm")) {
+						else if ((!_forceExcludeHeartRateData) && (nodeName.equals("HeartRateBpm"))) {
 							NodeList heartRateData = n.getChildNodes();
 							int heartRateDataLength = heartRateData.getLength();
 
@@ -597,14 +630,14 @@ public class Convert
 						// If this trackpoint has the same duration as the last trackpoint do not add it to the trackpoints list.
 						// 2010-04-06: We now also generate a potential-pause on the previous trackpoint in the device was paused prior to these identical-duration trackpoints.
 						if (tp.isRepeatDuration()) {
-							tp.getPreviousTrackpoint().generatePotentialPauseDuration();
+							tp.getPreviousTrackpoint().generateDurationSinceLastTrackpoint();
 							continue;
 						}
 
 						// If this trackpoint distance is the same as the previous one then keep track of it, we might need to
 						// create a pause/resume pair from it later to ensure our calculated distance does not exceed the total distance.
 						if ((forcePotentialPause) || (tp.isRepeatDistance())) {
-							tp.generatePotentialPauseDuration();
+							tp.generateDurationSinceLastTrackpoint();
 							forcePotentialPause = false;
 						}
 
@@ -662,8 +695,8 @@ public class Convert
 			while (tpsIt.hasNext()) {
 				Trackpoint tp = tpsIt.next();
 
-				if (tp.getPotentialPauseDuration() > currentMaxPause) {
-					currentMaxPause = tp.getPotentialPauseDuration();
+				if (tp.getDurationSinceLastTrackpoint(false) > currentMaxPause) {
+					currentMaxPause = tp.getDurationSinceLastTrackpoint(false);
 					removeTpIndex = index;
 				}
 				++index;
@@ -673,7 +706,7 @@ public class Convert
 			// and decrement all durations greater than the duration of the pause/resume split.
 			if (removeTpIndex != -1) {
 				Trackpoint tp = trackpoints.get(removeTpIndex);
-				long pauseDuration = tp.getPotentialPauseDuration();
+				long pauseDuration = tp.getDurationSinceLastTrackpoint(false);
 
 				// Decrement all post-trackpoint trackpoint durations.
 				for (int i = removeTpIndex + 1; i < trackpoints.size(); ++i)
@@ -720,7 +753,12 @@ public class Convert
 	}
 
 
-	private void appendSnapShotListAndExtendedData(Element sportsDataElement, ArrayList<Trackpoint> trackpoints, ArrayList<Long> pauseResumeTimes) {
+	/**
+	 * Generates the following CubicSplines: distanceToDuration, durationToDistance, durationToPace, durationToHeartRate.
+	 * @param trackpoints The Trackpoint data from which to build the CubicSplines.
+	 * @return A CubicSpline array in represnting the data listed in the description above.
+	 */
+	private CubicSpline[] generateCubicSplines(ArrayList<Trackpoint> trackpoints) {
 		int tpsSize = trackpoints.size();
 		double[] durationsArray = new double[tpsSize];
 		double[] distancesArray = new double[tpsSize];
@@ -737,12 +775,16 @@ public class Convert
 		CubicSpline durationToPace = new CubicSpline(durationsArray, pacesArray);
 
 		// Heartrate cubic spline
-		CubicSpline durationToheartRate = new CubicSpline(durationsArray, heartRatesArray);
+		CubicSpline durationToHeartRate = new CubicSpline(durationsArray, heartRatesArray);
+		
+		return new CubicSpline[] { distanceToDuration, durationToDistance, durationToPace, durationToHeartRate };
+	}
 
-		Element snapShotKmListElement = appendElement(sportsDataElement, "snapShotList", null, "snapShotType", "kmSplit");
-		Element snapShotMileListElement = appendElement(sportsDataElement, "snapShotList", null, "snapShotType", "mileSplit");
-		Element snapShotClickListElement = appendElement(sportsDataElement, "snapShotList", null, "snapShotType", "userClick");
 
+	private void appendSnapShotListAndExtendedData(Element sportsDataElement, ArrayList<Long> pauseResumeTimes, CubicSpline distanceToDuration, CubicSpline durationToDistance, CubicSpline durationToPace, CubicSpline durationToHeartRate) {
+		Element snapShotKmListElement = Util.appendElement(sportsDataElement, "snapShotList", null, "snapShotType", "kmSplit");
+		Element snapShotMileListElement = Util.appendElement(sportsDataElement, "snapShotList", null, "snapShotType", "mileSplit");
+		Element snapShotClickListElement = Util.appendElement(sportsDataElement, "snapShotList", null, "snapShotType", "userClick");
 
 		// Pause/Resume splits.
 		Iterator<Long> prIt = pauseResumeTimes.iterator();
@@ -753,7 +795,7 @@ public class Convert
 			// (using the pause event).  I can't find my nike+ stuff to check this is 100% accurate but will go with it for now.
 			double distance = interpolate(durationToDistance, time);
 			long pace = (long)(interpolate(durationToPace, time));
-			int heartRateBpm = (int)(interpolate(durationToheartRate, time));
+			int heartRateBpm = (int)(interpolate(durationToHeartRate, time));
 			appendSnapShot(snapShotClickListElement, time, distance, pace, heartRateBpm, "event", "pause");
 			appendSnapShot(snapShotClickListElement, time, distance, pace, heartRateBpm, "event", "resume");
 		}
@@ -761,22 +803,20 @@ public class Convert
 		// Km splits
 		for (int i = 1000; i <= _totalDistance; i += 1000) {
 			double duration = (long)(interpolate(distanceToDuration, i));
-			appendSnapShot(snapShotKmListElement, (long)duration, i, (long)(interpolate(durationToPace, duration)), (int)(interpolate(durationToheartRate, duration)));
+			appendSnapShot(snapShotKmListElement, (long)duration, i, (long)(interpolate(durationToPace, duration)), (int)(interpolate(durationToHeartRate, duration)));
 		}
 
 		// Mile splits
 		for (double i = D_METRES_PER_MILE; i <= _totalDistance; i += D_METRES_PER_MILE) {
 			double duration = (long)(interpolate(distanceToDuration, i));
-			appendSnapShot(snapShotMileListElement, (long)duration, i, (long)(interpolate(durationToPace, duration)), (int)(interpolate(durationToheartRate, duration)));
+			appendSnapShot(snapShotMileListElement, (long)duration, i, (long)(interpolate(durationToPace, duration)), (int)(interpolate(durationToHeartRate, duration)));
 		}
 
 		// Stop split
-		appendSnapShot(snapShotClickListElement, _totalDuration, _totalDistance, (long)(interpolate(durationToPace, _totalDuration)), (int)(heartRatesArray[heartRatesArray.length - 1]), "event", "stop");
-
+		appendSnapShot(snapShotClickListElement, _totalDuration, _totalDistance, (long)(interpolate(durationToPace, _totalDuration)), (int)(interpolate(durationToHeartRate, _totalDuration)), "event", "stop");
 
 		// ExtendedDataLists
-		appendExtendedDataList(sportsDataElement, durationToDistance, durationToheartRate);
-		
+		appendExtendedDataList(sportsDataElement, durationToDistance, durationToPace, durationToHeartRate);
 	}
 
 
@@ -799,46 +839,53 @@ public class Convert
 	  <extendedData dataType="distance" intervalType="time" intervalUnit="s" intervalValue="10">0.0. 1.1, 2.3, 4.7, etc</extendedData>
 	</extendedDataList>
 	*/
-	private void appendExtendedDataList(Element sportsDataElement, CubicSpline durationToDistance, CubicSpline durationToHeartRate) {
+	private void appendExtendedDataList(Element sportsDataElement, CubicSpline durationToDistance, CubicSpline durationToPace, CubicSpline durationToHeartRate) {
 		int finalReading = (int)(durationToDistance.getXmax());
 		double previousDistance = 0;
 		StringBuilder sbDistance = new StringBuilder("0.0");
+		StringBuilder sbSpeed = new StringBuilder("0.0");
 		StringBuilder sbHeartRate = new StringBuilder();
 
 		if (_includeHeartRateData) sbHeartRate.append((int)(interpolate(durationToHeartRate, 0d)));
 
 		for (int i = 10000; i < finalReading; i = i + 10000) {
+
+			// Distance
 			double distance = (interpolate(durationToDistance, i))/1000;
 
 			// 2010-06-18: Phillip Purcell emailed me two workouts on 2010-06-14 which did not draw graphs on nikeplus.com
-			// A bit of debugging showed that some of the interpolated distances in these workouts wereless than the
+			// A bit of debugging showed that some of the interpolated distances in these workouts were  less than the
 			// previous distance (impossible).  Hacked this fix so that this will never happen.
 			if (distance < previousDistance) distance = previousDistance;
-			sbDistance.append(String.format(", %.4f", distance));
+			sbDistance.append(String.format(", %.6f", distance));
 			previousDistance = distance;
 
+			// Speed
+			sbSpeed.append(String.format(", %.6f", MILLIS_PER_HOUR/(interpolate(durationToPace, i))));
 
+			// Heart Rate
 			if (_includeHeartRateData) sbHeartRate.append(String.format(", %d", (int)(interpolate(durationToHeartRate, i))));
 		}
 
-		Element extendedDataListElement	= appendElement(sportsDataElement, "extendedDataList");
-		appendElement(extendedDataListElement, "extendedData", sbDistance, "dataType", "distance", "intervalType", "time", "intervalUnit", "s", "intervalValue", "10");
+		Element extendedDataListElement	= Util.appendElement(sportsDataElement, "extendedDataList");
+		Util.appendElement(extendedDataListElement, "extendedData", sbDistance, "dataType", "distance", "intervalType", "time", "intervalUnit", "s", "intervalValue", "10");
+		Util.appendElement(extendedDataListElement, "extendedData", sbSpeed, "dataType", "speed", "intervalType", "time", "intervalUnit", "s", "intervalValue", "10");
 
 		if (_includeHeartRateData)
-			appendElement(extendedDataListElement, "extendedData", sbHeartRate, "dataType", "heartRate", "intervalType", "time", "intervalUnit", "s", "intervalValue", "10");
+			Util.appendElement(extendedDataListElement, "extendedData", sbHeartRate, "dataType", "heartRate", "intervalType", "time", "intervalUnit", "s", "intervalValue", "10");
 
 	}
 
 
 	private void appendSnapShot(Element snapShotListElement, long durationMillis, double distanceMetres, long paceMillisKm, int heartRateBpm, String ... attributes) {
-		Element snapShotElement = appendElement(snapShotListElement, "snapShot", null, attributes);
+		Element snapShotElement = Util.appendElement(snapShotListElement, "snapShot", null, attributes);
 
-		appendElement(snapShotElement, "duration", durationMillis);
-		appendElement(snapShotElement, "distance", String.format("%.3f", distanceMetres/1000));
-		appendElement(snapShotElement, "pace", paceMillisKm);
+		Util.appendElement(snapShotElement, "duration", durationMillis);
+		Util.appendElement(snapShotElement, "distance", String.format("%.3f", distanceMetres/1000));
+		Util.appendElement(snapShotElement, "pace", paceMillisKm);
 		if (_includeHeartRateData)
-			appendElement(snapShotElement, "bpm", heartRateBpm);
-		//appendElement(snapShotElement, "pace", generateSnapShotPace(durationToDistance, currentDuration));
+			Util.appendElement(snapShotElement, "bpm", heartRateBpm);
+		//Util.appendElement(snapShotElement, "pace", generateSnapShotPace(durationToDistance, currentDuration));
 	}
 
 
@@ -861,54 +908,6 @@ public class Convert
 	
 
 
-	private Element appendElement(Node parent, String name) {
-		return appendElement(parent, name, null);
-	}
-
-	private Element appendElement(Node parent, String name, Object data, String ... attributes) {
-		Document doc = (parent.getNodeType() == Node.DOCUMENT_NODE) ? (Document)parent : parent.getOwnerDocument();
-		Element e = doc.createElement(name);
-		parent.appendChild(e);
-		
-		if (data != null) e.appendChild(doc.createTextNode(data.toString()));
-
-		for (int i = 0; i < attributes.length; ++i)
-			e.setAttribute(attributes[i++], attributes[i]);
-		
-		return e;
-	}
-
-	private void appendCDATASection(Node parent, String name, Object data) {
-		Document doc = (parent.getNodeType() == Node.DOCUMENT_NODE) ? (Document)parent : parent.getOwnerDocument();
-		Element e = doc.createElement(name);
-		parent.appendChild(e);
-		e.appendChild(doc.createCDATASection(data.toString()));
-	}
-
-
-	private int calculatePace(long duration, double distance) {
-		return (int)((duration)/distance);
-	}
-
-
-	private String getTimeStringFromMillis(long totalMillis) {
-		long totalSeconds = totalMillis / 1000;
-
-		int hours = (int)(totalSeconds / 3600);
-		int remainder = (int)(totalSeconds % 3600);
-		int minutes = remainder / 60;
-		int seconds = remainder % 60;
-
-		String mm = String.format((hours > 0) && (minutes < 10) ? "0%d" : "%d", minutes);
-		String ss = String.format((seconds < 10) ? "0%d" : "%d", seconds);
-
-		return (hours > 0)
-			? String.format("%d:%s:%s", hours, mm, ss)
-			: String.format("%s:%s", mm, ss)
-		;
-	}
-
-
 	public String generateFileName() {
 		SimpleDateFormat outfileFormat = new SimpleDateFormat("yyyy-MM-dd HH;mm;ss'.xml'");
 		outfileFormat.setTimeZone(_workoutTimeZone);
@@ -927,7 +926,7 @@ public class Convert
 
 		String empedID = (args.length >= 2) ? args[1] : null;
 
-		Convert c = new Convert();
+		ConvertTcx c = new ConvertTcx();
 		try {
 			Document doc = c.generateNikePlusXml(inFile, empedID);
 			Util.writeDocument(doc, c.generateFileName());
@@ -943,6 +942,8 @@ public class Convert
 
 	private class Trackpoint
 	{
+		private static final int		PACE_MILLIS = 20 * 10000;		// How many milli seconds of data to use when calculating pace.
+
 		private long		_duration;
 		private double		_distance;
 		private Double		_heartRate;
@@ -982,10 +983,10 @@ public class Convert
 		 */
 		protected long getPace() {
 			// This can give skewed pace figures as we might have a trackpoint 2 seconds ago with slightly inaccurate distance resulting in wildly chaotic pace data.
-			//Trackpoint previous = getPreviousDifferentTrackpoint();		
+			//Trackpoint previous = getPreviousDifferentTrackpoint();
 
-			// I use the previous 20 seconds of data to calculate pace (avoiding the problem caused by getPreviousDifferntTrackpoint).
-			long startDuration = (_duration > 20000) ? _duration - 20000 : 0;
+			// I use PACE_MILLIS previous seconds of data to calculate pace (avoiding the problem caused by getPreviousDifferntTrackpoint).
+			long startDuration = (_duration > PACE_MILLIS) ? _duration - PACE_MILLIS : 0;
 			Trackpoint startTp = getPreviousTrackpoint();
 			while ((startTp != null) && (startTp.getDuration() > startDuration))
 				startTp = startTp.getPreviousTrackpoint();
@@ -1013,7 +1014,8 @@ public class Convert
 			return tp.getPreviousTrackpoint();
 		}
 
-		protected long getPotentialPauseDuration() {
+		protected long getDurationSinceLastTrackpoint(boolean calculate) {
+			if ((calculate) && (_potentialPauseDuration <= 0)) generateDurationSinceLastTrackpoint();
 			return _potentialPauseDuration;
 		}
 
@@ -1029,7 +1031,7 @@ public class Convert
 			return (_previousTrackPoint == null) ? 0 : _previousTrackPoint.getDistance();
 		}
 
-		protected void generatePotentialPauseDuration() {
+		protected void generateDurationSinceLastTrackpoint() {
 			_potentialPauseDuration = (_previousTrackPoint == null) ? 0 : (_duration - _previousTrackPoint.getDuration());
 		}
 
@@ -1038,6 +1040,33 @@ public class Convert
 		}
 	}
 
+
+
+
+	/*
+	private int calculatePace(long duration, double distance) {
+		return (int)((duration)/distance);
+	}
+	*/
+
+	/*
+	private String getTimeStringFromMillis(long totalMillis) {
+		long totalSeconds = totalMillis / 1000;
+
+		int hours = (int)(totalSeconds / 3600);
+		int remainder = (int)(totalSeconds % 3600);
+		int minutes = remainder / 60;
+		int seconds = remainder % 60;
+
+		String mm = String.format((hours > 0) && (minutes < 10) ? "0%d" : "%d", minutes);
+		String ss = String.format((seconds < 10) ? "0%d" : "%d", seconds);
+
+		return (hours > 0)
+			? String.format("%d:%s:%s", hours, mm, ss)
+			: String.format("%s:%s", mm, ss)
+		;
+	}
+	*/
 
 
 	/*
@@ -1051,13 +1080,13 @@ public class Convert
 
 		for (int i = 0; i < lapsLength; ++i) {
 
-			System.out.printf("\nLap %d\n=====\n", i+1);
+			log.oug("\nLap %d\n=====", i+1);
 
 			NodeList lapData = laps.item(i).getChildNodes();
 			int lapInfoLength = lapData.getLength();
 
-			//System.out.println(Util.getSimpleNodeValue(laps.item(i).getAttributes().item(0)));
-			//System.out.println(getCalendarNodeValue(laps.item(i).getAttributes().item(0)).getTime());
+			//log.out(Util.getSimpleNodeValue(laps.item(i).getAttributes().item(0)));
+			//log.out(getCalendarNodeValue(laps.item(i).getAttributes().item(0)).getTime());
 			long startDurationAdjusted = getCalendarNodeValue(laps.item(i).getAttributes().item(0)).getTimeInMillis();
 			long lapDuration = 0;
 			long totalPauseDuration = 0;
@@ -1068,7 +1097,7 @@ public class Convert
 				String nodeName = n.getNodeName();
 
 				if (nodeName.equals("TotalTimeSeconds"))
-					System.out.printf("TotalTimeSeconds:\t%.0f\n", Double.parseDouble(Util.getSimpleNodeValue(n)) * 1000);
+					log.out("TotalTimeSeconds:\t%.0f", Double.parseDouble(Util.getSimpleNodeValue(n)) * 1000);
 			}
 
 
@@ -1121,13 +1150,13 @@ public class Convert
 				}
 			}
 
-			System.out.printf("Calculated lap time:\t%d\n", (lapDuration));
-			System.out.printf("Total time paused:\t%d\n", (totalPauseDuration));
+			log.out("Calculated lap time:\t%d", (lapDuration));
+			log.out("Total time paused:\t%d", (totalPauseDuration));
 
 
 		}
 
-		System.out.println();
+		log.out();
 	}
 	*/
 

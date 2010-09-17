@@ -1,6 +1,8 @@
 package com.awsmithson.tcx2nikeplus.servlet;
 
-import com.awsmithson.tcx2nikeplus.converter.Convert;
+import static com.awsmithson.tcx2nikeplus.Constants.*;
+import com.awsmithson.tcx2nikeplus.convert.ConvertGpx;
+import com.awsmithson.tcx2nikeplus.convert.ConvertTcx;
 import com.awsmithson.tcx2nikeplus.util.Util;
 import com.awsmithson.tcx2nikeplus.uploader.Upload;
 import com.awsmithson.tcx2nikeplus.util.Log;
@@ -21,17 +23,15 @@ import org.apache.commons.fileupload.disk.DiskFileItem;
 import org.apache.commons.fileupload.disk.DiskFileItemFactory;
 import org.apache.commons.fileupload.servlet.ServletFileUpload;
 import org.w3c.dom.Document;
-import org.w3c.dom.Node;
 
 
 
 public class ConvertServlet extends HttpServlet
 {
 
-	private final static Log log = Log.getInstance();
-	private final static String NIKE_SUCCESS = "success";
+	private static final Log log = Log.getInstance();
 
-	
+
     /** 
      * Processes requests for both HTTP <code>GET</code> and <code>POST</code> methods.
      * @param request servlet request
@@ -56,9 +56,13 @@ public class ConvertServlet extends HttpServlet
 
 				File garminTcxFile = null;
 				Integer garminActivityId = null;
+				Integer garminActivityIdGps = null;
 				String nikeEmpedId = null;
 				String nikePin = null;
 				Integer clientTimeZoneOffset = null;
+
+				Document garminTcxDocument = null;
+				Document garminGpxDocument = null;
 
 				// Iterate through the uploaded items
 				Iterator it = items.iterator();
@@ -68,25 +72,19 @@ public class ConvertServlet extends HttpServlet
 
 					if (item.isFormField()) {
 						// Garmin activity id
-						if ((fieldName.equals("garminActivityId")) && (item.getString().length() > 0)) {
-							// Split the string to obtain the activity-id in case the user
-							// enters the full url "http://connect.garmin.com/activity/23512599"
-							// instead of just the activityid "23512599".
-							String[] split = item.getString().split("/"); 
-							garminActivityId = Integer.parseInt(split[split.length-1]);
-						}
+						if (haveFieldValue(item, fieldName, "garminActivityId")) garminActivityId = getGarminActivityId(item);
+
+						// Garmin activity id (with gps)
+						if (haveFieldValue(item, fieldName, "garminActivityIdGps")) garminActivityIdGps = getGarminActivityId(item);
 
 						// Nike emped id
-						else if ((fieldName.equals("nikeEmpedId")) && (item.getString().length() > 0))
-							nikeEmpedId = item.getString();
+						if (haveFieldValue(item, fieldName, "nikeEmpedId")) nikeEmpedId = item.getString();
 
 						// Nike pin
-						else if ((fieldName.equals("nikePin")) && (item.getString().length() > 0))
-							nikePin = item.getString();
+						if (haveFieldValue(item, fieldName, "nikePin")) nikePin = item.getString();
 
 						// Client Timezone Offset - will only be used when geonames timezone webservice is unavailable.
-						else if ((fieldName.equals("clientTimeZoneOffset")) && (item.getString().length() > 0))
-							clientTimeZoneOffset = Integer.parseInt(item.getString());
+						if (haveFieldValue(item, fieldName, "clientTimeZoneOffset")) clientTimeZoneOffset = Integer.parseInt(item.getString());
 					}
 					else {
 						// Garmin tcx file
@@ -104,41 +102,43 @@ public class ConvertServlet extends HttpServlet
 					}
 				}
 
+				ConvertTcx cTcx = new ConvertTcx();
+				ConvertGpx cGpx = new ConvertGpx();
+				boolean gpsUpload = (garminActivityIdGps != null);
+
 				// If we have a tcx file to convert...
 				if ((garminTcxFile != null) && (garminTcxFile.exists())) {
 					log.out("Received convert-tcx-file request");
-					Document garminTcxDocument = Util.generateDocument(garminTcxFile);
-					convertTcxDocument(garminTcxDocument, nikeEmpedId, nikePin, clientTimeZoneOffset, response, out);
+					garminTcxDocument = Util.generateDocument(garminTcxFile);
 				}
 
 				// If we have a garmin activity id then download the garmin tcx file then convert it.
 				else if (garminActivityId != null) {
 					log.out("Received convert-activity-id request, id: %d", garminActivityId);
+					garminTcxDocument = downloadGarminDocument(URL_GARMIN_TCX, garminActivityId);
+				}
 
-					Document garminTcxDocument = null;
-					String url = String.format("http://connect.garmin.com/proxy/activity-service-1.0/tcx/activity/%d?full=true", garminActivityId);
-					
-					try {
-						garminTcxDocument = Util.downloadFile(url);
-					}
-					catch (Exception e) {
-						throw new Exception("Invalid Garmin Activity ID.  Please ensure your garmin workout is not marked as private.");
-					}
-
-					if (garminTcxDocument == null)
-						throw new Exception("Invalid Garmin Activity ID.  Please ensure your garmin workout is not marked as private.");
-
-					log.out("Successfully downloaded garmin activity %d.", garminActivityId);
-
-					convertTcxDocument(garminTcxDocument, nikeEmpedId, nikePin, clientTimeZoneOffset, response, out);
+				// If we have a garmin activity id then download the garmin tcx file then convert it.
+				else if (gpsUpload) {
+					log.out("Received convert-activity-id-gps request, id: %d", garminActivityIdGps);
+					garminTcxDocument = downloadGarminDocument(URL_GARMIN_TCX, garminActivityIdGps);
+					garminGpxDocument = downloadGarminDocument(URL_GARMIN_GPX, garminActivityIdGps);
 				}
 
 				// If we didn't find a garmin tcx file or garmin activity id then we can't continue...
-				else
-					throw new Exception("You must supply either a Garmin TCX file or Garmin activity id.");
+				else throw new Exception("You must supply either a Garmin TCX file or Garmin activity id.");
 
-				// We don't want to call this when we don't have a pin because all we do then is return the xml document as an attachment.
-				if (nikePin != null) {
+
+				// Generate the output nike+ workout xml.
+				Document runXml = convertTcxDocument(cTcx, garminTcxDocument, nikeEmpedId, clientTimeZoneOffset, (gpsUpload));
+				Document gpxXml = (gpsUpload) ? convertGpxDocument(cGpx, garminGpxDocument) : null;
+
+				// If a nikeplus pin hasn't been supplied then just return the nikeplus xml document.
+				if (nikePin == null) returnOutputTcxDocument(cTcx, runXml, response, out);
+
+				// If we did have a nikeplus pin then continue with the upload to nikeplus.
+				else {
+					Upload(nikePin, runXml, gpxXml);
 
 					// There is a 1/100 chance that we remind the user it is possible to donate.
 					String message = (new Random().nextInt(100) == 0)
@@ -157,55 +157,74 @@ public class ConvertServlet extends HttpServlet
 			out.close();
 		}
 	}
+	
+
+	/**
+	 * Check if the DiskFileItem fieldName matches that of requiredFieldName and that the item value has non-zero length.
+	 * @param item DiskFileItem to check.
+	 * @param itemFieldName the field name of the DiskFileItem.
+	 * @param requiredFieldName the field name we are searching for.
+	 * @return
+	 */
+	private boolean haveFieldValue(DiskFileItem item, String itemFieldName, String requiredFieldName) {
+		return ((itemFieldName.equals(requiredFieldName)) && (item.getString().length() > 0));
+	}
+	
+	/**
+	 * Split the string to obtain the activity-id in case the user
+	 * enters the full url "http://connect.garmin.com/activity/23512599"
+	 * instead of just the activityid "23512599".
+	 * @param input
+	 * @return
+	 */
+	private int getGarminActivityId(DiskFileItem input) {
+		String[] split = input.getString().split("/");
+		return Integer.parseInt(split[split.length-1]);
+	}
 
 
-
-	private void convertTcxDocument(Document garminTcxDocument, String nikeEmpedId, String nikePin, Integer clientTimeZoneOffset, HttpServletResponse response, PrintWriter out) throws Throwable {
-		// Generate the nike+ xml.
-		Convert c = new Convert();
-		Document doc = c.generateNikePlusXml(garminTcxDocument, nikeEmpedId, clientTimeZoneOffset);
-		log.out("Generated nike+ xml, workout start time: %s.", c.getStartTimeHumanReadable());
-
-		String filename = c.generateFileName();
-
-		// If a nikeplus pin hasn't been supplied then just return the nikeplus xml document.
-		if (nikePin == null) {
-			String output = Util.generateStringOutput(doc);
-			response.setContentType("application/x-download");
-			response.setHeader("Content-Disposition", String.format("attachment; filename=\"%s\"", filename));
-			out.print(output);
-		}
+	private Document downloadGarminDocument(String url, int garminActivityId) throws Throwable {
+		url = String.format(url, garminActivityId);
+		Document doc = null;
 		
-		// If we do have a pin then try to send the data to nikeplus.
-		else {
-			Upload u = new Upload();
-			try {
-				log.out("Uploading to Nike+...");
-				log.out(" - Checking pin status...");
-				u.checkPinStatus(nikePin);
-				log.out(" - Syncing data...");
-				
-				Document nikeResponse = u.syncData(nikePin, doc);
-				//<?xml version="1.0" encoding="UTF-8" standalone="no"?><plusService><status>success</status></plusService>
-				if (Util.getSimpleNodeValue(nikeResponse, "status").equals(NIKE_SUCCESS)) {
-					log.out(" - Sync successful.");
-					return;
-				}
-
-				//<?xml version="1.0" encoding="UTF-8" standalone="no"?><plusService><status>failure</status><serviceException errorCode="InvalidRunError">snapshot duration greater than run (threshold 30000 ms): 82980</serviceException></plusService>
-				Node nikeServiceException = nikeResponse.getElementsByTagName("serviceException").item(0);
-				throw new Exception(String.format("%s: %s", nikeServiceException.getAttributes().item(0).getNodeValue(), nikeServiceException.getNodeValue()));
-			}
-			finally {
-				log.out(" - Ending sync...");
-				Document nikeResponse = u.endSync(nikePin);
-				String message = (Util.getSimpleNodeValue(nikeResponse, "status").equals(NIKE_SUCCESS))
-					? " - End sync successful."
-					: String.format(" - End sync failed: %s", Util.DocumentToString(nikeResponse))
-				;
-				log.out(message);
-			}
+		try {
+			doc = Util.downloadFile(url);
 		}
+		catch (Exception e) {
+			throw new Exception("Invalid Garmin Activity ID.  Please ensure your garmin workout is not marked as private.");
+		}
+
+		if (doc == null) throw new Exception("Invalid Garmin Activity ID.  Please ensure your garmin workout is not marked as private.");
+
+		log.out("Successfully downloaded data for garmin activity %d.", garminActivityId);
+		return doc;
+	}
+
+	private Document convertTcxDocument(ConvertTcx c, Document garminTcxDocument, String nikeEmpedId, Integer clientTimeZoneOffset, boolean forceExcludeHeartRateData) throws Throwable {
+		// Generate the nike+ tcx xml.
+		Document doc = c.generateNikePlusXml(garminTcxDocument, nikeEmpedId, clientTimeZoneOffset, forceExcludeHeartRateData);
+		log.out("Generated nike+ run xml, workout start time: %s.", c.getStartTimeHumanReadable());
+		return doc;
+	}
+
+	private Document convertGpxDocument(ConvertGpx c, Document garminGpxDocument) throws Throwable {
+		// Generate the nike+ gpx xml.
+		Document doc = c.generateNikePlusGpx(garminGpxDocument);
+		log.out("Generated nike+ gpx xml.");
+		return doc;
+	}
+
+	private void returnOutputTcxDocument(ConvertTcx c, Document doc, HttpServletResponse response, PrintWriter out) {
+		String filename = c.generateFileName();
+		String output = Util.generateStringOutput(doc);
+		response.setContentType("application/x-download");
+		response.setHeader("Content-Disposition", String.format("attachment; filename=\"%s\"", filename));
+		out.print(output);
+	}
+		
+	private void Upload(String nikePin, Document runXml, Document gpxXml) throws Throwable {
+		Upload u = new Upload();
+		u.fullSync(nikePin, runXml, gpxXml);
 	}
 
 	

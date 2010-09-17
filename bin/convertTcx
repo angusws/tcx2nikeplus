@@ -22,4 +22,4 @@ done
 
 
 # Execute the application with supplied arguments
-java -Djava.util.logging.config.file=$CONF/logging_app.properties -classpath $CP com.awsmithson.tcx2nikeplus.converter.Convert "$TCXFILE" $*
+java -Djava.util.logging.config.file=$CONF/logging.properties -classpath $CP com.awsmithson.tcx2nikeplus.convert.ConvertTcx "$TCXFILE" $*

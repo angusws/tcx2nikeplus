@@ -51,8 +51,9 @@
 
 				<div class="sectionSubHeading">Garmin tcx file / Garmin Activity ID</div>
 				<div class="sectionContent">
-					Option 1 (tcx file): After synchronising your garmin device with your computer the option is available to export the run to a tcx file both in the 'Garmin Training Center' and at <a href="http://connect.garmin.com" target="_blank">Garmin Connect.</a>.
-					<br /><br />Option 2 (Garmin Activity ID): After synchronising your garmin device to <a href="http://connect.garmin.com" target="_blank">Garmin Connect.</a> the activity ID is in the url for the workout details page.  For example, for the workout http://connect.garmin.com/activity/21742933 the activity ID is 21742933.
+					Option 1 - TCX file: After synchronising your garmin device with your computer the option is available to export the run to a tcx file both in the 'Garmin Training Center' and at <a href="http://connect.garmin.com" target="_blank">Garmin Connect.</a>.
+					<br /><br />Option 2 - Garmin Activity ID: After synchronising your garmin device to <a href="http://connect.garmin.com" target="_blank">Garmin Connect.</a> the activity ID is in the url for the workout details page.  For example, for the workout http://connect.garmin.com/activity/21742933 the activity ID is 21742933.
+					<br /><br />Option 3 - Garmin Activity ID (include nike+ gps): Instructions are the same as option 2.  When selected this will upload gps (mapping data) as well so you can view your run route on the nike+ website.
 				</div>
 
 				<div class="sectionSubHeading">Nike+ PIN</div>
@@ -61,6 +62,7 @@
 					<br /><br />Visit https://secure-nikerunning.nike.com/nikeplus/v2/services/app/generate_pin.jsp?login=<span class="codeTextItalic">EMAIL-ADDRESS</span>&password=<span class="codeTextItalic">PASSWORD</span> (replacing the italics with your nike+ login details - email address and password).
 					<br /><br />The resultant page should have a section "pin", this is the value to use as the pin on this page.  Your pin will never change.
 					<br /><br />If you cannot see a section "pin" then contact me (see top of this page) with details of which browser you are using and I'll help you through the process.
+					<br /><br />Some browsers (I know apple's safari does this) might just display the data like success12345678-1234-1234-1234-123456789012.  If that is the case then simply remove the "success" text from the start, the rest of it is your pin.
 				</div>
 
 
@@ -71,9 +73,15 @@
 
 				<div class="sectionSubHeading">Tips</div>
 				<div class="sectionContent">
-					You can auto-populate the pin &amp; emped ID fields in the form by including them in the URL.
-					<br />For example, I use something like:
-					<br /> <span class="codeTextItalic">http://www.awsmithson.com/tcx2nikeplus/?type=garminActivityID&pin=12345678-1234-1234-1234-123456789012&amp;empedID=4H123ABCDEF</span>
+					You can pre-select the upload-type by specifying a value for "type" in the URL.
+					<br/>Valid options are "garminActivityId" &amp; "garminActivityID_GPS".
+					<br />For example, select "Garmin Connect Activity ID (include nike+ gps) with:
+					<br /> <span class="codeTextItalic">http://www.awsmithson.com/tcx2nikeplus/?type=garminActivityID_GPS</span>
+				</div>
+				<div class="sectionContent">
+					You can also auto-populate the pin &amp; emped ID fields in the form by including them in the URL.
+					<br />For example, the full url I have bookmarked is something like:
+					<br /> <span class="codeTextItalic">http://www.awsmithson.com/tcx2nikeplus/?type=garminActivityID_GPS&pin=12345678-1234-1234-1234-123456789012&amp;empedID=4H123ABCDEF</span>
 				</div>
 			</div>
 
@@ -89,9 +97,14 @@
 					<br /><br />The Garmin Forerunner tcx file to Nike+ converter will convert workouts recorded on a garmin forerunner device (see tested devices below) to a file which will
 					allow them to be posted to the Nike+ system.  When provided with a Nike+ pin it will also upload the workout to Nike+.
 				</div>
+				<div class="sectionSubHeading">Source Code</div>
+				<div class="sectionContent">
+					<a href="http://github.com/angusws/tcx2nikeplus" target="_blank">http://github.com/angusws/tcx2nikeplus</a>.  Sometimes this gets a little out of date - if you want a look at the proper source let me know and I'll commit and/or push whatever the latest version is.
+				</div>
 				<div class="sectionSubHeading">Tested Devices</div>
 				<div class="sectionContent">
 					Garmin Forerunner 305 & 405.
+					<br />All Garmin Forerunner GPS devices *should* work.  If you have a non-GPS device such as the FR60 this will not work.
 				</div>
 				<div class="sectionSubHeading">Technical</div>
 				<div class="sectionContent">
@@ -107,6 +120,11 @@
 
 			<!-- News -->
 			<div id="tabNews" class="x-hide-display">
+				<div class="sectionSubHeading">September 13 2010</div>
+				<div class="sectionContent">
+					Last week nike+ released an iphone application which includes gps (mapping) support.  I have written a conversion and upload system to replicate what the iphone application is uploading so you can now view gps runs on the nike+ website.
+					<br /><br />Unfortunately nike+ do not yet support workouts that contain both gps &amp; heart rate data so for now when the gps conversion/upload is selected I do not include heart rate data.
+				</div>
 				<div class="sectionSubHeading">July 23 2010</div>
 				<div class="sectionContent">
 					Added Nike+ pace data to output snapshots.

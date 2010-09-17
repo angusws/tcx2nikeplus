@@ -14,7 +14,8 @@ public class LogFormatter extends Formatter
 	public String format(LogRecord record) {
 
 		Throwable t = record.getThrown();
-
+		if (t != null) t.printStackTrace();
+		
 		return (t == null)
 			? String.format(FORMAT_NORMAL, record.getMillis(), record.getLevel(), record.getMessage())
 			: String.format(FORMAT_EXCEPTION, record.getMillis(), record.getLevel(), record.getMessage(), t.toString())

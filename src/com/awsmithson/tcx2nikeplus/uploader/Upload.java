@@ -1,5 +1,6 @@
 package com.awsmithson.tcx2nikeplus.uploader;
 
+import static com.awsmithson.tcx2nikeplus.Constants.*;
 import com.awsmithson.tcx2nikeplus.util.Log;
 import com.awsmithson.tcx2nikeplus.util.Util;
 import java.io.File;
@@ -10,10 +11,20 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLConnection;
 import java.net.URLEncoder;
+import java.security.KeyManagementException;
+import java.security.NoSuchAlgorithmException;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
+import org.apache.http.HttpEntity;
+import org.apache.http.HttpResponse;
+import org.apache.http.client.HttpClient;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.entity.mime.HttpMultipartMode;
+import org.apache.http.entity.mime.MultipartEntity;
+import org.apache.http.impl.client.DefaultHttpClient;
 import org.w3c.dom.Document;
+import org.w3c.dom.Node;
 import org.xml.sax.SAXException;
 
 
@@ -21,18 +32,68 @@ public class Upload
 {
 
 	private static String URL_CHECK_PIN_STATUS = "https://secure-nikerunning.nike.com/nikeplus/v2/services/device/get_pin_status.jsp";
-	private static String URL_DATA_SYNC = "https://secure-nikerunning.nike.com/nikeplus/v2/services/device/sync.jsp";
+	private static String URL_DATA_SYNC_NON_GPS = "https://secure-nikerunning.nike.com/nikeplus/v2/services/device/sync.jsp";
+	private static String URL_DATA_SYNC_GPS = "https://secure-nikerunning.nike.com/gps/sync/plus/iphone";
 	private static String URL_DATA_SYNC_COMPLETE = "https://secure-nikerunning.nike.com/nikeplus/v2/services/device/sync_complete.jsp";
 
 	private static String USER_AGENT = "iTunes/9.0.3 (Macintosh; N; Intel)";
 
-	private final static Log log = Log.getInstance();
+	private static final Log log = Log.getInstance();
 
 	public Upload() {
 	}
 
 
-	public void checkPinStatus(String pin) throws IOException, MalformedURLException, ParserConfigurationException, SAXException, UnsupportedEncodingException {
+	private void fullSync(String pin, File runXml, File gpxXml) throws ParserConfigurationException, SAXException, IOException, MalformedURLException, NoSuchAlgorithmException, KeyManagementException {
+		// Load the file, ensuring it is valid xml
+		DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
+		DocumentBuilder db = dbf.newDocumentBuilder();
+
+		Document runXmlDoc = db.parse(runXml);
+		runXmlDoc.normalize();
+
+		Document gpxXmlDoc = db.parse(gpxXml);
+		runXmlDoc.normalize();
+
+		fullSync(pin, runXmlDoc, gpxXmlDoc);
+	}
+
+	public void fullSync(String pin, Document runXml, Document gpxXml) throws IOException, MalformedURLException, ParserConfigurationException, SAXException, NoSuchAlgorithmException, KeyManagementException {
+		
+		log.out("Uploading to Nike+...");
+		
+		try {
+			log.out(" - Checking pin status...");
+			checkPinStatus(pin);
+
+			log.out(" - Syncing data...");
+			Document nikeResponse = (gpxXml != null)
+				? syncDataGps(pin, runXml, gpxXml)
+				: syncDataNonGps(pin, runXml)
+			;
+
+			//<?xml version="1.0" encoding="UTF-8" standalone="no"?><plusService><status>success</status></plusService>
+			if (Util.getSimpleNodeValue(nikeResponse, "status").equals(NIKE_SUCCESS)) {
+				log.out(" - Sync successful.");
+				return;
+			}
+
+			//<?xml version="1.0" encoding="UTF-8" standalone="no"?><plusService><status>failure</status><serviceException errorCode="InvalidRunError">snapshot duration greater than run (threshold 30000 ms): 82980</serviceException></plusService>
+			Node nikeServiceException = nikeResponse.getElementsByTagName("serviceException").item(0);
+			throw new RuntimeException(String.format("%s: %s", nikeServiceException.getAttributes().item(0).getNodeValue(), nikeServiceException.getNodeValue()));
+		}
+		finally {
+			log.out(" - Ending sync...");
+			Document nikeResponse = endSync(pin);
+			log.out((Util.getSimpleNodeValue(nikeResponse, "status").equals(NIKE_SUCCESS))
+				? " - End sync successful."
+				: String.format(" - End sync failed: %s", Util.DocumentToString(nikeResponse))
+			);
+		}
+	}
+
+
+	private void checkPinStatus(String pin) throws IOException, MalformedURLException, ParserConfigurationException, SAXException, UnsupportedEncodingException {
 
 		// Send data
 		URL url = new URL(String.format("%s?%s", URL_CHECK_PIN_STATUS, generateParameter("pin", pin)));
@@ -50,23 +111,13 @@ public class Upload
 		if (!(pinStatus.equals("confirmed")))
 			throw new IllegalArgumentException("The PIN supplied is not valid");
 	}
-
-	public void syncData(String pin, File file) throws MalformedURLException, IOException, ParserConfigurationException, SAXException {
-		// Load the file, ensuring it is valid xml
-		DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
-		DocumentBuilder db = dbf.newDocumentBuilder();
-		Document doc = db.parse(file);
-		doc.normalize();
-
-		syncData(pin, doc);
-	}
-
-	public Document syncData(String pin, Document doc) throws MalformedURLException, IOException, ParserConfigurationException, SAXException {
+	
+	private Document syncDataNonGps(String pin, Document doc) throws MalformedURLException, IOException, ParserConfigurationException, SAXException {
 
 		String data = Util.generateStringOutput(doc);
 
 		// Send data
-		URL url = new URL(URL_DATA_SYNC);
+		URL url = new URL(URL_DATA_SYNC_NON_GPS);
 		URLConnection conn = url.openConnection();
 		conn.setRequestProperty("user-agent", USER_AGENT);
 		conn.setRequestProperty("pin", URLEncoder.encode(pin, "UTF-8"));
@@ -87,9 +138,30 @@ public class Upload
 		return outDoc;
 	}
 
-	
 
-	public Document endSync(final String pin) throws MalformedURLException, IOException, ParserConfigurationException, SAXException {
+	private Document syncDataGps(String pin, Document runXml, Document gpxXml) throws IOException, ParserConfigurationException, SAXException, NoSuchAlgorithmException, KeyManagementException {
+		HttpClient client = new DefaultHttpClient();
+		client = HttpClientNaiveSsl.wrapClient(client);
+
+		HttpPost post = new HttpPost(URL_DATA_SYNC_GPS);
+		post.addHeader("user-agent", "NPConnect");
+		post.addHeader("pin", URLEncoder.encode(pin, "UTF-8"));
+		
+		MultipartEntity reqEntity = new MultipartEntity(HttpMultipartMode.STRICT);
+		reqEntity.addPart("runXML", new SpoofFileBody(Util.generateStringOutput(runXml), "runXML.xml"));
+		reqEntity.addPart("gpxXML", new SpoofFileBody(Util.generateStringOutput(gpxXml), "gpxXML.xml"));
+		post.setEntity(reqEntity);
+
+		HttpResponse response = client.execute(post);		
+		HttpEntity entity = response.getEntity();
+		Document outDoc = DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(entity.getContent());
+		outDoc.normalize();
+
+		return outDoc;
+	}
+
+
+	private Document endSync(final String pin) throws MalformedURLException, IOException, ParserConfigurationException, SAXException {
 		URL url = new URL(String.format("%s?%s", URL_DATA_SYNC_COMPLETE, generateParameter("pin", pin)));
 		URLConnection conn = url.openConnection();
 		conn.setRequestProperty("user-agent", USER_AGENT);
@@ -140,25 +212,42 @@ public class Upload
 
 	public static void main(String[] args) {
 		String pin = args[0];
-		File file = new File(args[1]);
+		File runXml = new File(args[1]);
+		File gpxXml = (args.length > 2) ? new File(args[2]) : null;
 
 		Upload u = new Upload();
-
 		try {
-			u.checkPinStatus(pin);
-			u.syncData(pin, file);
+			u.fullSync(pin, runXml, gpxXml);
 		}
-		catch (Exception e) {
-			System.out.println(e.getMessage());
-		}
-		finally {
-			try {
-				u.endSync(pin);
-			}
-			catch (Exception e) {
-				System.out.println(e.getMessage());
-			}
+		catch (Throwable t) {
+			t.printStackTrace();
 		}
 	}
 }
 
+/*
+private void syncDataNonGps(String pin, File file) throws MalformedURLException, IOException, ParserConfigurationException, SAXException {
+	// Load the file, ensuring it is valid xml
+	DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
+	DocumentBuilder db = dbf.newDocumentBuilder();
+	Document doc = db.parse(file);
+	doc.normalize();
+
+	syncDataNonGps(pin, doc);
+}
+
+
+private void syncDataGps(String pin, File runXml, File gpxXml) throws MalformedURLException, IOException, ParserConfigurationException, SAXException, NoSuchAlgorithmException, KeyManagementException {
+	// Load the file, ensuring it is valid xml
+	DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
+	DocumentBuilder db = dbf.newDocumentBuilder();
+
+	Document runXmlDoc = db.parse(runXml);
+	runXmlDoc.normalize();
+
+	Document gpxXmlDoc = db.parse(gpxXml);
+	runXmlDoc.normalize();
+
+	syncDataGps(pin, runXmlDoc, gpxXmlDoc);
+}
+*/

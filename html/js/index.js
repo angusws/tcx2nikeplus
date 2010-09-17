@@ -109,7 +109,7 @@ Ext.onReady(function() {
 			// Garmin TCX File
 			{
 				xtype: 'fieldset',
-				id: 'fileFieldSet',
+				id: 'fileContainer',
 				checkboxToggle: true,
 				title: 'Garmin TCX file',
 				autoHeight: true,
@@ -118,8 +118,12 @@ Ext.onReady(function() {
 				listeners: {
 					expand: function() {
 						Ext.getCmp('garminTcxFile').enable();
-						Ext.getCmp('idFieldSet').collapse();
+						Ext.getCmp('idContanier').collapse();
+						Ext.getCmp('idGpsContanier').collapse();
 						Ext.getCmp('garminActivityId').disable();
+						Ext.getCmp('garminActivityIdGps').disable();
+						Ext.getCmp('nikePin').allowBlank = true;
+						Ext.getCmp('nikePin').validate();
 					}
 				},
 
@@ -135,7 +139,7 @@ Ext.onReady(function() {
 			// Garmin Activity ID
 			{
 				xtype: 'fieldset',
-				id: 'idFieldSet',
+				id: 'idContanier',
 				checkboxToggle: true,
 				title: 'Garmin Connect Activity ID',
 				autoHeight: true,
@@ -145,8 +149,12 @@ Ext.onReady(function() {
 				listeners: {
 					expand: function() {
 						Ext.getCmp('garminActivityId').enable();
-						Ext.getCmp('fileFieldSet').collapse();
+						Ext.getCmp('fileContainer').collapse();
+						Ext.getCmp('idGpsContanier').collapse();
 						Ext.getCmp('garminTcxFile').disable();
+						Ext.getCmp('garminActivityIdGps').disable();
+						Ext.getCmp('nikePin').allowBlank = true;
+						Ext.getCmp('nikePin').validate();
 
 						// Add the ToolTip the 1st time we enable the garminActivityId NumberField because you can't declare ToolTips on disabled Components.
 						if (activityIdToolTip == null)
@@ -161,6 +169,43 @@ Ext.onReady(function() {
 				items: [{
 					xtype: 'textfield',
 					id: 'garminActivityId',
+					allowBlank: false,
+					disabled: true
+				}]
+			},
+
+			// Garmin Activity ID (GPS)
+			{
+				xtype: 'fieldset',
+				id: 'idGpsContanier',
+				checkboxToggle: true,
+				title: 'Garmin Connect Activity ID (include nike+ gps - new!)',
+				autoHeight: true,
+				defaults: {width: 100},
+				collapsed: true,
+
+				listeners: {
+					expand: function() {
+						Ext.getCmp('garminActivityIdGps').enable();
+						Ext.getCmp('fileContainer').collapse();
+						Ext.getCmp('idContanier').collapse();
+						Ext.getCmp('garminTcxFile').disable();
+						Ext.getCmp('garminActivityId').disable();
+						Ext.getCmp('nikePin').allowBlank = false;
+
+						// Add the ToolTip the 1st time we enable the garminActivityId NumberField because you can't declare ToolTips on disabled Components.
+						if (activityIdToolTip == null)
+							new Ext.ToolTip({
+								target: 'garminActivityIdGps',
+								title: 'Garmin Connect Activity ID with Nike+ GPS upload',
+								html: 'Example: For the workout http://connect.garmin.com/activity/21742933 the activity ID is 21742933.'
+							});
+					}
+				},
+
+				items: [{
+					xtype: 'textfield',
+					id: 'garminActivityIdGps',
 					allowBlank: false,
 					disabled: true
 				}]
@@ -224,7 +269,7 @@ Ext.onReady(function() {
 			text: 'Reset',
 			handler: function() {
 				fp.getForm().reset();
-				fp.findById('fileFieldSet').expand();
+				fp.findById('fileContainer').expand();
 			}
 		}]
 	});
@@ -270,8 +315,10 @@ Ext.onReady(function() {
 	fp.findById('nikePin').setValue(Ext.getUrlParam('pin'));
 	fp.findById('nikeEmpedId').setValue(Ext.getUrlParam('empedID'));
 
-	if (Ext.getUrlParam('type') === 'garminActivityID')
-		fp.findById('idFieldSet').expand();
+	var type = Ext.getUrlParam('type');
+
+	if (type === 'garminActivityID') fp.findById('idContanier').expand();
+	else if (type === 'garminActivityID_GPS') fp.findById('idGpsContanier').expand();
 
 
 

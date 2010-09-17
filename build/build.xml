@@ -78,14 +78,14 @@
 	<target name="build.app" depends="compile">
 		<jar destfile="${out.dir}/tcx2nikeplus.jar"
 			basedir="${classes.dir}"
-			includes="com/awsmithson/tcx2nikeplus/converter/**,com/awsmithson/tcx2nikeplus/uploader/**,com/awsmithson/tcx2nikeplus/util/**"/>
+			includes="com/awsmithson/tcx2nikeplus/convert/**,com/awsmithson/tcx2nikeplus/uploader/**,com/awsmithson/tcx2nikeplus/util/**"/>
 	</target>
 
 
 	<target name="build.test" depends="compile">
 		<jar destfile="${out.dir}/tcx2nikeplus-test.jar"
 			basedir="${classes.dir}"
-			includes="com/awsmithson/tcx2nikeplus/converter/**,com/awsmithson/tcx2nikeplus/uploader/**,com/awsmithson/tcx2nikeplus/util/**,com/awsmithson/tcx2nikeplus/test/**"/>
+			includes="com/awsmithson/tcx2nikeplus/convert/**,com/awsmithson/tcx2nikeplus/uploader/**,com/awsmithson/tcx2nikeplus/util/**,com/awsmithson/tcx2nikeplus/test/**"/>
 	</target>
 
 
@@ -106,17 +106,24 @@
 
 		<!-- Copy the jars required to the dist/app/lib directory. -->
 		<copy todir="${dist.app.lib.dir}">
+			<fileset dir="${lib.dir}" includes="apache-mime4j-0.6.jar"/>
+			<fileset dir="${lib.dir}" includes="commons-logging-1.1.1.jar"/>
 			<fileset dir="${lib.dir}" includes="flanagan.jar"/>
+			<fileset dir="${lib.dir}" includes="httpclient-4.0.2.jar"/>
+			<fileset dir="${lib.dir}" includes="httpcore-4.0.1.jar"/>
+			<fileset dir="${lib.dir}" includes="httpmime-4.0.2.jar"/>
 			<fileset dir="${out.dir}" includes="tcx2nikeplus.jar"/>
 		</copy>
 
-		<!-- Copy the looging conf to the dist/app/conf directory. -->
+		<!-- Copy the app looging conf to the dist/app/conf directory. -->
 		<copy todir="${dist.app.conf.dir}">
 			<fileset dir="${conf.dir}" includes="logging_app.properties"/>
+			<globmapper from="logging_app.properties" to="logging.properties"/>
 		</copy>
 
 		<exec executable="cp">
-			<arg value="${bin.dir}/convert"/>
+			<arg value="${bin.dir}/convertGpx"/>
+			<arg value="${bin.dir}/convertTcx"/>
 			<arg value="${bin.dir}/upload"/>
 			<arg value="${dist.app.bin.dir}"/>
 		</exec>
@@ -164,6 +171,12 @@
 
 
 	<target name="dist.war" depends="compile">
+		
+		<!-- Copy the war looging conf to the dist/app/conf directory. -->
+		<copy todir="${out.dir}">
+			<fileset dir="${conf.dir}" includes="logging_war.properties"/>
+			<globmapper from="logging_war.properties" to="logging.properties"/>
+		</copy>
 
 		<mkdir dir="${dist.dir}"/>
 
@@ -171,8 +184,8 @@
 		<war destfile="${dist.dir}/tcx2nikeplus.war" webxml="${src.dir}/metadata/web.xml">
 			<fileset dir="${html.dir}"/>
 			<lib dir="${lib.dir}"/>
-			<classes dir="${classes.dir}" includes="**/Convert.class,**/Convert$Trackpoint.class,**/ConvertServlet.class,**/Log.class,**/LogFormatter.class,**/Util.class,**/Upload.class,**/Upload$1.class"/>
-			<classes dir="${conf.dir}" includes = "**/logging.properties"/>
+			<classes dir="${classes.dir}" includes="**/ConvertGpx.class,**/ConvertTcx.class,**/ConvertTcx$Trackpoint.class,**/ConvertServlet.class,**/HttpClientNaiveSsl*.class,**/Log.class,**/LogFormatter.class,**/SpoofFileBody.class,**/Util.class,**/Upload*.class"/>
+			<classes dir="${out.dir}" includes = "**/logging.properties"/>
 		</war>
 
 	</target>
