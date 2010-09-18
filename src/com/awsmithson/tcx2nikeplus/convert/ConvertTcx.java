@@ -13,6 +13,7 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.Iterator;
 import java.util.TimeZone;
+import java.util.logging.Level;
 import javax.xml.datatype.DatatypeConfigurationException;
 import javax.xml.datatype.DatatypeFactory;
 import javax.xml.parsers.DocumentBuilder;
@@ -532,7 +533,10 @@ public class ConvertTcx
 
 					// First deal with pause/resume pairs.
 					// 2010-04-28: Some workouts have multiple tracks and the first trackpoint in each is a simple time-only trackpoint - ignore these.
-					if ((trackPointDataLength == 3) && (j+1 < trackPointsLength) && (j > 0)) {
+					// 2010-09-18: I've been forced to change my mind on this - I've received a tcx file from Paolo Bonalanza which will not add up (duration > total duration) unless I acknowledge these first pauses in the laps.
+					// I've added a boolean parameter "displayPauseResume" to createPauseResume.  If set to false this update all the workout timings but not explicity detail the pause/resume (won't show up on nike+ website).
+					//if ((trackPointDataLength == 3) && (j+1 < trackPointsLength) && (j > 0)) {
+					if ((trackPointDataLength == 3) && (j+1 < trackPointsLength)) {
 
 						// Get what we are expecting to be the resume track-point-data.
 						// 2010-03-15: This doesn't work because there are workouts (see garmin-connect-id 25956404) that have a big list of times whilst the device is paused.
@@ -553,7 +557,7 @@ public class ConvertTcx
 						if ((trackPointData.getLength()) == 3) {
 
 							// Create a pause/resume event.
-							long timePaused = createPauseResume(pauseResumeTimes, trackPoints, pauseIndex, resumeIndex, startDurationAdjusted);
+							long timePaused = createPauseResume(pauseResumeTimes, trackPoints, pauseIndex, resumeIndex, startDurationAdjusted, (j > 0));
 							startDurationAdjusted += timePaused;
 							//lapEndDuration += timePaused;
 							forcePotentialPause = false;
@@ -651,7 +655,7 @@ public class ConvertTcx
 
 
 
-	private long createPauseResume(ArrayList<Long> pauseResumeTimes, Node[] trackPoints, int pauseIndex, int resumeIndex, long startDurationAdjusted) throws DatatypeConfigurationException {
+	private long createPauseResume(ArrayList<Long> pauseResumeTimes, Node[] trackPoints, int pauseIndex, int resumeIndex, long startDurationAdjusted, boolean displayPauseResume) throws DatatypeConfigurationException {
 
 		long tpPauseTime = getCalendarNodeValue(trackPoints[pauseIndex].getChildNodes().item(1)).getTimeInMillis();
 		long tpResumeTime = getCalendarNodeValue(trackPoints[resumeIndex].getChildNodes().item(1)).getTimeInMillis();
@@ -660,7 +664,8 @@ public class ConvertTcx
 		// 2009-12-01: Looking at various runs on nike+ it seems the each pause/resume pair now has the same duration/distance
 		// (using the pause event).  I can't find my nike+ stuff to check this is 100% accurate but will go with it for now.
 		long startDuration = tpPauseTime - startDurationAdjusted;
-		if (startDuration > 0) pauseResumeTimes.add(startDuration);
+		//if (startDuration > 0) pauseResumeTimes.add(startDuration);
+		if ((startDuration > 0) && displayPauseResume) pauseResumeTimes.add(startDuration);
 
 		// Return the length of time (in millis) that the device was paused.
 		return tpResumeTime - tpPauseTime;
@@ -962,6 +967,7 @@ public class ConvertTcx
 			_distance = distance;
 			_heartRate = heartRate;
 			_previousTrackPoint = previousTrackPoint;
+			log.out(Level.FINEST, "New Trackpoint.  Duration (difference): %d\t(%d)\t\tDistance: %.4f", duration, (duration - ((previousTrackPoint == null) ? 0 : previousTrackPoint.getDuration())), distance);
 		}
 
 
