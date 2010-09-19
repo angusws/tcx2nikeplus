@@ -734,7 +734,7 @@ public class ConvertTcx
 				retry = true;
 
 				// Leave this debug statement in for now, I am interested to see in the logs how often this happens.
-				log.out("Removing trackpoint with duration %d", pauseDuration);
+				log.out("Removing trackpoint with duration %d\t(distance %.4f)", pauseDuration, tp.getDistance());
 
 				// Remove the pause/resume trackpoints from the list that will be used for the cubic-spline data.
 				trackpoints.remove(tp.getPreviousTrackpoint());
