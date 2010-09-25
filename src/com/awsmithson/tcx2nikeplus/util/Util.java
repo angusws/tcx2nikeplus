@@ -10,7 +10,11 @@ import java.net.MalformedURLException;
 import java.net.SocketTimeoutException;
 import java.net.URL;
 import java.net.URLConnection;
+import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.logging.Level;
+import javax.xml.datatype.DatatypeConfigurationException;
+import javax.xml.datatype.DatatypeFactory;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.transform.Result;
@@ -24,6 +28,7 @@ import javax.xml.transform.stream.StreamResult;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
 
 
@@ -42,6 +47,44 @@ public class Util {
 	public static String getSimpleNodeValue(Node node) {
 		return node.getChildNodes().item(0).getNodeValue();
 	}
+
+	public static Calendar getCalendarNodeValue(Node node) throws DatatypeConfigurationException {
+		return getCalendarValue(getSimpleNodeValue(node));
+	}
+
+	public static Calendar getCalendarValue(String value) throws DatatypeConfigurationException {
+		return DatatypeFactory.newInstance().newXMLGregorianCalendar(value).toGregorianCalendar();
+	}
+
+
+	public static Node getFirstChildByNodeName(Node parent, String nodeName) {
+		NodeList children = parent.getChildNodes();
+		int childCount = children.getLength();
+
+		for (int i = 0; i < childCount; ++i) {
+			Node n = children.item(i);
+				if (n.getNodeName().equals(nodeName)) return n;
+		}
+
+		return null;
+	}
+
+	public static Node[] getChildrenByNodeName(Node parent, String nodeName) {
+		ArrayList<Node> al = new ArrayList<Node>();
+
+		NodeList children = parent.getChildNodes();
+		int childCount = children.getLength();
+
+		for (int i = 0; i < childCount; ++i) {
+			Node n = children.item(i);
+				if (n.getNodeName().equals(nodeName))
+					al.add(n);
+		}
+
+		return (al.size() > 0) ? al.toArray(new Node[0]) : null;
+	}
+
+
 
 	public static Element appendElement(Node parent, String name) {
 		return appendElement(parent, name, null);

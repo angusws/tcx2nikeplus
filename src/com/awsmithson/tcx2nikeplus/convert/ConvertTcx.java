@@ -9,13 +9,11 @@ import java.net.MalformedURLException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
-import java.util.Collections;
 import java.util.Date;
 import java.util.Iterator;
 import java.util.TimeZone;
 import java.util.logging.Level;
 import javax.xml.datatype.DatatypeConfigurationException;
-import javax.xml.datatype.DatatypeFactory;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
@@ -24,6 +22,7 @@ import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
+import sun.dc.pr.PRError;
 
 
 
@@ -206,7 +205,7 @@ public class ConvertTcx
 		if (_workoutTimeZone == null)
 			_workoutTimeZone = TimeZone.getTimeZone("Etc/UTC");
 
-		log.out(_workoutTimeZone.getRawOffset());
+		log.out("Time zone millis offset (vs server): %d", _workoutTimeZone.getRawOffset());
 
 		// Set the the SimpleDateFormat object so that it prints the time correctly:
 		// local-time + UTC-difference.
@@ -214,7 +213,7 @@ public class ConvertTcx
 		df.setTimeZone(_workoutTimeZone);
 		
 		// Get the workout start-time, format for nike+ and add it to the out-document
-		Calendar calStart = getCalendarValue(Util.getSimpleNodeValue(inDoc, "Id"));
+		Calendar calStart = Util.getCalendarValue(Util.getSimpleNodeValue(inDoc, "Id"));
 		Date dateStart = calStart.getTime();
 		_startTimeString = df.format(dateStart);
 		_startTimeString = String.format("%s:%s", _startTimeString.substring(0, 22), _startTimeString.substring(22));
@@ -233,6 +232,7 @@ public class ConvertTcx
 	// We use the latitude & longitude data along with the http://ws.geonames.org/timezone webservice to
 	// deduce in which time zone the workout began.
 	private TimeZone getWorkoutTimeZone(Document inDoc, Integer clientTimeZoneOffset) throws DatatypeConfigurationException, IOException, MalformedURLException, ParserConfigurationException, SAXException {
+
 		NodeList positions = inDoc.getElementsByTagName("Position");
 		int positionsLength = positions.getLength();
 
@@ -408,24 +408,15 @@ public class ConvertTcx
 
 
 	private void appendWorkoutDetail(Document inDoc, Element sportsDataElement, Element runSummaryElement) throws DatatypeConfigurationException {
-		ArrayList<Trackpoint> trackpoints = new ArrayList<Trackpoint>();
-		ArrayList<Long> pauseResumeTimes = new ArrayList<Long>();
 
 		// Generate the workout detail from the garmin Trackpoint data.
+		ArrayList<Trackpoint> trackpoints = new ArrayList<Trackpoint>();
+		ArrayList<Long> pauseResumeTimes = new ArrayList<Long>();
 		generateCubicSplineData(inDoc, trackpoints, pauseResumeTimes);
-
-		//log.out("totalDistance: %.4f\ttpsDistance: %.4f\t\ttotalDuration: %d\ttpsDuration: %d",
-		//		_totalDistance, trackpoints.get(trackpoints.size()-1).getDistance(),
-		//		_totalDuration, trackpoints.get(trackpoints.size()-1).getDuration());
-
-		// Validate our data and attempt to fix it if there are any problems.
-		validateCubicSplineData(trackpoints, pauseResumeTimes);
 
 		// Generates the following CubicSplines: distanceToDuration, durationToDistance, durationToPace, durationToHeartRate.
 		CubicSpline[] splines = generateCubicSplines(trackpoints);
 		appendSnapShotListAndExtendedData(sportsDataElement, pauseResumeTimes, splines[0], splines[1], splines[2], splines[3]);
-
-
 		
 		// Append heart rate detail to the run summary if required.
 		if (_includeHeartRateData) {
@@ -438,7 +429,7 @@ public class ConvertTcx
 				int heartRate = tp.getHeartRate().intValue();
 				if ((min == null) || (heartRate < min.getHeartRate())) min = tp;
 				if ((max == null) || (heartRate > max.getHeartRate())) max = tp;
-				average += (heartRate * tp.getDurationSinceLastTrackpoint(true));
+				average += (heartRate * tp.getDurationSinceLastTrackpoint());
 			}
 
 			average /= _totalDuration;
@@ -461,26 +452,8 @@ public class ConvertTcx
 	}
 
 
-	private Node[] getChildrenByNodeName(Node parent, String nodeName) {
-
-		ArrayList<Node> al = new ArrayList<Node>();
-		
-		NodeList children = parent.getChildNodes();
-		int childCount = children.getLength();
-
-		for (int i = 0; i < childCount; ++i) {
-			Node n = children.item(i);
-				if (n.getNodeName().equals(nodeName))
-					al.add(n);
-		}
-		
-		return (al.size() > 0) ? al.toArray(new Node[0]) : null;
-	}
-
 
 	private void generateCubicSplineData(Document inDoc, ArrayList<Trackpoint> trackpointsStore, ArrayList<Long> pauseResumeTimes) throws DatatypeConfigurationException {
-		long startDurationOriginal = _calStart.getTimeInMillis();
-		long startDurationAdjusted = startDurationOriginal;
 		
 		// Setup a trackpoint based on the very start of the run in case there is a long pause right at the start.
 		Trackpoint previousTp = new Trackpoint(0l, 0d, 0d, null);
@@ -488,274 +461,243 @@ public class ConvertTcx
 
 		NodeList laps = inDoc.getElementsByTagName("Lap");
 		int lapsLength = laps.getLength();
+		long lapStartDuration = 0;
 
 		for (int i = 0; i < lapsLength; ++i) {
+			Node lap = laps.item(i);
+			long lapStartTime = Util.getCalendarNodeValue(lap.getAttributes().getNamedItem("StartTime")).getTimeInMillis();
+			long lapDuration = (long)(Double.parseDouble(Util.getSimpleNodeValue(Util.getFirstChildByNodeName(lap, "TotalTimeSeconds"))) * 1000);
 
-			// Get the trackpoints for this lap - if there are none then continue to the next lap.
-			Node[] tracks = getChildrenByNodeName(laps.item(i), "Track");
-			if (tracks == null) continue;
+			log.out(Level.FINE, "Start of lap %d\tDuration: %d -> %d.", (i + 1), lapStartDuration, (lapStartDuration + lapDuration));
 
-			// Get the lap start & end duration so that if there are any trackpoints outwith these times we can ignore them.
-			//long lapStartDuration = getCalendarNodeValue(laps.item(i).getAttributes().getNamedItem("StartTime")).getTimeInMillis();
-			//long lapEndDuration = lapStartDuration + (long)(Double.parseDouble(Util.getSimpleNodeValue(getChildrenByNodeName(laps.item(i), "TotalTimeSeconds")[0])) * 1000);
+			ArrayList<Trackpoint> lapTrackpointStore = generateLapCubicSplineData(lap, pauseResumeTimes, getLastTrackpointFromArrayList(trackpointsStore), lapStartTime, lapStartDuration, lapDuration);
+			trackpointsStore.addAll(lapTrackpointStore);
 
-			for (Node track : tracks) {
+			lapStartDuration += lapDuration;
+			log.out(Level.FINE, ("End of lap.\n"));
+		}
 
-				// Ugly hack to prepare a array of nodes (elements only) which we can easily refer to by index later when we need to jump-about between nodes to calculate pause/resume.
-				ArrayList<Node> al = new ArrayList<Node>();
 
-				Node child = track.getFirstChild();
-				do {
-					if (child.getNodeType() == child.ELEMENT_NODE)
-						al.add(child);
-				}
-				while ((child = child.getNextSibling()) != null);
+		// Remove strange trackpoints (repeat distance/durations).
+		// Also, for each trackpoint, add a heart-rate reading if one is required & update the previous-trackpoints reference.
+		previousTp = null;
 
-				/*
-				for (int z = 0; z < track.getChildNodes().getLength(); ++z) {
-					if (track.getChildNodes().item(z).getNodeType() == track.getChildNodes().item(z).ELEMENT_NODE)
-						al.add(track.getChildNodes().item(z));
-				}
-				*/
-				
-				Node[] trackPoints = al.toArray(new Node[0]);
-				int trackPointsLength = trackPoints.length;
+		Iterator<Trackpoint> tpsIt = trackpointsStore.iterator();
+		while (tpsIt.hasNext()) {
+			Trackpoint tp = tpsIt.next();
+			tp.setPreviousTrackpoint(previousTp);
 
-				// Always generate a potential-pause on the first trackpoint of each lap/track in case the watch was paused at the start.
-				boolean forcePotentialPause = true;
+			if ((tp.getDistance() == null) || (tp.isRepeatDistance())) {
+				log.out(Level.FINER, "Removing invalid distance trackpoint:\t%s", tp);
+				tpsIt.remove();
+			}
+			else if ((tp.getDuration() == null) || (tp.isRepeatDuration())) {
+				log.out(Level.FINER, "Removing invalid duration trackpoint:\t%s", tp);
+				tpsIt.remove();
+			}
+			else {
+				if ((_includeHeartRateData) && (tp.getHeartRate() == null))
+					tp.setHeartRate(previousTp.getHeartRate());
 
-				for (int j = 0; j < trackPointsLength; ++j) {
+				previousTp = tp;
+				log.out(Level.FINEST, tp);
+			}
+		}
 
-					NodeList trackPointData = trackPoints[j].getChildNodes();
-					int trackPointDataLength = trackPointData.getLength();
+		log.out(Level.FINEST, _totalDuration);
+	}
 
-					//log.out("%s\t%d", trackPointData.toString(), trackPointData.getLength());
 
-					// First deal with pause/resume pairs.
-					// 2010-04-28: Some workouts have multiple tracks and the first trackpoint in each is a simple time-only trackpoint - ignore these.
-					// 2010-09-18: I've been forced to change my mind on this - I've received a tcx file from Paolo Bonalanza which will not add up (duration > total duration) unless I acknowledge these first pauses in the laps.
-					// I've added a boolean parameter "displayPauseResume" to createPauseResume.  If set to false this update all the workout timings but not explicity detail the pause/resume (won't show up on nike+ website).
-					//if ((trackPointDataLength == 3) && (j+1 < trackPointsLength) && (j > 0)) {
-					if ((trackPointDataLength == 3) && (j+1 < trackPointsLength)) {
+	private ArrayList<Trackpoint> generateLapCubicSplineData(Node lap, ArrayList<Long> pauseResumeTimes, Trackpoint previousTp, long lapStartTime, long lapStartDuration, long lapDuration) throws DatatypeConfigurationException {
 
-						// Get what we are expecting to be the resume track-point-data.
-						// 2010-03-15: This doesn't work because there are workouts (see garmin-connect-id 25956404) that have a big list of times whilst the device is paused.
-						//trackPointData = trackPoints.item(++i).getChildNodes();
+		ArrayList<Trackpoint> lapTrackpointStore = new ArrayList<Trackpoint>();
 
-						int pauseIndex = j;
-						//log.out((trackPoints.item(j+1).getChildNodes().getLength() == 3) && (j+2 < trackPointsLength));
-						//log.out(trackPoints.item(j+2).getChildNodes().getLength());
+		long lapEndDuration = lapStartDuration + lapDuration;
 
-						// The trackpoint before the next "full" trackpoint will be used as our resume time.
-						while ((trackPoints[j+1].getChildNodes().getLength() == 3) && (j+2 < trackPointsLength))
-							trackPointData = trackPoints[++j].getChildNodes();
+		double lapStartDistance = -1;
+		double lapDistance = Double.parseDouble(Util.getSimpleNodeValue(Util.getFirstChildByNodeName(lap, "DistanceMeters")));
+		double lapEndDistance = -1;
 
-						// If we don't have a resume trackpoint then use the next real trackpoint as the resume.
-						int resumeIndex = (pauseIndex == j) ? (j + 1) : j;
+		// Get the trackpoints for this lap - if there are none then continue to the next lap.
+		Node[] tracks = Util.getChildrenByNodeName(lap, "Track");
 
-						// As we are expecting it to be a resume trackPointData it must also be of length 3, otherwise we are not dealing with a pause/resume pair so ignore the pause.
-						if ((trackPointData.getLength()) == 3) {
+		for (Node track : tracks) {
+			// Get the trackpoints for this track - if there are none then continue to the next track.
+			Node[] trackpoints = Util.getChildrenByNodeName(track, "Trackpoint");
+			if (trackpoints == null) continue;
 
-							// Create a pause/resume event.
-							long timePaused = createPauseResume(pauseResumeTimes, trackPoints, pauseIndex, resumeIndex, startDurationAdjusted, (j > 0));
-							startDurationAdjusted += timePaused;
-							//lapEndDuration += timePaused;
-							forcePotentialPause = false;
+			for (Node trackpoint : trackpoints) {
 
-							// Continue onto the next trackpoint, we've stored our pause/resume data for later use.
-							continue;
+				// Loop through the data for this trackpoint storing the data.
+				Trackpoint tp = new Trackpoint(previousTp);
+				NodeList trackPointData = trackpoint.getChildNodes();
+				int trackPointDataLength = trackPointData.getLength();
+
+				for (int i = 0; i < trackPointDataLength && tp != null; ++i) {
+					Node n = trackPointData.item(i);
+					String nodeName = n.getNodeName();
+
+					// Run duration to this point
+					if (nodeName.equals("Time"))
+						tp.setDuration((Util.getCalendarNodeValue(n).getTimeInMillis() - lapStartTime) + lapStartDuration);
+
+					// Distance to this point
+					else if (nodeName.equals("DistanceMeters")) {
+						double distance = Double.parseDouble(Util.getSimpleNodeValue(n));
+
+						// If this is the first trackpoint in the lap with a DistanceMeters value then calculate the start/end distance of the lap.
+						if (lapStartDistance == -1) {
+							lapStartDistance = distance;
+							lapEndDistance = lapStartDistance + lapDistance;
 						}
+
+						// Ignore any distances which are greater than the lap distance (don't think this should ever happen).
+						else if (distance > lapEndDistance) {
+							tp = null;
+							break;
+						}
+
+						tp.setDistance(distance);
 					}
 
+					// Heart rate bpm
+					else if ((!_forceExcludeHeartRateData) && (nodeName.equals("HeartRateBpm"))) {
+						NodeList heartRateData = n.getChildNodes();
+						int heartRateDataLength = heartRateData.getLength();
 
-					// If we reach this point then this is a normal trackpoint, not a pause/resume.
-					Double distance = null;
-					Long duration = null;
-					Double heartRateBpm = null;
-
-					// Loop through the data for this trackpoint until we have duration & distance data which we can store.
-					for (int k = 0; k < trackPointDataLength; ++k) {
-						Node n = trackPointData.item(k);
-						String nodeName = n.getNodeName();
-
-						// Run duration to this point
-						if (nodeName.equals("Time")) {
-							duration = getCalendarNodeValue(n).getTimeInMillis();
-							// 2010-04-04: If we have a duration outwith the duration of the current lap then ignore the trackpoint.  See Oliver Schulz's 2010-03-15 workout (emailed to me).
-							// No longer needed since we added the laps/tracks breakdown.
-							//if ((duration < lapStartDuration) || (duration > lapEndDuration)) {
-								//log.oug("%d\t%d\t%d", duration, lapEndDuration, (duration - lapEndDuration));
-								//break;
-							//}
-
-							duration -= startDurationAdjusted;
-						}
-
-						// Distance to this point
-						else if (nodeName.equals("DistanceMeters"))
-							distance = Double.parseDouble(Util.getSimpleNodeValue(n));
-
-						// Heart rate bpm
-						else if ((!_forceExcludeHeartRateData) && (nodeName.equals("HeartRateBpm"))) {
-							NodeList heartRateData = n.getChildNodes();
-							int heartRateDataLength = heartRateData.getLength();
-
-							for (int l = 0; l < heartRateDataLength; ++l) {
-								Node heartRateNode = heartRateData.item(l);
-								if (heartRateNode.getNodeName().equals("Value")) {
-									_includeHeartRateData = true;
-									heartRateBpm = Double.parseDouble(Util.getSimpleNodeValue(heartRateNode));
-								}
+						for (int j = 0; j < heartRateDataLength; ++j) {
+							Node heartRateNode = heartRateData.item(j);
+							if (heartRateNode.getNodeName().equals("Value")) {
+								_includeHeartRateData = true;
+								tp.setHeartRate(Double.parseDouble(Util.getSimpleNodeValue(heartRateNode)));
 							}
 						}
 					}
+				}
 
-
-					// We require valid duration & distance data to create a Trackpoint - otherwise just ignore and move on to the next iteration.
-					if ((duration != null) && (distance != null)) {
-
-						// I have a run where my 405 froze and when it rebooted it started recording distances lower than what it
-						// had already recorded!  Garmin Connect ID: 27181644 trackpoint at 2010-03-16T18:12:11.000Z.
-						// If we find a workout like this then ignore the trackpoints that are "wrong" and force a potential-pause addition
-						// for the next valid trackpoint we find.
-						if (distance < previousTp.getDistance()) {
-							forcePotentialPause = true;
-							continue;
-						}
-
-						// 2010-07-28: I have been emailed some workouts which do not convert because not all the Trackpoints have heart-rate data.
-						// This hack will fix it for now but I need to look at something better.
-						if ((_includeHeartRateData) && (heartRateBpm == null))
-							heartRateBpm = previousTp.getHeartRate();
-
-						Trackpoint tp = new Trackpoint(duration, distance, heartRateBpm, previousTp);
-						previousTp = tp;
-
-						// If this trackpoint has the same duration as the last trackpoint do not add it to the trackpoints list.
-						// 2010-04-06: We now also generate a potential-pause on the previous trackpoint in the device was paused prior to these identical-duration trackpoints.
-						if (tp.isRepeatDuration()) {
-							tp.getPreviousTrackpoint().generateDurationSinceLastTrackpoint();
-							continue;
-						}
-
-						// If this trackpoint distance is the same as the previous one then keep track of it, we might need to
-						// create a pause/resume pair from it later to ensure our calculated distance does not exceed the total distance.
-						if ((forcePotentialPause) || (tp.isRepeatDistance())) {
-							tp.generateDurationSinceLastTrackpoint();
-							forcePotentialPause = false;
-						}
-
-						// We have valid and new duration/distance combinations so store them for use later and move onto the next Trackpoint.
-						trackpointsStore.add(tp);
-					}
+				// Store the trackpoint for validation/conversion later.
+				if (tp != null) {
+					tp.setIsOnlyDurationData((trackPointDataLength == 3) && (tp.getDuration() != null));
+					lapTrackpointStore.add(tp);
+					previousTp = tp;
 				}
 			}
 		}
+
+		validateLapCubicSplineData(lap, pauseResumeTimes, lapTrackpointStore, lapEndDuration);
+		
+
+		// Add a Trackpoint for the end of the lap.
+		// We should only do this after validating/modifying the lap trackpiont data.
+		lapTrackpointStore.add(new Trackpoint(lapEndDuration, lapEndDistance, previousTp.getHeartRate(), getLastTrackpointFromArrayList(lapTrackpointStore)));
+
+		long difference = lapEndDuration - getLastTrackpointFromArrayList(lapTrackpointStore).getDuration();		// There will always be at least one Trackpoint in the list as we've just added one.
+		log.out(Level.FINE, "Lap duration difference after validation:\t%d", difference);
+
+		return lapTrackpointStore;
 	}
 
 
+	private boolean validateLapCubicSplineData(Node lap, ArrayList<Long> pauseResumeTimes, ArrayList<Trackpoint> lapTrackpointStore, long lapEndDuration) {
 
-	private long createPauseResume(ArrayList<Long> pauseResumeTimes, Node[] trackPoints, int pauseIndex, int resumeIndex, long startDurationAdjusted, boolean displayPauseResume) throws DatatypeConfigurationException {
+		// If we have no trackpoints then we don't need to validate.
+		if (lapTrackpointStore.size() == 0) return true;
 
-		long tpPauseTime = getCalendarNodeValue(trackPoints[pauseIndex].getChildNodes().item(1)).getTimeInMillis();
-		long tpResumeTime = getCalendarNodeValue(trackPoints[resumeIndex].getChildNodes().item(1)).getTimeInMillis();
-		
-		// Save the pause/resume points so that we can create the snapshot event later (once we can interpolate to get the distance).
-		// 2009-12-01: Looking at various runs on nike+ it seems the each pause/resume pair now has the same duration/distance
-		// (using the pause event).  I can't find my nike+ stuff to check this is 100% accurate but will go with it for now.
-		long startDuration = tpPauseTime - startDurationAdjusted;
-		//if (startDuration > 0) pauseResumeTimes.add(startDuration);
-		if ((startDuration > 0) && displayPauseResume) pauseResumeTimes.add(startDuration);
+		Node lapTotalTimeSeconds = Util.getFirstChildByNodeName(lap, "TotalTimeSeconds");
+		if (lapTotalTimeSeconds == null) return false;
 
-		// Return the length of time (in millis) that the device was paused.
-		return tpResumeTime - tpPauseTime;
-	}
+		long difference = lapEndDuration - getLastTrackpointFromArrayList(lapTrackpointStore).getDuration();
+		log.out(Level.FINE, "Lap duration difference before validation:\t%d", difference);
 
+		boolean paused = false;
+		long durationPaused = 0;
+		long lengthDecrement = 0;
 
-
-	// 2010-01-08: Ross sent me one of Liz's activities (garmin activity id 21883594) that had various normal pauses in it then also had 2 sections
-	// whereby there were no trackpoints for 35 and 60 seconds respectively.  On the immeadiately following trackpoints the DistanceMeters value
-	// is the same as before the gaps.  It seems these should have been marked as pause sections but for some reason were not.
-	// When these times are included in the workout data it ends up that the splits (nike+ snapshots) end up exceeding the total workout duration.
-	// To counter this problem I now keep a track of such abnormalities in generateCubicSplineData(...) and if the snapshots end up exceeding the workout
-	// duration I create pause/resumes until I have valid data.
-	// Nike+ currently allows a threshold of 30000ms over the "total duration".
-	private void validateCubicSplineData(ArrayList<Trackpoint> trackpoints, ArrayList<Long> pauseResumeTimes) {
-		long calculatedDuration = trackpoints.get(trackpoints.size()-1).getDuration();
-		boolean retry = true;
-
-		while ((retry) && (calculatedDuration > (_totalDuration + 30000))) {
-
-			// Retry will only be set to true again whilst we are able to create pause/resume splits.  When it
-			// remains false we will exit the loop.
-			retry = false;
-
-			// Don't "create" a pause for anything shorter than 2 seconds.
-			long currentMaxPause = 2000;
-			int removeTpIndex = -1;
-			int index = 0;
-
-			// Go through the trackpoints fo find the one that has the bigest potential-pause-duration.
-			Iterator<Trackpoint> tpsIt = trackpoints.iterator();
-			while (tpsIt.hasNext()) {
-				Trackpoint tp = tpsIt.next();
-
-				if (tp.getDurationSinceLastTrackpoint(false) > currentMaxPause) {
-					currentMaxPause = tp.getDurationSinceLastTrackpoint(false);
-					removeTpIndex = index;
-				}
-				++index;
-			}
-
-			// If we found a trackpoint then we create a pause/resume split for it
-			// and decrement all durations greater than the duration of the pause/resume split.
-			if (removeTpIndex != -1) {
-				Trackpoint tp = trackpoints.get(removeTpIndex);
-				long pauseDuration = tp.getDurationSinceLastTrackpoint(false);
-
-				// Decrement all post-trackpoint trackpoint durations.
-				for (int i = removeTpIndex + 1; i < trackpoints.size(); ++i)
-					trackpoints.get(i).decrementDuration(pauseDuration);
-
-				// Decrement all post-trackpoint pause/resume durations.
-				Iterator<Long> prsIt = pauseResumeTimes.iterator();
-				ArrayList<Long> prsNew = new ArrayList<Long>();
-				while (prsIt.hasNext()) {
-					long pr = prsIt.next();
-					if (pr > tp.getDuration()) {
-						prsIt.remove();
-						prsNew.add(pr - pauseDuration);
-					}
-				}
-				pauseResumeTimes.addAll(prsNew);
-
-				// Update these variables so we can use them to check whether to loop again.
-				calculatedDuration -= pauseDuration;
-				retry = true;
-
-				// Leave this debug statement in for now, I am interested to see in the logs how often this happens.
-				log.out("Removing trackpoint with duration %d\t(distance %.4f)", pauseDuration, tp.getDistance());
-
-				// Remove the pause/resume trackpoints from the list that will be used for the cubic-spline data.
-				trackpoints.remove(tp.getPreviousTrackpoint());
-				trackpoints.remove(tp);
-
-				// Add a pause/resume split for the removed trackpoints.
-				pauseResumeTimes.add(tp.getPreviousTrackpoint().getDuration());
-			}
-		}
-		
-		// The ArrayList will be out of order if we've had to "create" pause/resume splits.
-		Collections.sort(pauseResumeTimes);
-
-		// Remove any Trackpoints which have duplicate distances.
-		Iterator<Trackpoint> tpsIt = trackpoints.iterator();
+		// When I get a 3-data trackpoint (duration only) it means we have a pause.
+		// I want to:
+		// - 1. Get the duration of this first trackpoint in the pause to use for the pause/resume duration.
+		// - 2. Remove this trackpoint (the pause Trackpoint).  Our cublic splies will work out what the actual distance was up until this point.
+		// - 3. The next trackpoint (or end of lap) will be the resume Trackpoint.
+		// - 4. Use the duration data of this resume Trackpoint to calculate the length we were paused for.
+		// - 5. Deduct the pause-length from all proceeding durations in the lap.
+		Iterator<Trackpoint> tpsIt = lapTrackpointStore.iterator();
 		while (tpsIt.hasNext()) {
 			Trackpoint tp = tpsIt.next();
-			if (tp.getDistance() == tp.getPreviousDistance())
+			tp.decrementDuration(lengthDecrement);
+
+			// Deal with 3-data pause/resume trackpoints.
+			// ==========================================
+			// If we are not paused already then this is a 'pause' trackpoint:
+			//  - 1. Record the duration.
+			//  - 2. Set paused=true.
+			//  - 3. Remove the trackpoint.
+			//  - 4. Loop again (get the next trackpoint).
+			//
+			// If we are paused then this is a 'resume' trackpoint:
+			//  - 1. Store the pause/resume details, adding the length paused to the lengthDecrement variable.
+			//  - 2. Set paused=false
+			//  - 3. Remove the trackpoint.
+			//  - 4. Loop again (get the next trackpoint).
+			if (tp.getDistance() == null) {
+
+				// This is a normal pause/unpause trackpoint (no Position/DistanceMetres).
+				if (tp.isOnlyDurationData()) {
+					if (!paused) durationPaused = tp.getDuration();
+					else lengthDecrement += addPauseResume(pauseResumeTimes, tp, durationPaused);
+					paused = !paused;
+				}
+				// If we have a a Trackpoint that doesn't contain distance data but we are paused then use it to unpause then disregard it.
+				else if (paused) {
+					lengthDecrement += addPauseResume(pauseResumeTimes, tp, durationPaused);
+					paused = false;
+				}
 				tpsIt.remove();
+				continue;
+			}
+
+			// Deal with normal trackpoints.
+			// =============================
+			// If we are paused then this is a 'resume' trackpoint:
+			//  - 1. Store the pause/resume details
+			//  - 2. Add the length paused to the lengthDecrement variable.
+			//  - 3. Decrement the current trackpoint with the amount we were paused for.
+			//  - 4. Set paused = false.
+			if (paused) {
+				long lengthPaused = addPauseResume(pauseResumeTimes, tp, durationPaused);
+				lengthDecrement += lengthPaused;
+				tp.decrementDuration(lengthPaused);
+				paused = false;
+			}
+
+			if (tp.getDuration() > lapEndDuration) {
+				log.out(Level.WARNING, "Trackpoint with duration > %d (lap-duration):\t%s", lapEndDuration, tp);
+				tpsIt.remove();
+			}
 		}
+
+		return (difference != 0);
 	}
+
+
+	/**
+	 * Call this when we find a 'resume' trackpoint the next trackpoint immeadiately following a 'pause' trackpoint.
+	 * We add the pause/resume details to the pauseResumeTImes ArrayList and return the length of time (in millis) that the
+	 * device was paused for.
+	 * <p>
+	 * Nike+ currently just use the same duration/distance to represent both the pause and the resume so I only store the pauseTime.
+	 * @param pauseResumeTimes The store of pause/resume times.
+	 * @param resumeTp The 'resume' trackpoint.
+	 * @param durationPaused The duration of the previous 'pause' trackpoint.
+	 * @return The length of time the device was paused for (so we can update decrement future trackpoint durations).
+	 */
+	private long addPauseResume(ArrayList<Long> pauseResumeTimes, Trackpoint resumeTp, long durationPaused) {
+		long durationResume = resumeTp.getDuration();
+		pauseResumeTimes.add(durationPaused);
+		long pauseLength = (durationResume- durationPaused);
+		log.out(Level.FINE, "Adding pause at duration %d\tdistance %.4f.\tPause length %d", durationPaused, resumeTp.getDistance(), pauseLength);
+		return pauseLength;
+	}
+
 
 
 	/**
@@ -794,15 +736,15 @@ public class ConvertTcx
 		// Pause/Resume splits.
 		Iterator<Long> prIt = pauseResumeTimes.iterator();
 		while (prIt.hasNext()) {
-			long time = prIt.next();
+			long pauseDuration = prIt.next();
 			
 			// 2009-12-01: Looking at various runs on nike+ it seems the each pause/resume pair now has the same duration/distance
 			// (using the pause event).  I can't find my nike+ stuff to check this is 100% accurate but will go with it for now.
-			double distance = interpolate(durationToDistance, time);
-			long pace = (long)(interpolate(durationToPace, time));
-			int heartRateBpm = (int)(interpolate(durationToHeartRate, time));
-			appendSnapShot(snapShotClickListElement, time, distance, pace, heartRateBpm, "event", "pause");
-			appendSnapShot(snapShotClickListElement, time, distance, pace, heartRateBpm, "event", "resume");
+			double distance = interpolate(durationToDistance, pauseDuration);
+			long pace = (long)(interpolate(durationToPace, pauseDuration));
+			int heartRateBpm = (int)(interpolate(durationToHeartRate, pauseDuration));
+			appendSnapShot(snapShotClickListElement, pauseDuration, distance, pace, heartRateBpm, "event", "pause");
+			appendSnapShot(snapShotClickListElement, pauseDuration, distance, pace, heartRateBpm, "event", "resume");
 		}
 
 		// Km splits
@@ -890,7 +832,6 @@ public class ConvertTcx
 		Util.appendElement(snapShotElement, "pace", paceMillisKm);
 		if (_includeHeartRateData)
 			Util.appendElement(snapShotElement, "bpm", heartRateBpm);
-		//Util.appendElement(snapShotElement, "pace", generateSnapShotPace(durationToDistance, currentDuration));
 	}
 
 
@@ -899,16 +840,6 @@ public class ConvertTcx
 		else if (x > spline.getXmax()) x = spline.getXmax();
 
 		return spline.interpolate(x);
-	}
-
-
-
-	private Calendar getCalendarNodeValue(Node node) throws DatatypeConfigurationException {
-		return getCalendarValue(Util.getSimpleNodeValue(node));
-	}
-
-	private Calendar getCalendarValue(String value) throws DatatypeConfigurationException {
-		return DatatypeFactory.newInstance().newXMLGregorianCalendar(value).toGregorianCalendar();
 	}
 	
 
@@ -921,6 +852,11 @@ public class ConvertTcx
 
 	public String getStartTimeHumanReadable() {
 		return _startTimeStringHuman;
+	}
+
+	
+	private Trackpoint getLastTrackpointFromArrayList(ArrayList<Trackpoint> al) {
+		return ((al != null) && (al.size() > 0)) ? al.get(al.size() -1) : null;
 	}
 
 
@@ -949,39 +885,67 @@ public class ConvertTcx
 	{
 		private static final int		PACE_MILLIS = 20 * 10000;		// How many milli seconds of data to use when calculating pace.
 
-		private long		_duration;
-		private double		_distance;
+		private Long		_duration;
+		private Double		_distance;
 		private Double		_heartRate;
-		private Trackpoint	_previousTrackPoint;
-		private long		_potentialPauseDuration;
+		private Trackpoint	_previousTrackpoint;
+		private boolean		_isOnlyDurationData;						// True if we only have <Time> information in the raw tcx <Trackpoin>, otherwise false.
+
+		public Trackpoint(Trackpoint previousTrackpoint) {
+			_previousTrackpoint = previousTrackpoint;
+		}
 
 		/**
 		 * A representatino of a garmin <trackpoint> element.
 		 * @param duration Current (relative to start of workout) duration in millis.
 		 * @param distance Current distance in metres.
 		 * @param heartRate Current heartrate in bpm.
-		 * @param previousTrackPoint The previously recorded trackpoint, or null if this is the first trackpoint.
+		 * @param previousTrackpoint The previously recorded trackpoint, or null if this is the first trackpoint.
 		 */
-		public Trackpoint(long duration, double distance, Double heartRate, Trackpoint previousTrackPoint) {
+		public Trackpoint(long duration, double distance, Double heartRate, Trackpoint previousTrackpoint) {
 			_duration = duration;
 			_distance = distance;
 			_heartRate = heartRate;
-			_previousTrackPoint = previousTrackPoint;
-			log.out(Level.FINEST, "New Trackpoint.  Duration (difference): %d\t(%d)\t\tDistance: %.4f", duration, (duration - ((previousTrackPoint == null) ? 0 : previousTrackPoint.getDuration())), distance);
+			_previousTrackpoint = previousTrackpoint;
 		}
 
 
-		protected long getDuration() {
+		protected Long getDuration() {
 			return _duration;
 		}
 
-		protected double getDistance() {
+		protected Double getDistance() {
 			return _distance;
 		}
 
 		protected Double getHeartRate() {
 			return _heartRate;
 		}
+
+		protected void setDuration(Long duration) {
+			_duration = duration;
+		}
+
+		protected void setDistance(Double distance) {
+			_distance = distance;
+		}
+
+		protected void setHeartRate(Double heartRate) {
+			_heartRate = heartRate;
+		}
+
+		protected void setPreviousTrackpoint(Trackpoint previousTrackpoint) {
+			_previousTrackpoint = previousTrackpoint;
+		}
+
+		protected void setIsOnlyDurationData(boolean isOnlyDurationData) {
+			_isOnlyDurationData = isOnlyDurationData;
+		}
+
+		protected boolean isOnlyDurationData() {
+			return _isOnlyDurationData;
+		}
+
 
 		/**
 		 * Nike+ uses the number of millis it takes to complete 1km as their pace figure.
@@ -1004,7 +968,7 @@ public class ConvertTcx
 		}
 
 		protected Trackpoint getPreviousTrackpoint() {
-			return _previousTrackPoint;
+			return _previousTrackpoint;
 		}
 
 		/**
@@ -1020,188 +984,38 @@ public class ConvertTcx
 			return tp.getPreviousTrackpoint();
 		}
 
-		protected long getDurationSinceLastTrackpoint(boolean calculate) {
-			if ((calculate) && (_potentialPauseDuration <= 0)) generateDurationSinceLastTrackpoint();
-			return _potentialPauseDuration;
+		protected long getDurationSinceLastTrackpoint() {
+			return (_previousTrackpoint == null) ? 0 : (_duration - _previousTrackpoint.getDuration());
 		}
 
 		protected boolean isRepeatDuration() {
-			return (_previousTrackPoint != null) && (_duration == _previousTrackPoint.getDuration());
+			return (_previousTrackpoint != null) && (_duration.equals(_previousTrackpoint.getDuration()));
 		}
 
 		protected boolean isRepeatDistance() {
-			return (_previousTrackPoint != null) && (_distance == _previousTrackPoint.getDistance());
+			return (_previousTrackpoint != null) && (_distance.equals(_previousTrackpoint.getDistance()));
+		}
+
+		protected long getPreviousDuration() {
+			return (_previousTrackpoint == null) ? 0 : _previousTrackpoint.getDuration();
 		}
 
 		protected double getPreviousDistance() {
-			return (_previousTrackPoint == null) ? 0 : _previousTrackPoint.getDistance();
+			return (_previousTrackpoint == null) ? 0 : _previousTrackpoint.getDistance();
 		}
 
-		protected void generateDurationSinceLastTrackpoint() {
-			_potentialPauseDuration = (_previousTrackPoint == null) ? 0 : (_duration - _previousTrackPoint.getDuration());
+		protected void incrementDuration(long millis) {
+			_duration += millis;
 		}
 
 		protected void decrementDuration(long millis) {
 			_duration -= millis;
 		}
-	}
 
-
-
-
-	/*
-	private int calculatePace(long duration, double distance) {
-		return (int)((duration)/distance);
-	}
-	*/
-
-	/*
-	private String getTimeStringFromMillis(long totalMillis) {
-		long totalSeconds = totalMillis / 1000;
-
-		int hours = (int)(totalSeconds / 3600);
-		int remainder = (int)(totalSeconds % 3600);
-		int minutes = remainder / 60;
-		int seconds = remainder % 60;
-
-		String mm = String.format((hours > 0) && (minutes < 10) ? "0%d" : "%d", minutes);
-		String ss = String.format((seconds < 10) ? "0%d" : "%d", seconds);
-
-		return (hours > 0)
-			? String.format("%d:%s:%s", hours, mm, ss)
-			: String.format("%s:%s", mm, ss)
-		;
-	}
-	*/
-
-
-	/*
-	private void testLapDuration(Document inDoc) throws DatatypeConfigurationException {
-		NodeList laps = inDoc.getElementsByTagName("Lap");
-
-		//long startDurationAdjusted = _calStart.getTimeInMillis();
-		//long currentDuration = 0;
-
-		int lapsLength = laps.getLength();
-
-		for (int i = 0; i < lapsLength; ++i) {
-
-			log.oug("\nLap %d\n=====", i+1);
-
-			NodeList lapData = laps.item(i).getChildNodes();
-			int lapInfoLength = lapData.getLength();
-
-			//log.out(Util.getSimpleNodeValue(laps.item(i).getAttributes().item(0)));
-			//log.out(getCalendarNodeValue(laps.item(i).getAttributes().item(0)).getTime());
-			long startDurationAdjusted = getCalendarNodeValue(laps.item(i).getAttributes().item(0)).getTimeInMillis();
-			long lapDuration = 0;
-			long totalPauseDuration = 0;
-
-			for (int j = 0; j < lapInfoLength; ++j) {
-				Node n = lapData.item(j);
-
-				String nodeName = n.getNodeName();
-
-				if (nodeName.equals("TotalTimeSeconds"))
-					log.out("TotalTimeSeconds:\t%.0f", Double.parseDouble(Util.getSimpleNodeValue(n)) * 1000);
-			}
-
-
-
-			NodeList trackPoints = ((Element)laps.item(i)).getElementsByTagName("Trackpoint");
-			int trackPointsLength = trackPoints.getLength();
-
-			for (int j = 0; j < trackPointsLength; ++j) {
-
-				NodeList trackPointData = trackPoints.item(j).getChildNodes();
-				int trackPointDataLength = trackPointData.getLength();
-
-				// Deal with pause/resumes
-				if ((trackPointDataLength == 3) && (j+1 < trackPointsLength)) {
-
-					// Save the pause/resume points so that we can create the snapshot event later (once we can interpolate to get the distance).
-					long tpPauseTime = getCalendarNodeValue(trackPointData.item(1)).getTimeInMillis();
-
-					// Get what we are expecting to be the resume track-point-data.
-					trackPointData = trackPoints.item(++j).getChildNodes();
-
-					// As we are expecting it to be a resume trackPointData it must also be of length 3, otherwise we are not dealing with a pause/resume pair so ignore the pause.
-					if ((trackPointData.getLength()) == 3) {
-						long tpResumeTime = getCalendarNodeValue(trackPointData.item(1)).getTimeInMillis();
-
-						// Adjust the start time so that future splits are not affected by the paused time period.
-						long pauseDuration = tpResumeTime - tpPauseTime;
-						startDurationAdjusted += pauseDuration;
-						totalPauseDuration += pauseDuration;
-
-						// Continue onto the next trackpoint, we've stored our pause/resume data for later use.
-						continue;
-					}
-				}
-
-
-				// If we reach this point then this is a normal trackpoint, not a pause/resume.
-				for (int k = 0; k < trackPointDataLength; ++k) {
-					Node n = trackPointData.item(k);
-
-					String nodeName = n.getNodeName();
-
-					// Run duration to this point
-					if (nodeName.equals("Time")) {
-						Calendar tpTime = getCalendarNodeValue(n);
-						lapDuration = tpTime.getTimeInMillis() - startDurationAdjusted;
-						//duration = (double)currentDuration/1000;
-						continue;
-					}
-				}
-			}
-
-			log.out("Calculated lap time:\t%d", (lapDuration));
-			log.out("Total time paused:\t%d", (totalPauseDuration));
-
-
+		
+		@Override
+		public String toString() {
+			return String.format("Duration (difference): %d\t(%d)\t\tDistance: %.4f", _duration, (_duration - ((_previousTrackpoint == null) ? 0 : _previousTrackpoint.getDuration())), _distance);
 		}
-
-		log.out();
 	}
-	*/
-
-
-	/*
-	private int generateSnapShotPace(CubicSpline durationToDistance, long endMillis) {
-
-		long endSeconds = endMillis/1000;
-
-		// If we are trying to ascertain the pace for a duration greater than the max on the spline curve then use the max on the spline curve (this will happen with the "stop" snapshot).
-		if (endSeconds > durationToDistance.getXmax())
-			endSeconds = (long)durationToDistance.getXmax();
-
-		// Base the pace on the previous 20 seconds, unless duration is less than that, in which case base on the duration.
-		long period = (endSeconds >= 20) ? 20 : endSeconds;
-		long startSeconds = endSeconds - period;
-
-
-		double startKm = durationToDistance.interpolate(startSeconds);
-		double endKm = durationToDistance.interpolate(endSeconds);
-		double periodDistance = endKm - startKm;
-
-		int pace = (int)((period * 1000) / periodDistance);
-
-		return pace;
-	}
-	*/
-
-
-	/*
-	private double[] convertToPrimitaveDoubleArray(ArrayList<Double> al) {
-		int size = al.size();
-		double[] ar = new double[size];
-		for (int i = 0; i < size; ++i)
-			ar[i] = al.get(i);
-
-		return ar;
-	}
-	*/
-	
 }
-
