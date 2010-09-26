@@ -22,7 +22,6 @@ import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
-import sun.dc.pr.PRError;
 
 
 
@@ -33,6 +32,12 @@ public class ConvertTcx
 	private static final int				MILLIS_PER_HOUR = 60 * 1000 * 60;
 	private static final String				DATE_TIME_FORMAT_NIKE = "yyyy-MM-dd'T'HH:mm:ssZ";
 	private static final String				DATE_TIME_FORMAT_HUMAN = "d MMM yyyy HH:mm:ss z";
+
+	// This represents the maximum amount of time garmin loses satellite reception before creating a pause/resume.
+	// I have only found this through trial & error so it might not be correct.  The best example with patchy reception I have found
+	// so far is garmin activity id 50212094.
+	private static final int				MILLIS_LOST_SATELLITE_RECEPTION_THRESHOLD = 8 * 1000;
+
 
 	private long _totalDuration;
 	private double _totalDistance;
@@ -488,11 +493,11 @@ public class ConvertTcx
 			tp.setPreviousTrackpoint(previousTp);
 
 			if ((tp.getDistance() == null) || (tp.isRepeatDistance())) {
-				log.out(Level.FINER, "Removing invalid distance trackpoint:\t%s", tp);
+				log.out(Level.FINE, "Removing invalid distance trackpoint:\t%s", tp);
 				tpsIt.remove();
 			}
 			else if ((tp.getDuration() == null) || (tp.isRepeatDuration())) {
-				log.out(Level.FINER, "Removing invalid duration trackpoint:\t%s", tp);
+				log.out(Level.FINE, "Removing invalid duration trackpoint:\t%s", tp);
 				tpsIt.remove();
 			}
 			else {
@@ -500,11 +505,20 @@ public class ConvertTcx
 					tp.setHeartRate(previousTp.getHeartRate());
 
 				previousTp = tp;
-				log.out(Level.FINEST, tp);
+				log.out(Level.FINER, "Duration: %d\tDistance: %.4f", tp.getDuration(), tp.getDistance());
 			}
 		}
 
-		log.out(Level.FINEST, _totalDuration);
+		//log.out(Level.FINER, "Workout total duration: %d", _totalDuration);
+		Trackpoint penultimateTp = getTrackpointFromEndofArrayList(trackpointsStore, 1);
+		if (penultimateTp != null) {
+			long pDur = penultimateTp.getDuration();
+			double pDist = penultimateTp.getDistance();
+			log.out("Trackpoint reading complete...");
+			log.out("Penultimate vs Required:  Duration (secs): %d -> %d (%d).  Distance (m): %.0f -> %.0f (%.0f)",
+				pDur/1000, _totalDuration/1000, ((_totalDuration - pDur)/1000), pDist, _totalDistance, (_totalDistance - pDist));
+		}
+
 	}
 
 
@@ -521,65 +535,72 @@ public class ConvertTcx
 		// Get the trackpoints for this lap - if there are none then continue to the next lap.
 		Node[] tracks = Util.getChildrenByNodeName(lap, "Track");
 
-		for (Node track : tracks) {
-			// Get the trackpoints for this track - if there are none then continue to the next track.
-			Node[] trackpoints = Util.getChildrenByNodeName(track, "Trackpoint");
-			if (trackpoints == null) continue;
+		if (tracks != null) {
+			for (Node track : tracks) {
+				// Get the trackpoints for this track - if there are none then continue to the next track.
+				Node[] trackpoints = Util.getChildrenByNodeName(track, "Trackpoint");
+				if (trackpoints == null) continue;
 
-			for (Node trackpoint : trackpoints) {
+				for (Node trackpoint : trackpoints) {
 
-				// Loop through the data for this trackpoint storing the data.
-				Trackpoint tp = new Trackpoint(previousTp);
-				NodeList trackPointData = trackpoint.getChildNodes();
-				int trackPointDataLength = trackPointData.getLength();
+					// Loop through the data for this trackpoint storing the data.
+					Trackpoint tp = new Trackpoint(previousTp);
+					NodeList trackPointData = trackpoint.getChildNodes();
+					int trackPointDataLength = trackPointData.getLength();
 
-				for (int i = 0; i < trackPointDataLength && tp != null; ++i) {
-					Node n = trackPointData.item(i);
-					String nodeName = n.getNodeName();
+					for (int i = 0; i < trackPointDataLength && tp != null; ++i) {
+						Node n = trackPointData.item(i);
+						String nodeName = n.getNodeName();
 
-					// Run duration to this point
-					if (nodeName.equals("Time"))
-						tp.setDuration((Util.getCalendarNodeValue(n).getTimeInMillis() - lapStartTime) + lapStartDuration);
+						// Run duration to this point
+						if (nodeName.equals("Time"))
+							tp.setDuration((Util.getCalendarNodeValue(n).getTimeInMillis() - lapStartTime) + lapStartDuration);
 
-					// Distance to this point
-					else if (nodeName.equals("DistanceMeters")) {
-						double distance = Double.parseDouble(Util.getSimpleNodeValue(n));
+						// Distance to this point
+						else if (nodeName.equals("DistanceMeters")) {
+							double distance = Double.parseDouble(Util.getSimpleNodeValue(n));
 
-						// If this is the first trackpoint in the lap with a DistanceMeters value then calculate the start/end distance of the lap.
-						if (lapStartDistance == -1) {
-							lapStartDistance = distance;
-							lapEndDistance = lapStartDistance + lapDistance;
+							// If this is the first trackpoint in the lap with a DistanceMeters value then calculate the start/end distance of the lap.
+							if (lapStartDistance == -1) {
+								lapStartDistance = distance;
+								lapEndDistance = lapStartDistance + lapDistance;
+							}
+
+							// Ignore any distances which are greater than the lap distance (don't think this should ever happen).
+							else if (distance > lapEndDistance) {
+								tp = null;
+								break;
+							}
+
+							tp.setDistance(distance);
 						}
 
-						// Ignore any distances which are greater than the lap distance (don't think this should ever happen).
-						else if (distance > lapEndDistance) {
-							tp = null;
-							break;
-						}
+						// Heart rate bpm
+						else if ((!_forceExcludeHeartRateData) && (nodeName.equals("HeartRateBpm"))) {
+							NodeList heartRateData = n.getChildNodes();
+							int heartRateDataLength = heartRateData.getLength();
 
-						tp.setDistance(distance);
-					}
-
-					// Heart rate bpm
-					else if ((!_forceExcludeHeartRateData) && (nodeName.equals("HeartRateBpm"))) {
-						NodeList heartRateData = n.getChildNodes();
-						int heartRateDataLength = heartRateData.getLength();
-
-						for (int j = 0; j < heartRateDataLength; ++j) {
-							Node heartRateNode = heartRateData.item(j);
-							if (heartRateNode.getNodeName().equals("Value")) {
-								_includeHeartRateData = true;
-								tp.setHeartRate(Double.parseDouble(Util.getSimpleNodeValue(heartRateNode)));
+							for (int j = 0; j < heartRateDataLength; ++j) {
+								Node heartRateNode = heartRateData.item(j);
+								if (heartRateNode.getNodeName().equals("Value")) {
+									_includeHeartRateData = true;
+									tp.setHeartRate(Double.parseDouble(Util.getSimpleNodeValue(heartRateNode)));
+								}
 							}
 						}
-					}
-				}
 
-				// Store the trackpoint for validation/conversion later.
-				if (tp != null) {
-					tp.setIsOnlyDurationData((trackPointDataLength == 3) && (tp.getDuration() != null));
-					lapTrackpointStore.add(tp);
-					previousTp = tp;
+						// Position
+						else if (nodeName.equals("Position")) tp.setHavePositionData(true);
+					}
+
+					// Store the trackpoint for validation/conversion later.
+					if (tp != null) {
+						//tp.setIsOnlyDurationData((trackPointDataLength == 3) && (tp.getDuration() != null));
+						lapTrackpointStore.add(tp);
+						previousTp = tp;
+
+						log.out(Level.FINEST, "New raw tcx-file Trackpoint, durations: %d -> %d = %d.  distance: %.4f. satellite-only: %s", tp.getPreviousDuration(), tp.getDuration(), tp.getDuration() - tp.getPreviousDuration(), tp.getDistance(), tp.isSatelliteReception());
+					}
 				}
 			}
 		}
@@ -613,10 +634,9 @@ public class ConvertTcx
 		long durationPaused = 0;
 		long lengthDecrement = 0;
 
-		// When I get a 3-data trackpoint (duration only) it means we have a pause.
-		// I want to:
-		// - 1. Get the duration of this first trackpoint in the pause to use for the pause/resume duration.
-		// - 2. Remove this trackpoint (the pause Trackpoint).  Our cublic splies will work out what the actual distance was up until this point.
+		// For pause/resmumes
+		// - 1. Get the duration of the pause trackpoint to use for the pause/resume duration.
+		// - 2. Remove the pause trackpoint.  Our cublic splies will work out what the actual distance was up until this point.
 		// - 3. The next trackpoint (or end of lap) will be the resume Trackpoint.
 		// - 4. Use the duration data of this resume Trackpoint to calculate the length we were paused for.
 		// - 5. Deduct the pause-length from all proceeding durations in the lap.
@@ -624,6 +644,22 @@ public class ConvertTcx
 		while (tpsIt.hasNext()) {
 			Trackpoint tp = tpsIt.next();
 			tp.decrementDuration(lengthDecrement);
+
+			Trackpoint previousTp = tp.getPreviousTrackpoint();
+			
+			// Deal with a Trackpoint where we have regained satellite reception.
+			// =================================================================
+			// If, we have a trackpoint that contains a <Position> element but no <DistanceMeters> it means that we have just regained satellite
+			// reception.  Essentially, this means that we should pause the watch at the previous trackpoint - but not insert a pause/resume snapshot
+			// as it was not a real user/auto pause.
+			//
+			// We will always remove these trackpoints and if the paused-duration is greater than 30 seconds (this is a guess as to what garmin use before
+			// affecting the <Lap> time) then we create a pause/resume.
+			if (tp.isSatelliteReception()) {
+				lengthDecrement += addSatelliteReceptionLoss(previousTp, tp);
+				tpsIt.remove();
+				continue;
+			}
 
 			// Deal with 3-data pause/resume trackpoints.
 			// ==========================================
@@ -638,21 +674,24 @@ public class ConvertTcx
 			//  - 2. Set paused=false
 			//  - 3. Remove the trackpoint.
 			//  - 4. Loop again (get the next trackpoint).
-			if (tp.getDistance() == null) {
-
-				// This is a normal pause/unpause trackpoint (no Position/DistanceMetres).
-				if (tp.isOnlyDurationData()) {
-					if (!paused) durationPaused = tp.getDuration();
-					else lengthDecrement += addPauseResume(pauseResumeTimes, tp, durationPaused);
-					paused = !paused;
-				}
-				// If we have a a Trackpoint that doesn't contain distance data but we are paused then use it to unpause then disregard it.
-				else if (paused) {
-					lengthDecrement += addPauseResume(pauseResumeTimes, tp, durationPaused);
-					paused = false;
-				}
+			else if (tp.getDistance() == null) {
+				if (!paused) durationPaused = tp.getDuration();
+				else lengthDecrement += addPauseResume(pauseResumeTimes, tp, durationPaused);
+				paused = !paused;
 				tpsIt.remove();
 				continue;
+			}
+
+
+			// Deal with a trackpoint where we have previously lost satellite reception in the previous trackpoint.
+			// ====================================================================================================
+			//
+			// If the previous trackpoint was a satellite reception trackpoint and the duration was long enough then insert a
+			// pause-resume.  After this continue and treat this trackpoint as a normal trackpoint.
+			if (previousTp.isSatelliteReception()) {
+				long lostReceptionLength = addSatelliteReceptionLoss(previousTp, tp);
+				lengthDecrement += lostReceptionLength;
+				tp.decrementDuration(lostReceptionLength);
 			}
 
 			// Deal with normal trackpoints.
@@ -669,8 +708,10 @@ public class ConvertTcx
 				paused = false;
 			}
 
-			if (tp.getDuration() > lapEndDuration) {
-				log.out(Level.WARNING, "Trackpoint with duration > %d (lap-duration):\t%s", lapEndDuration, tp);
+			long duration = tp.getDuration();
+			long durationVsLapEndDuration = lapEndDuration - duration;
+			if (durationVsLapEndDuration < 0) {
+				log.out(Level.WARNING, "Trackpoint duration > lap-duration: (%d vs %d), difference %d.  Distance: %.4f", duration, lapEndDuration, durationVsLapEndDuration, tp.getDistance());
 				tpsIt.remove();
 			}
 		}
@@ -680,21 +721,46 @@ public class ConvertTcx
 
 
 	/**
+	 * Call this to add a pause duration for when the device has experienced a satellite reception loss between the two trackpoints.
+	 * We do not add a snapshot to the pause/resume list for satellite reception losses.
+	 * @param lostTp The trackpoint where we lost reception.
+	 * @param regainedTp The trackpoint where we regained reception.
+	 * @return
+	 */
+	private long addSatelliteReceptionLoss(Trackpoint lostTp, Trackpoint regainedTp) {
+		if ((lostTp != null) && (regainedTp != null)) {
+			long lostReceptionDuration = lostTp.getDuration();
+			long lostReceptionLength = regainedTp.getDuration() - lostReceptionDuration;
+
+			// If we had lost satellite reception for more than what is permissible without a pause/resume then we must create a pause/resume.
+			if (lostReceptionLength >= (MILLIS_LOST_SATELLITE_RECEPTION_THRESHOLD)) {
+				log.out(Level.WARNING, "Satellite pause.\tDuration %d\tDistance %.4f\tLength: %d", lostReceptionDuration, regainedTp.getDistance(), lostReceptionLength);
+				return addPauseResume(null, regainedTp, lostReceptionDuration);
+			}
+		}
+
+		return 0;
+	}
+
+
+	/**
 	 * Call this when we find a 'resume' trackpoint the next trackpoint immeadiately following a 'pause' trackpoint.
 	 * We add the pause/resume details to the pauseResumeTImes ArrayList and return the length of time (in millis) that the
 	 * device was paused for.
 	 * <p>
 	 * Nike+ currently just use the same duration/distance to represent both the pause and the resume so I only store the pauseTime.
-	 * @param pauseResumeTimes The store of pause/resume times.
+	 * @param pauseResumeTimes The store of pause/resume times.  If not provided then we don't store the times.
 	 * @param resumeTp The 'resume' trackpoint.
 	 * @param durationPaused The duration of the previous 'pause' trackpoint.
 	 * @return The length of time the device was paused for (so we can update decrement future trackpoint durations).
 	 */
 	private long addPauseResume(ArrayList<Long> pauseResumeTimes, Trackpoint resumeTp, long durationPaused) {
 		long durationResume = resumeTp.getDuration();
-		pauseResumeTimes.add(durationPaused);
 		long pauseLength = (durationResume- durationPaused);
-		log.out(Level.FINE, "Adding pause at duration %d\tdistance %.4f.\tPause length %d", durationPaused, resumeTp.getDistance(), pauseLength);
+		if (pauseResumeTimes != null) {
+			pauseResumeTimes.add(durationPaused);
+			log.out(Level.WARNING, "Adding pause/resume.\tDuration %d\tDistance %.4f.\tlength %d", durationPaused, resumeTp.getDistance(), pauseLength);
+		}
 		return pauseLength;
 	}
 
@@ -854,9 +920,13 @@ public class ConvertTcx
 		return _startTimeStringHuman;
 	}
 
-	
+
 	private Trackpoint getLastTrackpointFromArrayList(ArrayList<Trackpoint> al) {
-		return ((al != null) && (al.size() > 0)) ? al.get(al.size() -1) : null;
+		return getTrackpointFromEndofArrayList(al, 0);
+	}
+
+	private Trackpoint getTrackpointFromEndofArrayList(ArrayList<Trackpoint> al, int placesFromEnd) {
+		return ((al != null) && (al.size() > placesFromEnd)) ? al.get(al.size() - (placesFromEnd + 1)) : null;
 	}
 
 
@@ -889,9 +959,10 @@ public class ConvertTcx
 		private Double		_distance;
 		private Double		_heartRate;
 		private Trackpoint	_previousTrackpoint;
-		private boolean		_isOnlyDurationData;						// True if we only have <Time> information in the raw tcx <Trackpoin>, otherwise false.
+		private boolean		_havePositionData;
 
 		public Trackpoint(Trackpoint previousTrackpoint) {
+			_havePositionData = false;
 			_previousTrackpoint = previousTrackpoint;
 		}
 
@@ -938,12 +1009,17 @@ public class ConvertTcx
 			_previousTrackpoint = previousTrackpoint;
 		}
 
-		protected void setIsOnlyDurationData(boolean isOnlyDurationData) {
-			_isOnlyDurationData = isOnlyDurationData;
+
+		protected void setHavePositionData(boolean havePositionData) {
+			_havePositionData = havePositionData;
 		}
 
-		protected boolean isOnlyDurationData() {
-			return _isOnlyDurationData;
+		protected boolean havePositionData() {
+			return _havePositionData;
+		}
+
+		protected boolean isSatelliteReception() {
+			return ((_havePositionData) && (_distance == null));
 		}
 
 
@@ -975,6 +1051,7 @@ public class ConvertTcx
 		 * Returns the most recent trackpoint with different duration/distance data to this one.
 		 * @return Previous differnt trackpoint.
 		 */
+		/*
 		protected Trackpoint getPreviousDifferentTrackpoint() {
 			Trackpoint tp = this;
 
@@ -983,6 +1060,7 @@ public class ConvertTcx
 
 			return tp.getPreviousTrackpoint();
 		}
+		*/
 
 		protected long getDurationSinceLastTrackpoint() {
 			return (_previousTrackpoint == null) ? 0 : (_duration - _previousTrackpoint.getDuration());

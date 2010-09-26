@@ -220,6 +220,7 @@ public class ConvertServlet extends HttpServlet
 		response.setContentType("application/x-download");
 		response.setHeader("Content-Disposition", String.format("attachment; filename=\"%s\"", filename));
 		out.print(output);
+		log.out("");
 	}
 		
 	private void Upload(String nikePin, Document runXml, Document gpxXml) throws Throwable {
@@ -251,7 +252,7 @@ public class ConvertServlet extends HttpServlet
 
 		jout.add("data", data);
 
-		log.out(jout);
+		log.out("%s\n", jout);
 		out.println(jout);
 	}
 
