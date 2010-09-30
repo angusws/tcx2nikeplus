@@ -141,10 +141,12 @@ public class ConvertServlet extends HttpServlet
 					Upload(nikePin, runXml, gpxXml);
 
 					// There is a 1/100 chance that we remind the user it is possible to donate.
-					String message = (new Random().nextInt(100) == 0)
-						? "Conversion & Upload Successful.  Please consider donating to help keep this project alive."
-						: "Conversion & Upload Successful."
-					;
+					//String message = (new Random().nextInt(100) == 0)
+					//	? "Conversion & Upload Successful.  Please consider donating to help keep this project alive."
+					//	: "Conversion & Upload Successful."
+					//;
+
+					String message = "Conversion & Upload Successful.";
 
 					succeed(out, jout, message);
 				}

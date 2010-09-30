@@ -33,10 +33,8 @@ public class ConvertTcx
 	private static final String				DATE_TIME_FORMAT_NIKE = "yyyy-MM-dd'T'HH:mm:ssZ";
 	private static final String				DATE_TIME_FORMAT_HUMAN = "d MMM yyyy HH:mm:ss z";
 
-	// This represents the maximum amount of time garmin loses satellite reception before creating a pause/resume.
-	// I have only found this through trial & error so it might not be correct.  The best example with patchy reception I have found
-	// so far is garmin activity id 50212094.
-	private static final int				MILLIS_LOST_SATELLITE_RECEPTION_THRESHOLD = 8 * 1000;
+	// The minimum amount of millis between Trackpoints that I am prepared to create a potential pause/resume for.
+	private static final int				MILLIS_POTENTIAL_PAUSE_THRESHOLD = 0;
 
 
 	private long _totalDuration;
@@ -237,7 +235,6 @@ public class ConvertTcx
 	// We use the latitude & longitude data along with the http://ws.geonames.org/timezone webservice to
 	// deduce in which time zone the workout began.
 	private TimeZone getWorkoutTimeZone(Document inDoc, Integer clientTimeZoneOffset) throws DatatypeConfigurationException, IOException, MalformedURLException, ParserConfigurationException, SAXException {
-
 		NodeList positions = inDoc.getElementsByTagName("Position");
 		int positionsLength = positions.getLength();
 
@@ -291,8 +288,12 @@ public class ConvertTcx
 							log.out("Unable to retrieve workout timezone from http://ws.geonames.org, attempting to use client-timezone %s instead.", tz);
 							return TimeZone.getTimeZone(tz);
 						}
-						else
-							throw new IOException("Unable to retrieve workout timezone (http://ws.geonames.org is not available right now).  Please try again later.", t);
+						else {
+							//throw new IOException("Unable to retrieve workout timezone (http://ws.geonames.org is not available right now).  Please try again later.", t);
+							TimeZone tz = TimeZone.getDefault();
+							log.out(Level.WARNING, "Unable to retrieve workout timezone (http://ws.geonames.org is not available right now).  Using default timezone: %s", tz.getID());
+							return tz;
+						}
 					}
 				}
 			}
@@ -530,7 +531,7 @@ public class ConvertTcx
 
 		double lapStartDistance = -1;
 		double lapDistance = Double.parseDouble(Util.getSimpleNodeValue(Util.getFirstChildByNodeName(lap, "DistanceMeters")));
-		double lapEndDistance = -1;
+		Double lapEndDistance = null;
 
 		// Get the trackpoints for this lap - if there are none then continue to the next lap.
 		Node[] tracks = Util.getChildrenByNodeName(lap, "Track");
@@ -566,12 +567,6 @@ public class ConvertTcx
 								lapEndDistance = lapStartDistance + lapDistance;
 							}
 
-							// Ignore any distances which are greater than the lap distance (don't think this should ever happen).
-							else if (distance > lapEndDistance) {
-								tp = null;
-								break;
-							}
-
 							tp.setDistance(distance);
 						}
 
@@ -580,7 +575,7 @@ public class ConvertTcx
 							NodeList heartRateData = n.getChildNodes();
 							int heartRateDataLength = heartRateData.getLength();
 
-							for (int j = 0; j < heartRateDataLength; ++j) {
+								for (int j = 0; j < heartRateDataLength; ++j) {
 								Node heartRateNode = heartRateData.item(j);
 								if (heartRateNode.getNodeName().equals("Value")) {
 									_includeHeartRateData = true;
@@ -588,51 +583,50 @@ public class ConvertTcx
 								}
 							}
 						}
-
-						// Position
-						else if (nodeName.equals("Position")) tp.setHavePositionData(true);
 					}
 
 					// Store the trackpoint for validation/conversion later.
-					if (tp != null) {
-						//tp.setIsOnlyDurationData((trackPointDataLength == 3) && (tp.getDuration() != null));
+					if ((tp != null) && ((tp.getDistance() != null) || (trackPointDataLength == 3))) {
 						lapTrackpointStore.add(tp);
 						previousTp = tp;
 
-						log.out(Level.FINEST, "New raw tcx-file Trackpoint, durations: %d -> %d = %d.  distance: %.4f. satellite-only: %s", tp.getPreviousDuration(), tp.getDuration(), tp.getDuration() - tp.getPreviousDuration(), tp.getDistance(), tp.isSatelliteReception());
+						log.out(Level.FINEST, "New raw tcx-file Trackpoint, durations: %d -> %d = %d.  distance: %.4f.", tp.getPreviousDuration(), tp.getDuration(), tp.getDuration() - tp.getPreviousDuration(), tp.getDistance());
 					}
 				}
 			}
 		}
 
-		validateLapCubicSplineData(lap, pauseResumeTimes, lapTrackpointStore, lapEndDuration);
-		
 
-		// Add a Trackpoint for the end of the lap.
-		// We should only do this after validating/modifying the lap trackpiont data.
-		lapTrackpointStore.add(new Trackpoint(lapEndDuration, lapEndDistance, previousTp.getHeartRate(), getLastTrackpointFromArrayList(lapTrackpointStore)));
+		// Add a Trackpoint for the end of the lap if we haven't already got one at that distance/duration.
+		Trackpoint lastTp = getLastTrackpointFromArrayList(lapTrackpointStore);
+		if ((lapEndDistance != null) && (lastTp.getMostRecentDistance() < lapEndDistance) && (lastTp.getDuration() < lapEndDuration))
+			lapTrackpointStore.add(new Trackpoint(lapEndDuration, lapEndDistance, previousTp.getHeartRate(), lastTp));
 
-		long difference = lapEndDuration - getLastTrackpointFromArrayList(lapTrackpointStore).getDuration();		// There will always be at least one Trackpoint in the list as we've just added one.
+		validateLapCubicSplineData(lap, lapTrackpointStore, pauseResumeTimes, lapEndDuration);
+
+		long difference = lapTrackpointDurationVsLapEndDuration(lapTrackpointStore, lapEndDuration);
 		log.out(Level.FINE, "Lap duration difference after validation:\t%d", difference);
 
 		return lapTrackpointStore;
 	}
 
 
-	private boolean validateLapCubicSplineData(Node lap, ArrayList<Long> pauseResumeTimes, ArrayList<Trackpoint> lapTrackpointStore, long lapEndDuration) {
+	private void validateLapCubicSplineData(Node lap, ArrayList<Trackpoint> lapTrackpointStore, ArrayList<Long> pauseResumeDurations,  long lapEndDuration) {
 
 		// If we have no trackpoints then we don't need to validate.
-		if (lapTrackpointStore.size() == 0) return true;
+		if (lapTrackpointStore.size() == 0) return;
 
 		Node lapTotalTimeSeconds = Util.getFirstChildByNodeName(lap, "TotalTimeSeconds");
-		if (lapTotalTimeSeconds == null) return false;
+		if (lapTotalTimeSeconds == null) return;
 
-		long difference = lapEndDuration - getLastTrackpointFromArrayList(lapTrackpointStore).getDuration();
+		long difference = lapTrackpointDurationVsLapEndDuration(lapTrackpointStore, lapEndDuration);
 		log.out(Level.FINE, "Lap duration difference before validation:\t%d", difference);
 
 		boolean paused = false;
 		long durationPaused = 0;
 		long lengthDecrement = 0;
+
+		Trackpoint previousTp = null;
 
 		// For pause/resmumes
 		// - 1. Get the duration of the pause trackpoint to use for the pause/resume duration.
@@ -644,22 +638,6 @@ public class ConvertTcx
 		while (tpsIt.hasNext()) {
 			Trackpoint tp = tpsIt.next();
 			tp.decrementDuration(lengthDecrement);
-
-			Trackpoint previousTp = tp.getPreviousTrackpoint();
-			
-			// Deal with a Trackpoint where we have regained satellite reception.
-			// =================================================================
-			// If, we have a trackpoint that contains a <Position> element but no <DistanceMeters> it means that we have just regained satellite
-			// reception.  Essentially, this means that we should pause the watch at the previous trackpoint - but not insert a pause/resume snapshot
-			// as it was not a real user/auto pause.
-			//
-			// We will always remove these trackpoints and if the paused-duration is greater than 30 seconds (this is a guess as to what garmin use before
-			// affecting the <Lap> time) then we create a pause/resume.
-			if (tp.isSatelliteReception()) {
-				lengthDecrement += addSatelliteReceptionLoss(previousTp, tp);
-				tpsIt.remove();
-				continue;
-			}
 
 			// Deal with 3-data pause/resume trackpoints.
 			// ==========================================
@@ -674,24 +652,12 @@ public class ConvertTcx
 			//  - 2. Set paused=false
 			//  - 3. Remove the trackpoint.
 			//  - 4. Loop again (get the next trackpoint).
-			else if (tp.getDistance() == null) {
+			if (tp.getDistance() == null) {
 				if (!paused) durationPaused = tp.getDuration();
-				else lengthDecrement += addPauseResume(pauseResumeTimes, tp, durationPaused);
+				else lengthDecrement += addPauseResume(pauseResumeDurations, tp, durationPaused);
 				paused = !paused;
 				tpsIt.remove();
 				continue;
-			}
-
-
-			// Deal with a trackpoint where we have previously lost satellite reception in the previous trackpoint.
-			// ====================================================================================================
-			//
-			// If the previous trackpoint was a satellite reception trackpoint and the duration was long enough then insert a
-			// pause-resume.  After this continue and treat this trackpoint as a normal trackpoint.
-			if (previousTp.isSatelliteReception()) {
-				long lostReceptionLength = addSatelliteReceptionLoss(previousTp, tp);
-				lengthDecrement += lostReceptionLength;
-				tp.decrementDuration(lostReceptionLength);
 			}
 
 			// Deal with normal trackpoints.
@@ -702,46 +668,132 @@ public class ConvertTcx
 			//  - 3. Decrement the current trackpoint with the amount we were paused for.
 			//  - 4. Set paused = false.
 			if (paused) {
-				long lengthPaused = addPauseResume(pauseResumeTimes, tp, durationPaused);
+				long lengthPaused = addPauseResume(pauseResumeDurations, tp, durationPaused);
 				lengthDecrement += lengthPaused;
 				tp.decrementDuration(lengthPaused);
 				paused = false;
 			}
 
-			long duration = tp.getDuration();
-			long durationVsLapEndDuration = lapEndDuration - duration;
-			if (durationVsLapEndDuration < 0) {
-				log.out(Level.WARNING, "Trackpoint duration > lap-duration: (%d vs %d), difference %d.  Distance: %.4f", duration, lapEndDuration, durationVsLapEndDuration, tp.getDistance());
-				tpsIt.remove();
-			}
+			tp.setPreviousTrackpoint(previousTp);
+			previousTp = tp;
 		}
 
-		return (difference != 0);
+		// After applying the tcx-detailed pause/resumes we still might have trackpoints whose durations exceed
+		// the lap time.  I think the primary reason for this is that garmin automatically pauses the device if it is
+		// unable to get a satellite waypoint after a certain amount of seconds (seems to be 8 seconds on the 405 with
+		// 2.50 firmware).  To counter this I will basically strip away the slowest-paced (hopefully paused) sections of the
+		// lap until our final trackpoint has a less than or equal to that of the lap duration.
+		difference = lapTrackpointDurationVsLapEndDuration(lapTrackpointStore, lapEndDuration);
+
+		// We allow up to 999 millis as due to rounding errors the lap-duration can be up to 1 second out.
+		if (difference > 0) {
+			log.out("Lap duration still invalid by %d millis, manually stripping.", difference);
+			boolean modified = true;
+
+			do {
+				modified = false;
+				double paceWorst = Double.MAX_VALUE;
+				Trackpoint paceWorstTp = null;
+				tpsIt = lapTrackpointStore.iterator();
+				while (tpsIt.hasNext()) {
+					Trackpoint tp = tpsIt.next();
+					// If our previous trackpoint is null then this is the first trackpoint so continue to the next trackpoint.
+					if (tp.getPreviousTrackpoint() == null) continue;
+
+					long duration = tp.getDuration();
+					long durationPrevious = tp.getPreviousDuration();
+					double distance = tp.getDistance();
+					double distancePrevious = tp.getPreviousDistance();
+
+					// Calculate distance & duration differences.
+					double distanceIncrease = distance - distancePrevious;
+					long durationIncrease = duration - tp.getPreviousDuration();
+
+					// if we have a distance increase of zero then remove the trackpoint and decrement all future trackpoints/pause-resumes by the duration we didn't increase for.
+					if ((distanceIncrease == 0) && (durationIncrease > 0)) {
+						long decrementLength = (difference > durationIncrease) ? durationIncrease : difference;
+						log.out(Level.FINE, "Zero-distance decrement:\tDuration %d\tDistance %.4f\tLength: %d", durationPrevious, distancePrevious, decrementLength);
+						tpsIt.remove();
+						if (tpsIt.hasNext()) {
+							Trackpoint nextTp = tpsIt.next();
+							nextTp.decrementDuration(decrementLength);
+							nextTp.setPreviousTrackpoint(previousTp);
+						}
+						while (tpsIt.hasNext()) tpsIt.next().decrementDuration(decrementLength);
+						decrementPauseResumes(pauseResumeDurations, durationPrevious, decrementLength);
+						modified = true;
+						break;
+					}
+
+					double pace = (durationIncrease > MILLIS_POTENTIAL_PAUSE_THRESHOLD) ? (distanceIncrease / durationIncrease) : Double.MAX_VALUE;
+					if (pace < paceWorst) {
+						paceWorst = pace;
+						paceWorstTp = tp;
+					}
+				}
+
+				// If we haven't found any zero-distance trackpiont increases then decrement all future trackpoints/pause-resumes from the slowest pace trackpoint pair of the lap.
+				if ((paceWorstTp != null) && !(modified)) {
+					log.out(Level.FINE, "Slowest-pace decrement:\tDuration %d\tDistance %.4f", paceWorstTp.getPreviousDuration(), paceWorstTp.getPreviousDistance());
+					modified = true;
+					tpsIt = lapTrackpointStore.iterator();
+					while (tpsIt.hasNext()) {
+						Trackpoint tp = tpsIt.next();
+						if (tp.equals(paceWorstTp)) {
+							tp.decrementDuration(1000);
+							while (tpsIt.hasNext()) tpsIt.next().decrementDuration(1000);
+							decrementPauseResumes(pauseResumeDurations, tp.getDuration(), 1000);
+
+						}
+					}
+				}
+			}
+			while ((modified) && ((difference = lapTrackpointDurationVsLapEndDuration(lapTrackpointStore, lapEndDuration)) > 0));
+		}
+		
+	}
+
+	/**
+	 * Get the difference (in millis) between the duration of the final trackpoint in the trackpoint-store and the expected lap-end-duration.
+	 * @param lapTrackpointStore An ArrayList of trackpoints for the lap - the last element in this collection should have duration less than lapEndDuration.
+	 * @param lapEndDuration The expected duration at the end of the lap.
+	 * @return The difference (positive if the trackpoint store exceeds the expected lap-end-duration).
+	 */
+	private long lapTrackpointDurationVsLapEndDuration(ArrayList<Trackpoint> lapTrackpointStore, long lapEndDuration) {
+		return (lapTrackpointStore.size() == 0)
+			? 0
+			: roundToNearestThousand(getLastTrackpointFromArrayList(lapTrackpointStore).getDuration()) - roundToNearestThousand(lapEndDuration)
+		;
+	}
+
+	/**
+	 * Use this to round lap durations.  The duration specified in the <code>&lt;Lap&gt;</code> element is to the nearest
+	 * millisecond whereas the data in the <code>&lt;Trackpoint&gt;</code> elements is to the nearest second.
+	 * @param n The number to round to the nearest thousand.
+	 * @return The rounded number.
+	 */
+	private long roundToNearestThousand(long n) {
+		return (Math.round((double)n / 1000) * 1000);
 	}
 
 
 	/**
-	 * Call this to add a pause duration for when the device has experienced a satellite reception loss between the two trackpoints.
-	 * We do not add a snapshot to the pause/resume list for satellite reception losses.
-	 * @param lostTp The trackpoint where we lost reception.
-	 * @param regainedTp The trackpoint where we regained reception.
-	 * @return
+	 * Decrement pause-resumes which are greater than the durationMinimum.
+	 * @param al The ArrayList of pause-resumes to modify.
+	 * @param durationMinimum We only modifiy entries with a value greater than this.
+	 * @param decrementLength How much to decrement the entries.
 	 */
-	private long addSatelliteReceptionLoss(Trackpoint lostTp, Trackpoint regainedTp) {
-		if ((lostTp != null) && (regainedTp != null)) {
-			long lostReceptionDuration = lostTp.getDuration();
-			long lostReceptionLength = regainedTp.getDuration() - lostReceptionDuration;
-
-			// If we had lost satellite reception for more than what is permissible without a pause/resume then we must create a pause/resume.
-			if (lostReceptionLength >= (MILLIS_LOST_SATELLITE_RECEPTION_THRESHOLD)) {
-				log.out(Level.WARNING, "Satellite pause.\tDuration %d\tDistance %.4f\tLength: %d", lostReceptionDuration, regainedTp.getDistance(), lostReceptionLength);
-				return addPauseResume(null, regainedTp, lostReceptionDuration);
-			}
+	private void decrementPauseResumes(ArrayList<Long> al, long durationMinimum, long decrementLength) {
+		Iterator prdIt = al.iterator();
+		int index = 0;
+		while (prdIt.hasNext()) {
+			Long prDuration = (Long)prdIt.next();
+			if (prDuration > durationMinimum)
+				al.set(index, prDuration - decrementLength);
+			index++;
 		}
-
-		return 0;
 	}
-
+	
 
 	/**
 	 * Call this when we find a 'resume' trackpoint the next trackpoint immeadiately following a 'pause' trackpoint.
@@ -759,12 +811,11 @@ public class ConvertTcx
 		long pauseLength = (durationResume- durationPaused);
 		if (pauseResumeTimes != null) {
 			pauseResumeTimes.add(durationPaused);
-			log.out(Level.WARNING, "Adding pause/resume.\tDuration %d\tDistance %.4f.\tlength %d", durationPaused, resumeTp.getDistance(), pauseLength);
+			log.out(Level.FINER, "Adding pause/resume.\tDuration %d\tDistance %.4f.\tlength %d", durationPaused, resumeTp.getDistance(), pauseLength);
 		}
 		return pauseLength;
 	}
-
-
+	
 
 	/**
 	 * Generates the following CubicSplines: distanceToDuration, durationToDistance, durationToPace, durationToHeartRate.
@@ -780,7 +831,6 @@ public class ConvertTcx
 
 		populateDurationsAndDistancesArrays(trackpoints, durationsArray, distancesArray, pacesArray, heartRatesArray);
 		
-
 		// Generate cubic splines for distance -> duration, duration -> distance & distance -> pace.
 		// I'd have thought the flanagan classes would have offered some method of inverting the data, but I've not looked into it and this hack will do for now.
 		CubicSpline distanceToDuration = new CubicSpline(distancesArray, durationsArray);
@@ -803,14 +853,18 @@ public class ConvertTcx
 		Iterator<Long> prIt = pauseResumeTimes.iterator();
 		while (prIt.hasNext()) {
 			long pauseDuration = prIt.next();
-			
-			// 2009-12-01: Looking at various runs on nike+ it seems the each pause/resume pair now has the same duration/distance
-			// (using the pause event).  I can't find my nike+ stuff to check this is 100% accurate but will go with it for now.
-			double distance = interpolate(durationToDistance, pauseDuration);
-			long pace = (long)(interpolate(durationToPace, pauseDuration));
-			int heartRateBpm = (int)(interpolate(durationToHeartRate, pauseDuration));
-			appendSnapShot(snapShotClickListElement, pauseDuration, distance, pace, heartRateBpm, "event", "pause");
-			appendSnapShot(snapShotClickListElement, pauseDuration, distance, pace, heartRateBpm, "event", "resume");
+
+			// Sometimes a pause/resume happens at the very end of a workout - if this is the case then we will not have decremented the
+			// durations properly so just leave them out - there's no point in documeting a pause directly before the end of the workout anyway.
+			if (pauseDuration < _totalDuration) {
+				// 2009-12-01: Looking at various runs on nike+ it seems the each pause/resume pair now has the same duration/distance
+				// (using the pause event).  I can't find my nike+ stuff to check this is 100% accurate but will go with it for now.
+				double distance = interpolate(durationToDistance, pauseDuration);
+				long pace = (long)(interpolate(durationToPace, pauseDuration));
+				int heartRateBpm = (int)(interpolate(durationToHeartRate, pauseDuration));
+				appendSnapShot(snapShotClickListElement, pauseDuration, distance, pace, heartRateBpm, "event", "pause");
+				appendSnapShot(snapShotClickListElement, pauseDuration, distance, pace, heartRateBpm, "event", "resume");
+			}
 		}
 
 		// Km splits
@@ -959,10 +1013,8 @@ public class ConvertTcx
 		private Double		_distance;
 		private Double		_heartRate;
 		private Trackpoint	_previousTrackpoint;
-		private boolean		_havePositionData;
 
 		public Trackpoint(Trackpoint previousTrackpoint) {
-			_havePositionData = false;
 			_previousTrackpoint = previousTrackpoint;
 		}
 
@@ -1010,19 +1062,6 @@ public class ConvertTcx
 		}
 
 
-		protected void setHavePositionData(boolean havePositionData) {
-			_havePositionData = havePositionData;
-		}
-
-		protected boolean havePositionData() {
-			return _havePositionData;
-		}
-
-		protected boolean isSatelliteReception() {
-			return ((_havePositionData) && (_distance == null));
-		}
-
-
 		/**
 		 * Nike+ uses the number of millis it takes to complete 1km as their pace figure.
 		 * @return Nike+ pace.
@@ -1047,20 +1086,14 @@ public class ConvertTcx
 			return _previousTrackpoint;
 		}
 
-		/**
-		 * Returns the most recent trackpoint with different duration/distance data to this one.
-		 * @return Previous differnt trackpoint.
-		 */
-		/*
-		protected Trackpoint getPreviousDifferentTrackpoint() {
+		protected Double getMostRecentDistance() {
 			Trackpoint tp = this;
-
-			while ((tp != null) && (tp.isRepeatDuration() || tp.isRepeatDistance())) 
-				tp = getPreviousTrackpoint();
-
-			return tp.getPreviousTrackpoint();
+			while ((tp != null)) {
+				if (tp.getDistance() != null) return tp.getDistance();
+				tp = tp.getPreviousTrackpoint();
+			}
+			return 0d;
 		}
-		*/
 
 		protected long getDurationSinceLastTrackpoint() {
 			return (_previousTrackpoint == null) ? 0 : (_duration - _previousTrackpoint.getDuration());
@@ -1074,11 +1107,11 @@ public class ConvertTcx
 			return (_previousTrackpoint != null) && (_distance.equals(_previousTrackpoint.getDistance()));
 		}
 
-		protected long getPreviousDuration() {
+		protected Long getPreviousDuration() {
 			return (_previousTrackpoint == null) ? 0 : _previousTrackpoint.getDuration();
 		}
 
-		protected double getPreviousDistance() {
+		protected Double getPreviousDistance() {
 			return (_previousTrackpoint == null) ? 0 : _previousTrackpoint.getDistance();
 		}
 

@@ -49,7 +49,7 @@
 			<!-- Instructions -->
 			<div id="tabInstructions" class="x-hide-display">
 
-				<div class="sectionSubHeading">Garmin tcx file / Garmin Activity ID</div>
+				<div class="sectionSubHeading">Garmin TCX file / Garmin Activity ID</div>
 				<div class="sectionContent">
 					Option 1 - TCX file: After synchronising your garmin device with your computer the option is available to export the run to a tcx file both in the 'Garmin Training Center' and at <a href="http://connect.garmin.com" target="_blank">Garmin Connect.</a>.
 					<br /><br />Option 2 - Garmin Activity ID: After synchronising your garmin device to <a href="http://connect.garmin.com" target="_blank">Garmin Connect.</a> the activity ID is in the url for the workout details page.  For example, for the workout http://connect.garmin.com/activity/21742933 the activity ID is 21742933.
@@ -90,12 +90,12 @@
 			<div id="tabAbout" class="x-hide-display">
 				<div class="sectionSubHeading">Purpose</div>
 				<div class="sectionContent">
-					I bought the Nike+ iPod system for my iPod nano when I started running to motivate me and keep track of my training. Friends of mine used the system so
+					I bought the nike+ iPod system for my iPod nano when I started running to motivate me and keep track of my training. Friends of mine used the system so
 					we set up challenges to compete against each other at <a href="http://www.nikeplus.com" target="_blank">nikeplus.com</a>. It is a great product for a
-					beginner but soon I wanted more and invested in a <a href="http://www.garmin.com/uk/405/">Garmin Forerunner 405</a>.  I still wanted to compete in the Nike+
+					beginner but soon I wanted more and invested in a <a href="http://www.garmin.com/uk/405/">Garmin Forerunner 405</a>.  I still wanted to compete in the nike+
 					challenges so wrote this converter so that I can record runs using my 405 and upload them to <a href="http://www.nikeplus.com" target="_blank">nikeplus.com</a>.
-					<br /><br />The Garmin Forerunner tcx file to Nike+ converter will convert workouts recorded on a garmin forerunner device (see tested devices below) to a file which will
-					allow them to be posted to the Nike+ system.  When provided with a Nike+ pin it will also upload the workout to Nike+.
+					<br /><br />The Garmin Forerunner tcx file to nike+ converter will convert workouts recorded on a garmin forerunner device (see tested devices below) to a file which will
+					allow them to be posted to the nike+ system.  When provided with a nike+ pin it will also upload the workout to nike+.
 				</div>
 				<div class="sectionSubHeading">Source Code</div>
 				<div class="sectionContent">
@@ -108,7 +108,7 @@
 				</div>
 				<div class="sectionSubHeading">Technical</div>
 				<div class="sectionContent">
-					The converter is written in java and uses cubic spline interpolation to convert the garmin 'track-points' to the 10-second splits required by Nike+.
+					The converter is written in java and uses cubic spline interpolation to convert the garmin 'track-points' to the 10-second splits required by nike+.
 				</div>
 				<div class="sectionSubHeading">Thanks to...</div>
 				<div class="sectionContent">
@@ -120,6 +120,14 @@
 
 			<!-- News -->
 			<div id="tabNews" class="x-hide-display">
+				<div class="sectionSubHeading">September 30 2010</div>
+				<div class="sectionContent">
+					Further tweaking of the new converter code.  If you have old workouts which previously didn't convert with an "InvalidRunError: null" error - try them again - they might/should work now.
+				</div>
+				<div class="sectionSubHeading">September 25 2010</div>
+				<div class="sectionContent">
+					Rewrote the code which converts the data from tcx format to nike+ format.
+				</div>
 				<div class="sectionSubHeading">September 13 2010</div>
 				<div class="sectionContent">
 					Last week nike+ released an iphone application which includes gps (mapping) support.  I have written a conversion and upload system to replicate what the iphone application is uploading so you can now view gps runs on the nike+ website.
@@ -127,11 +135,11 @@
 				</div>
 				<div class="sectionSubHeading">July 23 2010</div>
 				<div class="sectionContent">
-					Added Nike+ pace data to output snapshots.
+					Added nike+ pace data to output snapshots.
 				</div>
 				<div class="sectionSubHeading">July 22 2010</div>
 				<div class="sectionContent">
-					Added heart-rate data to conversion process now that Nike+ supports it.
+					Added heart-rate data to conversion process now that nike+ supports it.
 				</div>
 				<div class="sectionSubHeading">June 10 2010</div>
 				<div class="sectionContent">
@@ -151,11 +159,6 @@
 				<div class="sectionContent">
 					Added source to github: <a href="http://github.com/angusws/tcx2nikeplus" target="_blank">http://github.com/angusws/tcx2nikeplus</a>.
 					<br /><br />Fixed problem which prevented successful conversion of workouts if a pause/unpause was present right before start of a new lap (km/mile/whatever split) on garmin.
-				</div>
-				<div class="sectionSubHeading">September 3 2009</div>
-				<div class="sectionContent">
-					Please be aware this project is very much in an alpha stage and may not always work as expected during this early stage of development. At the moment there may also be downtime when the site doesn't work at all due to server upgrades being carried out.
-					<br /><br />Apologies to all who have contacted me in the past week or so with comments/suggestions/bugs. My day-to-day job has been very busy and it takes priority over this project. All your feedback is appreciated and your queries will be dealt with as soon as I get some spare time to work on the garmin to Nike+ converter.
 				</div>
 			</div>
 
