@@ -17,6 +17,7 @@ import javax.xml.datatype.DatatypeConfigurationException;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
+import org.apache.commons.logging.impl.Log4JLogger;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
@@ -417,12 +418,13 @@ public class ConvertTcx
 
 		// Generate the workout detail from the garmin Trackpoint data.
 		ArrayList<Trackpoint> trackpoints = new ArrayList<Trackpoint>();
+		ArrayList<Double> onDemandVPDistances = new ArrayList<Double>();
 		ArrayList<Long> pauseResumeTimes = new ArrayList<Long>();
-		generateCubicSplineData(inDoc, trackpoints, pauseResumeTimes);
+		generateCubicSplineData(inDoc, trackpoints, onDemandVPDistances, pauseResumeTimes);
 
 		// Generates the following CubicSplines: distanceToDuration, durationToDistance, durationToPace, durationToHeartRate.
 		CubicSpline[] splines = generateCubicSplines(trackpoints);
-		appendSnapShotListAndExtendedData(sportsDataElement, pauseResumeTimes, splines[0], splines[1], splines[2], splines[3]);
+		appendSnapShotListAndExtendedData(sportsDataElement, onDemandVPDistances, pauseResumeTimes, splines[0], splines[1], splines[2], splines[3]);
 		
 		// Append heart rate detail to the run summary if required.
 		if (_includeHeartRateData) {
@@ -459,7 +461,7 @@ public class ConvertTcx
 
 
 
-	private void generateCubicSplineData(Document inDoc, ArrayList<Trackpoint> trackpointsStore, ArrayList<Long> pauseResumeTimes) throws DatatypeConfigurationException {
+	private void generateCubicSplineData(Document inDoc, ArrayList<Trackpoint> trackpointsStore, ArrayList<Double> onDemandVPDistances, ArrayList<Long> pauseResumeTimes) throws DatatypeConfigurationException {
 		
 		// Setup a trackpoint based on the very start of the run in case there is a long pause right at the start.
 		Trackpoint previousTp = new Trackpoint(0l, 0d, 0d, null);
@@ -476,7 +478,7 @@ public class ConvertTcx
 
 			log.out(Level.FINE, "Start of lap %d\tDuration: %d -> %d.", (i + 1), lapStartDuration, (lapStartDuration + lapDuration));
 
-			ArrayList<Trackpoint> lapTrackpointStore = generateLapCubicSplineData(lap, pauseResumeTimes, getLastTrackpointFromArrayList(trackpointsStore), lapStartTime, lapStartDuration, lapDuration);
+			ArrayList<Trackpoint> lapTrackpointStore = generateLapCubicSplineData(lap, onDemandVPDistances, pauseResumeTimes, getLastTrackpointFromArrayList(trackpointsStore), lapStartTime, lapStartDuration, lapDuration);
 			trackpointsStore.addAll(lapTrackpointStore);
 
 			lapStartDuration += lapDuration;
@@ -523,7 +525,7 @@ public class ConvertTcx
 	}
 
 
-	private ArrayList<Trackpoint> generateLapCubicSplineData(Node lap, ArrayList<Long> pauseResumeTimes, Trackpoint previousTp, long lapStartTime, long lapStartDuration, long lapDuration) throws DatatypeConfigurationException {
+	private ArrayList<Trackpoint> generateLapCubicSplineData(Node lap, ArrayList<Double> onDemandVPDistances, ArrayList<Long> pauseResumeTimes, Trackpoint previousTp, long lapStartTime, long lapStartDuration, long lapDuration) throws DatatypeConfigurationException {
 
 		ArrayList<Trackpoint> lapTrackpointStore = new ArrayList<Trackpoint>();
 
@@ -597,10 +599,16 @@ public class ConvertTcx
 		}
 
 
-		// Add a Trackpoint for the end of the lap if we haven't already got one at that distance/duration.
 		Trackpoint lastTp = getLastTrackpointFromArrayList(lapTrackpointStore);
-		if ((lapEndDistance != null) && (lastTp.getMostRecentDistance() < lapEndDistance) && (lastTp.getDuration() < lapEndDuration))
-			lapTrackpointStore.add(new Trackpoint(lapEndDuration, lapEndDistance, previousTp.getHeartRate(), lastTp));
+		if (lapEndDistance != null) {
+			// Add a Trackpoint for the end of the lap if we haven't already got one at that distance/duration.
+			if ((lastTp.getMostRecentDistance() < lapEndDistance) && (lastTp.getDuration() < lapEndDuration))
+				lapTrackpointStore.add(new Trackpoint(lapEndDuration, lapEndDistance, previousTp.getHeartRate(), lastTp));
+
+			// If this is not a km or mile distance lap/lap-end then store the end-distance for inserting as a "onDemandVP" click later.
+			if (!(((lapDistance % 1000) == 0) || ((lapDistance % D_METRES_PER_MILE) == 0) || ((lapEndDistance % 1000) == 0) || ((lapEndDistance % D_METRES_PER_MILE) == 0)))
+				onDemandVPDistances.add(lapEndDistance);
+		}
 
 		validateLapCubicSplineData(lap, lapTrackpointStore, pauseResumeTimes, lapEndDuration);
 
@@ -844,24 +852,44 @@ public class ConvertTcx
 	}
 
 
-	private void appendSnapShotListAndExtendedData(Element sportsDataElement, ArrayList<Long> pauseResumeTimes, CubicSpline distanceToDuration, CubicSpline durationToDistance, CubicSpline durationToPace, CubicSpline durationToHeartRate) {
+	private void appendSnapShotListAndExtendedData(Element sportsDataElement, ArrayList<Double> onDemandVPs, ArrayList<Long> pauseResumeTimes, CubicSpline distanceToDuration, CubicSpline durationToDistance, CubicSpline durationToPace, CubicSpline durationToHeartRate) {
 		Element snapShotKmListElement = Util.appendElement(sportsDataElement, "snapShotList", null, "snapShotType", "kmSplit");
 		Element snapShotMileListElement = Util.appendElement(sportsDataElement, "snapShotList", null, "snapShotType", "mileSplit");
 		Element snapShotClickListElement = Util.appendElement(sportsDataElement, "snapShotList", null, "snapShotType", "userClick");
 
+		// Create a double array representing the on-demand-vp clicks - ignoring the final one as this is covered by the "stop" event.
+		int odvpsCount = onDemandVPs.size() - 1;
+		double[] odvps = new double[(odvpsCount >= 0) ? odvpsCount : 0];
+		Iterator<Double> odvpsIt = onDemandVPs.iterator();
+		int index = 0;
+		while (odvpsIt.hasNext() && (index < odvpsCount)) odvps[index++] = odvpsIt.next();
+
 		// Pause/Resume splits.
+		int odvpsIndex = 0;
 		Iterator<Long> prIt = pauseResumeTimes.iterator();
 		while (prIt.hasNext()) {
 			long pauseDuration = prIt.next();
 
+			double distance = interpolate(durationToDistance, pauseDuration);
+
+			// Add all onDemandVP clicks leading up to this distance.
+			while ((odvpsIndex < odvpsCount) && (odvps[odvpsIndex] <= distance)) {
+				log.out(Level.FINE, "onDemandVP %d\tdistance: %f", odvpsIndex + 1, (odvpsIndex == 0) ? odvps[odvpsIndex] : odvps[odvpsIndex] - odvps[odvpsIndex-1]);
+				double odvpDistance = odvps[odvpsIndex++];
+				long odvpDuration = (long)(interpolate(distanceToDuration, odvpDistance));
+				long odvpPace = (long)(interpolate(durationToPace, odvpDuration));
+				int odvpHeartRateBpm = (int)(interpolate(durationToHeartRate, odvpDuration));
+				appendSnapShot(snapShotClickListElement, odvpDuration, odvpDistance, odvpPace, odvpHeartRateBpm, "event", "onDemandVP");
+			}
+
 			// Sometimes a pause/resume happens at the very end of a workout - if this is the case then we will not have decremented the
 			// durations properly so just leave them out - there's no point in documeting a pause directly before the end of the workout anyway.
 			if (pauseDuration < _totalDuration) {
-				// 2009-12-01: Looking at various runs on nike+ it seems the each pause/resume pair now has the same duration/distance
-				// (using the pause event).  I can't find my nike+ stuff to check this is 100% accurate but will go with it for now.
-				double distance = interpolate(durationToDistance, pauseDuration);
 				long pace = (long)(interpolate(durationToPace, pauseDuration));
 				int heartRateBpm = (int)(interpolate(durationToHeartRate, pauseDuration));
+
+				// 2009-12-01: Looking at various runs on nike+ it seems the each pause/resume pair now has the same duration/distance
+				// (using the pause event).  I can't find my nike+ stuff to check this is 100% accurate but will go with it for now.
 				appendSnapShot(snapShotClickListElement, pauseDuration, distance, pace, heartRateBpm, "event", "pause");
 				appendSnapShot(snapShotClickListElement, pauseDuration, distance, pace, heartRateBpm, "event", "resume");
 			}
