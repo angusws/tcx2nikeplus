@@ -8,9 +8,9 @@ Ext.onReady(function() {
 	 */
 	var msgSuccess = function(title, msg) {
 
-		msg = "<div style=\"text-align: center; font-weight: bold;\">" + msg + "</div>" +
-			"<br /><br />The converter code has recently been re-written; if you have old workouts which previously didn't convert with an \"InvalidRunError: null\" error - try them again, they should work now."
-		;
+		msg = "<div style=\"text-align: center; font-weight: bold;\">" + msg + "</div>";
+		
+		//msg = msg.concat("<br /><br />The converter code has recently been re-written; if you have old workouts which previously didn't convert with an \"InvalidRunError: null\" error - try them again, they should work now.");
 		
 		// Include the donate button randomly dependent on the date of the month.
 		if (Math.floor(Math.random() * (new Date().getDate()) * 2) == 0)
