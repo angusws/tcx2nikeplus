@@ -1100,11 +1100,13 @@ public class ConvertTcx
 		}
 
 		protected boolean isRepeatDuration() {
-			return (_previousTrackpoint != null) && (_duration.equals(_previousTrackpoint.getDuration()));
+			//return (_previousTrackpoint != null) && (_duration.equals(_previousTrackpoint.getDuration()));
+			return (_previousTrackpoint != null) && ((_duration.compareTo(_previousTrackpoint.getDuration())) <= 0);
 		}
 
 		protected boolean isRepeatDistance() {
-			return (_previousTrackpoint != null) && (_distance.equals(_previousTrackpoint.getDistance()));
+			//return (_previousTrackpoint != null) && (_distance.equals(_previousTrackpoint.getDistance()));
+			return (_previousTrackpoint != null) && ((_distance.compareTo(_previousTrackpoint.getDistance())) <= 0);
 		}
 
 		protected Long getPreviousDuration() {
