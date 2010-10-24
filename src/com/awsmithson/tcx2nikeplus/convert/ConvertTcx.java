@@ -17,7 +17,6 @@ import javax.xml.datatype.DatatypeConfigurationException;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
-import org.apache.commons.logging.impl.Log4JLogger;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
@@ -30,6 +29,7 @@ public class ConvertTcx
 {
 
 	private static final double				D_METRES_PER_MILE = 1609.344;
+	private static final double				D_METRES_PER_MILE_GARMIN = 1609.35;		// Garmin use this as their DistanceMeters for laps of length 1 mile.
 	private static final int				MILLIS_PER_HOUR = 60 * 1000 * 60;
 	private static final String				DATE_TIME_FORMAT_NIKE = "yyyy-MM-dd'T'HH:mm:ssZ";
 	private static final String				DATE_TIME_FORMAT_HUMAN = "d MMM yyyy HH:mm:ss z";
@@ -531,7 +531,6 @@ public class ConvertTcx
 
 		long lapEndDuration = lapStartDuration + lapDuration;
 
-		double lapStartDistance = -1;
 		double lapDistance = Double.parseDouble(Util.getSimpleNodeValue(Util.getFirstChildByNodeName(lap, "DistanceMeters")));
 		Double lapEndDistance = null;
 
@@ -564,11 +563,7 @@ public class ConvertTcx
 							double distance = Double.parseDouble(Util.getSimpleNodeValue(n));
 
 							// If this is the first trackpoint in the lap with a DistanceMeters value then calculate the start/end distance of the lap.
-							if (lapStartDistance == -1) {
-								lapStartDistance = distance;
-								lapEndDistance = lapStartDistance + lapDistance;
-							}
-
+							if (lapEndDistance == null) lapEndDistance = distance + lapDistance;
 							tp.setDistance(distance);
 						}
 
@@ -606,7 +601,9 @@ public class ConvertTcx
 				lapTrackpointStore.add(new Trackpoint(lapEndDuration, lapEndDistance, previousTp.getHeartRate(), lastTp));
 
 			// If this is not a km or mile distance lap/lap-end then store the end-distance for inserting as a "onDemandVP" click later.
-			if (!(((lapDistance % 1000) == 0) || ((lapDistance % D_METRES_PER_MILE) == 0) || ((lapEndDistance % 1000) == 0) || ((lapEndDistance % D_METRES_PER_MILE) == 0)))
+			int onDemandVPCount = onDemandVPDistances.size();
+			double previousOnDemandVPDistance = (onDemandVPCount > 0) ? onDemandVPDistances.get(onDemandVPCount - 1) : 0;
+			if ((((lapDistance + previousOnDemandVPDistance) % 1000) != 0) && (((lapDistance + previousOnDemandVPDistance) % D_METRES_PER_MILE_GARMIN) != 0))
 				onDemandVPDistances.add(lapEndDistance);
 		}
 
@@ -874,7 +871,7 @@ public class ConvertTcx
 
 			// Add all onDemandVP clicks leading up to this distance.
 			while ((odvpsIndex < odvpsCount) && (odvps[odvpsIndex] <= distance)) {
-				log.out(Level.FINE, "onDemandVP %d\tdistance: %f", odvpsIndex + 1, (odvpsIndex == 0) ? odvps[odvpsIndex] : odvps[odvpsIndex] - odvps[odvpsIndex-1]);
+				log.out(Level.FINE, "onDemandVP %d\tdistance-since-previous: %f", odvpsIndex + 1, (odvpsIndex == 0) ? odvps[odvpsIndex] : odvps[odvpsIndex] - odvps[odvpsIndex-1]);
 				double odvpDistance = odvps[odvpsIndex++];
 				long odvpDuration = (long)(interpolate(distanceToDuration, odvpDistance));
 				long odvpPace = (long)(interpolate(durationToPace, odvpDuration));
