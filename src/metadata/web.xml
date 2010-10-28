@@ -7,7 +7,7 @@
 	</servlet>
 	<servlet-mapping>
 		<servlet-name>ConvertService</servlet-name>
-		<url-pattern>/convert</url-pattern>
+		<url-pattern>/tcx2nikeplus/convert</url-pattern>
 	</servlet-mapping>
 
 </web-app>

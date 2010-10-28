@@ -120,6 +120,10 @@
 
 			<!-- News -->
 			<div id="tabNews" class="x-hide-display">
+				<div class="sectionSubHeading">October 16 2010</div>
+				<div class="sectionContent">
+					Added onDemandVP snapShot events for custom laps/splits (ones that don't last exactly 1 km or 1 mile).
+				</div>
 				<div class="sectionSubHeading">September 30 2010</div>
 				<div class="sectionContent">
 					Further tweaking of the new converter code.  If you have old workouts which previously didn't convert with an "InvalidRunError: null" error - try them again - they might/should work now.
@@ -199,7 +203,8 @@
 		<script type="text/javascript">
 			try {
 				var pageTracker = _gat._getTracker("UA-9670019-1");
-				pageTracker._trackPageview();
+				// Don't actually track a pageview for the main index.html - we track tab changes and one of these gets fired on arrival so this is duplicate.
+				//pageTracker._trackPageview();
 			}
 			catch(err) {}
 		</script>

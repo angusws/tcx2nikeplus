@@ -1,6 +1,12 @@
 
 Ext.onReady(function() {
 
+	/*
+	 * Add google analytics tracking to AJAX requests.
+	 */
+	Ext.Ajax.on('beforerequest', function(connection, options) {
+		pageTracker._trackPageview('/' + options.url);
+	});
 
 
 	/*
@@ -80,7 +86,13 @@ Ext.onReady(function() {
 				title: 'Donate',
 				contentEl: 'tabDonate'
 			}
-		]
+		],
+
+		listeners: {
+            'tabchange': function(tabPanel, tab){
+                pageTracker._trackPageview('/tcx2nikeplus/' + tab.contentEl);
+            }
+        }
     });
 
 
@@ -258,14 +270,14 @@ Ext.onReady(function() {
 					// Simple Convert
 					if ((nikePinValue.length == 0)) {
 						fp.getForm().submit({
-							url: 'convert'
+							url: 'tcx2nikeplus/convert'
 						});
 					}
 
 					// Convert & Upload
 					else {
 						fp.getForm().submit({
-							url: 'convert',
+							url: 'tcx2nikeplus/convert',
 							params:{clientTimeZoneOffset : (0 - (new Date().getTimezoneOffset()))},
 							timeout: 60,
 							waitMsg: 'Converting &amp; Uploading your workout, please wait...',
