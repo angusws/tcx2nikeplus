@@ -86,11 +86,7 @@ public class ConvertGpx
 
 			Element trkptNike = Util.appendElement(trkSeg, "trkpt", null, "lat", lat, "lon", lon);
 
-			NodeList trkptGarminData = trkptGarmin.getChildNodes();
-			int trkptGarminDataLength = trkptGarminData.getLength();
-
-			for (int j = 0; j < trkptGarminDataLength; ++j) {
-				Node n = trkptGarminData.item(j);
+			for (Node n = trkptGarmin.getFirstChild(); n != null; n = n.getNextSibling()) {
 				String nodeName = n.getNodeName();
 
 				if ((nodeName.equals("ele")) || (nodeName.equals("time")))

@@ -58,13 +58,8 @@ public class Util {
 
 
 	public static Node getFirstChildByNodeName(Node parent, String nodeName) {
-		NodeList children = parent.getChildNodes();
-		int childCount = children.getLength();
-
-		for (int i = 0; i < childCount; ++i) {
-			Node n = children.item(i);
-				if (n.getNodeName().equals(nodeName)) return n;
-		}
+		for (Node n = parent.getFirstChild(); n != null; n = n.getNextSibling())
+			if (n.getNodeName().equals(nodeName)) return n;
 
 		return null;
 	}
@@ -72,14 +67,8 @@ public class Util {
 	public static Node[] getChildrenByNodeName(Node parent, String nodeName) {
 		ArrayList<Node> al = new ArrayList<Node>();
 
-		NodeList children = parent.getChildNodes();
-		int childCount = children.getLength();
-
-		for (int i = 0; i < childCount; ++i) {
-			Node n = children.item(i);
-				if (n.getNodeName().equals(nodeName))
-					al.add(n);
-		}
+		for (Node n = parent.getFirstChild(); n != null; n = n.getNextSibling())
+			if (n.getNodeName().equals(nodeName)) al.add(n);
 
 		return (al.size() > 0) ? al.toArray(new Node[0]) : null;
 	}

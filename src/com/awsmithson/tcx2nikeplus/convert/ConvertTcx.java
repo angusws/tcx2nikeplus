@@ -246,13 +246,8 @@ public class ConvertTcx
 
 			Double latitude = null;
 			Double longitude = null;
-			
-			NodeList positionData = positions.item(i).getChildNodes();
-			int positionDataLength = positionData.getLength();
 
-			for (int j = 0; j < positionDataLength; ++j) {
-
-				Node n = positionData.item(j);
+			for (Node n = positions.item(i).getFirstChild(); n != null; n = n.getNextSibling()) {
 				String nodeName = n.getNodeName();
 
 				// Latitude at this point
@@ -316,12 +311,8 @@ public class ConvertTcx
 		int lapsLength = laps.getLength();
 
 		for (int i = 0; i < lapsLength; ++i) {
-			
-			NodeList lapData = laps.item(i).getChildNodes();
-			int lapInfoLength = lapData.getLength();
 
-			for (int j = 0; j < lapInfoLength; ++j) {
-				Node n = lapData.item(j);
+			for (Node n = laps.item(i).getFirstChild(); n != null; n = n.getNextSibling()) {
 
 				String nodeName = n.getNodeName();
 
@@ -551,11 +542,9 @@ public class ConvertTcx
 
 					// Loop through the data for this trackpoint storing the data.
 					Trackpoint tp = new Trackpoint(previousTp);
-					NodeList trackPointData = trackpoint.getChildNodes();
-					int trackPointDataLength = trackPointData.getLength();
+					int trackPointDataLength = 0;
 
-					for (int i = 0; i < trackPointDataLength && tp != null; ++i) {
-						Node n = trackPointData.item(i);
+					for (Node n = trackpoint.getFirstChild(); n != null; n = n.getNextSibling(), ++trackPointDataLength) {
 						String nodeName = n.getNodeName();
 
 						// Run duration to this point
