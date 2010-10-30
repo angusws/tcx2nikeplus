@@ -458,7 +458,7 @@ public class ConvertTcx
 
 	private void generateCubicSplineData(Document inDoc, ArrayList<Trackpoint> trackpointsStore, ArrayList<Long> pauseResumeTimes) throws DatatypeConfigurationException {
 		
-		// Setup a trackpoint based on the very start of the run in case there is a long pause right at the start.
+		// Create a trackpoint based on the very start of the run.
 		Trackpoint previousTp = new Trackpoint(0l, 0d, 0d, null);
 		trackpointsStore.add(previousTp);
 
@@ -523,6 +523,9 @@ public class ConvertTcx
 	private ArrayList<Trackpoint> generateLapCubicSplineData(Node lap, ArrayList<Long> pauseResumeTimes, Trackpoint previousTp, long lapStartTime, long lapStartDuration, long lapDuration) throws DatatypeConfigurationException {
 
 		ArrayList<Trackpoint> lapTrackpointStore = new ArrayList<Trackpoint>();
+		// Add the last trackpoint of the previous lap so we can calculate pause/resumes that span across laps.
+		// We will remove the first trackpoint (this one) from the store after validating the lap data.
+		lapTrackpointStore.add(previousTp);
 
 		long lapEndDuration = lapStartDuration + lapDuration;
 
@@ -593,6 +596,7 @@ public class ConvertTcx
 		
 
 		validateLapCubicSplineData(lap, lapTrackpointStore, pauseResumeTimes, lapEndDuration);
+		lapTrackpointStore.remove(0);		// Remove the final trackpoint from the previous lap which was added for the purpose of pause/resumes that span across laps.
 
 		long difference = lapTrackpointDurationVsLapEndDuration(lapTrackpointStore, lapEndDuration);
 		log.out(Level.FINE, "Lap duration difference after validation:\t%d", difference);
@@ -603,8 +607,8 @@ public class ConvertTcx
 
 	private void validateLapCubicSplineData(Node lap, ArrayList<Trackpoint> lapTrackpointStore, ArrayList<Long> pauseResumeDurations,  long lapEndDuration) {
 
-		// If we have no trackpoints then we don't need to validate.
-		if (lapTrackpointStore.size() == 0) return;
+		// If we only have one trackpoint (the final trackpoint from the previous lap) then we don't need to validate.
+		if (lapTrackpointStore.size() == 1) return;
 
 		Node lapTotalTimeSeconds = Util.getFirstChildByNodeName(lap, "TotalTimeSeconds");
 		if (lapTotalTimeSeconds == null) return;
