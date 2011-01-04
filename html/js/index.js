@@ -163,12 +163,12 @@ Ext.onReady(function() {
 				}]
 			},
 
-			// Garmin Activity ID
+			// Garmin Activity ID (nike+ heart-rate)
 			{
 				xtype: 'fieldset',
 				id: 'idContanier',
 				checkboxToggle: true,
-				title: 'Garmin Connect Activity ID',
+				title: 'Garmin Activity ID (nike+ heartrate)',
 				autoHeight: true,
 				defaults: {width: 100},
 				collapsed: true,
@@ -201,12 +201,12 @@ Ext.onReady(function() {
 				}]
 			},
 
-			// Garmin Activity ID (GPS)
+			// Garmin Activity ID (nike+ gps)
 			{
 				xtype: 'fieldset',
 				id: 'idGpsContanier',
 				checkboxToggle: true,
-				title: 'Garmin Connect Activity ID (include nike+ gps - new!)',
+				title: 'Garmin Activity ID (nike+ gps)',
 				autoHeight: true,
 				defaults: {width: 100},
 				collapsed: true,
