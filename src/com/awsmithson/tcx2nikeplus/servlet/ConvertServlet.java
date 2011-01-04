@@ -12,7 +12,6 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Random;
 import java.util.logging.Level;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
@@ -139,15 +138,7 @@ public class ConvertServlet extends HttpServlet
 				// If we did have a nikeplus pin then continue with the upload to nikeplus.
 				else {
 					Upload(nikePin, runXml, gpxXml);
-
-					// There is a 1/100 chance that we remind the user it is possible to donate.
-					//String message = (new Random().nextInt(100) == 0)
-					//	? "Conversion & Upload Successful.  Please consider donating to help keep this project alive."
-					//	: "Conversion & Upload Successful."
-					//;
-
 					String message = "Conversion & Upload Successful.";
-
 					succeed(out, jout, message);
 				}
 			}
