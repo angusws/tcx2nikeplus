@@ -31,6 +31,7 @@ import org.xml.sax.SAXException;
 public class Upload
 {
 
+	private static String URL_GENERATE_PIN = "https://secure-nikerunning.nike.com/nikeplus/v2/services/app/generate_pin.jsp";
 	private static String URL_CHECK_PIN_STATUS = "https://secure-nikerunning.nike.com/nikeplus/v2/services/device/get_pin_status.jsp";
 	private static String URL_DATA_SYNC_NON_GPS = "https://secure-nikerunning.nike.com/nikeplus/v2/services/device/sync.jsp";
 	private static String URL_DATA_SYNC_GPS = "https://secure-nikerunning.nike.com/gps/sync/plus/iphone";
@@ -43,6 +44,38 @@ public class Upload
 	public Upload() {
 	}
 
+
+	/**
+	 * Retrieves the pin from nike+ for the given login/password..
+	 * @param login The login String (email address).
+	 * @param password The login password.
+	 * @return Nike+ pin.
+	 * @throws IOException
+	 * @throws MalformedURLException
+	 * @throws ParserConfigurationException
+	 * @throws SAXException
+	 * @throws UnsupportedEncodingException
+	 */
+	public String generatePin(String login, String password) throws IOException, MalformedURLException, ParserConfigurationException, SAXException, UnsupportedEncodingException {
+
+		// Send data
+		URL url = new URL(String.format("%s?%s&%s", URL_GENERATE_PIN, generateParameter("login", login), generateParameter("password", password)));
+		URLConnection conn = url.openConnection();
+		conn.setRequestProperty("user-agent", USER_AGENT);
+
+		// Get the response
+		DocumentBuilder db = DocumentBuilderFactory.newInstance().newDocumentBuilder();
+		Document doc = db.parse(conn.getInputStream());
+		doc.normalize();
+		//log.out(Util.DocumentToString(doc));
+
+		String pinStatus = Util.getSimpleNodeValue(doc, "status");
+
+		if (!(pinStatus.equals("success")))
+			throw new IllegalArgumentException("The email and password supplied are not valid");
+
+		return Util.getSimpleNodeValue(doc, "pin");
+	}
 
 	/**
 	 * Calls fullSync converting the File objects to Document.
