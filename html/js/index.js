@@ -112,15 +112,15 @@ Ext.onReady(function() {
 	/*
 	 * Converter Form
 	 */
-	var fp = new Ext.FormPanel({
+	var converterForm = new Ext.FormPanel({
 		renderTo: 'divConverter',
 		fileUpload: true,
-		width: 450,
+		width: 448,
 		frame: true,
 		title: 'Garmin Forerunner TCX file to Nike+ Converter &amp; Uploader',
 		autoHeight: true,
 		bodyStyle: 'padding: 10px 10px 0 10px;',
-		labelWidth: 80,
+		labelWidth: 100,
 		style: 'text-align: left;',
 
 
@@ -140,26 +140,28 @@ Ext.onReady(function() {
 				checkboxToggle: true,
 				title: 'Garmin TCX file',
 				autoHeight: true,
-				defaults: {width: 250},
+				collapsed: true,
 
 				listeners: {
 					expand: function() {
 						Ext.getCmp('garminTcxFile').enable();
 						Ext.getCmp('idContanier').collapse();
-						Ext.getCmp('idGpsContanier').collapse();
 						Ext.getCmp('garminActivityId').disable();
-						Ext.getCmp('garminActivityIdGps').disable();
-						Ext.getCmp('nikePin').allowBlank = true;
-						Ext.getCmp('nikePin').validate();
+					},
+
+					collapse: function() {
+						Ext.getCmp('idContanier').expand();
 					}
 				},
 
 				items: [{
 					xtype: 'fileuploadfield',
 					id: 'garminTcxFile',
+					anchor: '100%',
+					hideLabel: true,
 					emptyText: 'Select a tcx file',
-					//buttonText: 'Browse',
-					allowBlank: false
+					allowBlank: false,
+					disabled: true
 				}]
 			},
 
@@ -168,96 +170,149 @@ Ext.onReady(function() {
 				xtype: 'fieldset',
 				id: 'idContanier',
 				checkboxToggle: true,
-				title: 'Garmin Activity ID (nike+ heartrate)',
+				title: 'Garmin Activity ID',
 				autoHeight: true,
-				defaults: {width: 100},
-				collapsed: true,
+				style: {marginBottom: '32px'},
 
 				listeners: {
 					expand: function() {
 						Ext.getCmp('garminActivityId').enable();
 						Ext.getCmp('fileContainer').collapse();
-						Ext.getCmp('idGpsContanier').collapse();
 						Ext.getCmp('garminTcxFile').disable();
-						Ext.getCmp('garminActivityIdGps').disable();
-						Ext.getCmp('nikePin').allowBlank = true;
-						Ext.getCmp('nikePin').validate();
+					},
 
-						// Add the ToolTip the 1st time we enable the garminActivityId NumberField because you can't declare ToolTips on disabled Components.
-						if (activityIdToolTip == null)
-							new Ext.ToolTip({
-								target: 'garminActivityId',
-								title: 'Garmin Connect Activity ID',
-								html: 'Example: For the workout http://connect.garmin.com/activity/21742933 the activity ID is 21742933.'
-							});
+					collapse: function() {
+						Ext.getCmp('fileContainer').expand();
 					}
 				},
 
-				items: [{
-					xtype: 'textfield',
-					id: 'garminActivityId',
-					allowBlank: false,
-					disabled: true
-				}]
+				items: [
+					{
+						xtype: 'textfield',
+						id: 'garminActivityId',
+						hideLabel: true,
+						allowBlank: false,
+						width: 100
+					},
+
+					{
+						xtype: 'radiogroup',
+						fieldLabel: 'Upload options',
+						columns: [50, 100],
+						items: [
+							{boxLabel: 'GPS', name: 'rbGpsHeartRate', inputValue: 'gps', checked: true},
+							{boxLabel: 'Heart Rate', name: 'rbGpsHeartRate', inputValue: 'heartrate'}
+						]
+					}
+				]
 			},
 
-			// Garmin Activity ID (nike+ gps)
+
+
+
+
+			
+			// Simple Authentication
 			{
 				xtype: 'fieldset',
-				id: 'idGpsContanier',
+				id: 'idAuthSimple',
 				checkboxToggle: true,
-				title: 'Garmin Activity ID (nike+ gps)',
+				title: 'Simple Authentication',
 				autoHeight: true,
-				defaults: {width: 100},
-				collapsed: true,
+				defaults: {
+					anchor: '100%'
+				},
 
 				listeners: {
 					expand: function() {
-						Ext.getCmp('garminActivityIdGps').enable();
-						Ext.getCmp('fileContainer').collapse();
-						Ext.getCmp('idContanier').collapse();
-						Ext.getCmp('garminTcxFile').disable();
-						Ext.getCmp('garminActivityId').disable();
-						Ext.getCmp('nikePin').allowBlank = false;
+						Ext.getCmp('nikeEmail').enable();
+						Ext.getCmp('nikePassword').enable();
+						Ext.getCmp('idAuthAdvanced').collapse();
+						Ext.getCmp('nikePin').disable();
+						Ext.getCmp('nikeEmpedId').disable();
+						Ext.getCmp('nikePin').allowBlank = true;
+						Ext.getCmp('nikePin').validate();
+						Ext.getCmp('nikeEmpedId').allowBlank = true;
+						Ext.getCmp('nikeEmpedId').validate();
+					},
 
-						// Add the ToolTip the 1st time we enable the garminActivityId NumberField because you can't declare ToolTips on disabled Components.
-						if (activityIdToolTip == null)
-							new Ext.ToolTip({
-								target: 'garminActivityIdGps',
-								title: 'Garmin Connect Activity ID with Nike+ GPS upload',
-								html: 'Example: For the workout http://connect.garmin.com/activity/21742933 the activity ID is 21742933.'
-							});
+					collapse: function() {
+						Ext.getCmp('idAuthAdvanced').expand();
 					}
 				},
-
-				items: [{
-					xtype: 'textfield',
-					id: 'garminActivityIdGps',
-					allowBlank: false,
-					disabled: true
-				}]
+				
+				items: [
+					// Nike+ Email
+					{
+						xtype: 'textfield',
+						fieldLabel: 'Nike+ Email',
+						id: 'nikeEmail',
+						allowBlank: false
+					},
+					// Nike+ Password
+					{
+						xtype: 'textfield',
+						inputType: 'password',
+						fieldLabel: 'Nike+ Password',
+						id: 'nikePassword',
+						allowBlank: false
+					}
+				]
 			},
 
-			// Nike+ pin
-			{
-				xtype: 'textfield',
-				id: 'nikePin',
-				fieldLabel: 'Nike+ PIN',
-				width: 100
-			},
 
-			// Emped ID
+			// Advanced Authentication
 			{
-				xtype: 'textfield',
-				id: 'nikeEmpedId',
-				fieldLabel: 'Emped ID'
+				xtype: 'fieldset',
+				id: 'idAuthAdvanced',
+				checkboxToggle: true,
+				title: 'Advanced Authentication',
+				autoHeight: true,
+				collapsed: true,
+				defaults: {
+					anchor: '100%'
+				},
+				
+				listeners: {
+					expand: function() {
+						Ext.getCmp('nikeEmail').disable();
+						Ext.getCmp('nikePassword').disable();
+						Ext.getCmp('idAuthSimple').collapse();
+						Ext.getCmp('nikePin').enable();
+						Ext.getCmp('nikeEmpedId').enable();
+						Ext.getCmp('nikeEmail').allowBlank = true;
+						Ext.getCmp('nikeEmail').validate();
+						Ext.getCmp('nikePassword').allowBlank = true;
+						Ext.getCmp('nikePassword').validate();
+					},
+
+					collapse: function() {
+						Ext.getCmp('idAuthSimple').expand();
+					}
+				},
+				
+				items: [
+					// Nike+ pin
+					{
+						xtype: 'textfield',
+						id: 'nikePin',
+						fieldLabel: 'Nike+ PIN'
+					},
+
+					// Emped ID
+					{
+						xtype: 'textfield',
+						id: 'nikeEmpedId',
+						fieldLabel: 'Emped ID'
+					}
+				]
 			}
 		],
 
 		buttons: [{
 			text: 'Convert &amp; Upload',
 			handler: function() {
-				if (fp.getForm().isValid()) {
+				if (converterForm.getForm().isValid()) {
 
 					// If we are dealing with a TCX file upload then ensure the file extension is tcx.
 					if ((!Ext.getCmp('garminTcxFile').disabled) && (!validateFileExtension(Ext.getCmp('garminTcxFile').getValue()))) {
@@ -265,38 +320,29 @@ Ext.onReady(function() {
 						return;
 					}
 
-					var nikePinValue =	fp.findById('nikePin').getValue();
-
-					// Simple Convert
-					if ((nikePinValue.length == 0)) {
-						fp.getForm().submit({
-							url: 'tcx2nikeplus/convert'
-						});
-					}
+					var nikePinValue =	converterForm.findById('nikePin').getValue();
 
 					// Convert & Upload
-					else {
-						fp.getForm().submit({
-							url: 'tcx2nikeplus/convert',
-							params:{clientTimeZoneOffset : (0 - (new Date().getTimezoneOffset()))},
-							timeout: 60,
-							waitMsg: 'Converting &amp; Uploading your workout, please wait...',
-							success: function(fp, o){
-								msgSuccess('Success', o.result.data.errorMessage);
-							},
-							failure: function(pf, o) {
-								msgFailure('Failure', o.result.data.errorMessage);
-							}
-						});
-					}
+					converterForm.getForm().submit({
+						url: 'tcx2nikeplus/convert',
+						params:{clientTimeZoneOffset : (0 - (new Date().getTimezoneOffset()))},
+						timeout: 60,
+						waitMsg: 'Converting &amp; Uploading your workout, please wait...',
+						success: function(converterForm, o){
+							msgSuccess('Success', o.result.data.errorMessage);
+						},
+						failure: function(converterForm, o) {
+							msgFailure('Failure', o.result.data.errorMessage);
+						}
+					});
 				}
 			}
 		},
 		{
 			text: 'Reset',
 			handler: function() {
-				fp.getForm().reset();
-				fp.findById('fileContainer').expand();
+				converterForm.getForm().reset();
+				converterForm.findById('fileContainer').expand();
 			}
 		}]
 	});
@@ -313,18 +359,34 @@ Ext.onReady(function() {
 		html: 'Click Browse to select a garmin tcx file to convert.'
 	});
 
-	var activityIdToolTip = null;	// Only add this if/when we enable the garminActivityId NumberField.
+	new Ext.ToolTip({
+		target: 'garminActivityId',
+		title: 'Garmin Connect Activity ID',
+		html: 'For the workout http://connect.garmin.com/activity/21742933 the activity ID is 21742933.'
+	});
+
+	new Ext.ToolTip({
+		target: 'nikeEmail',
+		title: 'Nike+ Email',
+		html: 'The email address you use to log into http://www.nikeplus.com'
+	});
+
+	new Ext.ToolTip({
+		target: 'nikePassword',
+		title: 'Nike+ Password',
+		html: 'The password you use to log into http://www.nikeplus.com'
+	});
 
 	new Ext.ToolTip({
 		target: 'nikePin',
 		title: 'Nike+ PIN',
-		html: 'https://secure-nikerunning.nike.com/nikeplus/v2/services/app/generate_pin.jsp?login=LOGIN&password=PASSWORD<br />for your pin.<br />See instructions for more details.'
+		html: 'Get your nike+ pin at<br />https://secure-nikerunning.nike.com/nikeplus/v2/services/app/generate_pin.jsp?login=LOGIN&password=PASSWORD'
 	});
 
 	new Ext.ToolTip({
 		target: 'nikeEmpedId',
 		title: 'Emped ID',
-		html: 'Not required, although you may want to include it.<br />See instructions for more details.'
+		html: 'Not required, although you may want to include it.'
 	});
 
 
@@ -339,18 +401,12 @@ Ext.onReady(function() {
 		return param ? params[param] : params;
 	};
 
-	fp.findById('nikePin').setValue(Ext.getUrlParam('pin'));
-	fp.findById('nikeEmpedId').setValue(Ext.getUrlParam('empedID'));
-
 	var type = Ext.getUrlParam('type');
+	if ((type === 'garminActivityID') || (type === 'garminActivityID_GPS')) converterForm.findById('idContanier').expand();
 
-	if (type === 'garminActivityID') fp.findById('idContanier').expand();
-	else if (type === 'garminActivityID_GPS') fp.findById('idGpsContanier').expand();
+	if ((Ext.getUrlParam('pin') != null) || (Ext.getUrlParam('empedID') != null)) converterForm.findById('idAuthAdvanced').expand();
 
-
-	/*
-	 * Testing alerts.
-	 */
-	//msgSuccess('Success', "Good stuff, simples!");
+	converterForm.findById('nikePin').setValue(Ext.getUrlParam('pin'));
+	converterForm.findById('nikeEmpedId').setValue(Ext.getUrlParam('empedID'));
 
 });

@@ -28,7 +28,7 @@ import org.w3c.dom.Node;
 import org.xml.sax.SAXException;
 
 
-public class Upload
+public class NikePlus
 {
 
 	private static String URL_GENERATE_PIN = "https://secure-nikerunning.nike.com/nikeplus/v2/services/app/generate_pin.jsp";
@@ -41,7 +41,7 @@ public class Upload
 
 	private static final Log log = Log.getInstance();
 
-	public Upload() {
+	public NikePlus() {
 	}
 
 
@@ -268,7 +268,7 @@ public class Upload
 		File runXml = new File(args[1]);
 		File gpxXml = (args.length > 2) ? new File(args[2]) : null;
 
-		Upload u = new Upload();
+		NikePlus u = new NikePlus();
 		try {
 			u.fullSync(pin, runXml, gpxXml);
 		}

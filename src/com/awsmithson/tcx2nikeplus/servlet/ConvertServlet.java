@@ -4,7 +4,7 @@ import static com.awsmithson.tcx2nikeplus.Constants.*;
 import com.awsmithson.tcx2nikeplus.convert.ConvertGpx;
 import com.awsmithson.tcx2nikeplus.convert.ConvertTcx;
 import com.awsmithson.tcx2nikeplus.util.Util;
-import com.awsmithson.tcx2nikeplus.uploader.Upload;
+import com.awsmithson.tcx2nikeplus.uploader.NikePlus;
 import com.awsmithson.tcx2nikeplus.util.Log;
 import com.google.gson.JsonObject;
 import java.io.File;
@@ -55,13 +55,12 @@ public class ConvertServlet extends HttpServlet
 
 				File garminTcxFile = null;
 				Integer garminActivityId = null;
-				Integer garminActivityIdGps = null;
+				boolean gpsUpload = false;
+				String nikeEmail = null;
+				String nikePassword = null;
 				String nikeEmpedId = null;
 				String nikePin = null;
 				Integer clientTimeZoneOffset = null;
-
-				Document garminTcxDocument = null;
-				Document garminGpxDocument = null;
 
 				// Iterate through the uploaded items
 				Iterator it = items.iterator();
@@ -72,9 +71,15 @@ public class ConvertServlet extends HttpServlet
 					if (item.isFormField()) {
 						// Garmin activity id
 						if (haveFieldValue(item, fieldName, "garminActivityId")) garminActivityId = getGarminActivityId(item);
+						
+						// GPS/Heartrate radiobutton
+						if (haveFieldValue(item, fieldName, "rbGpsHeartRate")) gpsUpload = item.getString().equals("gps");
 
-						// Garmin activity id (with gps)
-						if (haveFieldValue(item, fieldName, "garminActivityIdGps")) garminActivityIdGps = getGarminActivityId(item);
+						// Nike email address
+						if (haveFieldValue(item, fieldName, "nikeEmail")) nikeEmail = item.getString();
+
+						// Nike password
+						if (haveFieldValue(item, fieldName, "nikePassword")) nikePassword = item.getString();
 
 						// Nike emped id
 						if (haveFieldValue(item, fieldName, "nikeEmpedId")) nikeEmpedId = item.getString();
@@ -101,9 +106,14 @@ public class ConvertServlet extends HttpServlet
 					}
 				}
 
-				ConvertTcx cTcx = new ConvertTcx();
-				ConvertGpx cGpx = new ConvertGpx();
-				boolean gpsUpload = (garminActivityIdGps != null);
+				NikePlus u = new NikePlus();
+
+				// Get the nikePin if we have an email and password.
+				if ((nikePin == null) && ((nikeEmail != null) && (nikePassword != null)))
+					nikePin = u.generatePin(nikeEmail, nikePassword);
+				
+				Document garminTcxDocument = null;
+				Document garminGpxDocument = null;
 
 				// If we have a tcx file to convert...
 				if ((garminTcxFile != null) && (garminTcxFile.exists())) {
@@ -115,13 +125,7 @@ public class ConvertServlet extends HttpServlet
 				else if (garminActivityId != null) {
 					log.out("Received convert-activity-id request, id: %d", garminActivityId);
 					garminTcxDocument = downloadGarminDocument(URL_GARMIN_TCX, garminActivityId);
-				}
-
-				// If we have a garmin activity id then download the garmin tcx file then convert it.
-				else if (gpsUpload) {
-					log.out("Received convert-activity-id-gps request, id: %d", garminActivityIdGps);
-					garminTcxDocument = downloadGarminDocument(URL_GARMIN_TCX, garminActivityIdGps);
-					garminGpxDocument = downloadGarminDocument(URL_GARMIN_GPX, garminActivityIdGps);
+					if (gpsUpload) garminGpxDocument = downloadGarminDocument(URL_GARMIN_GPX, garminActivityId);
 				}
 
 				// If we didn't find a garmin tcx file or garmin activity id then we can't continue...
@@ -129,6 +133,8 @@ public class ConvertServlet extends HttpServlet
 
 
 				// Generate the output nike+ workout xml.
+				ConvertTcx cTcx = new ConvertTcx();
+				ConvertGpx cGpx = new ConvertGpx();
 				Document runXml = convertTcxDocument(cTcx, garminTcxDocument, nikeEmpedId, clientTimeZoneOffset, (gpsUpload));
 				Document gpxXml = (gpsUpload) ? convertGpxDocument(cGpx, garminGpxDocument) : null;
 
@@ -137,10 +143,11 @@ public class ConvertServlet extends HttpServlet
 
 				// If we did have a nikeplus pin then continue with the upload to nikeplus.
 				else {
-					Upload(nikePin, runXml, gpxXml);
+					u.fullSync(nikePin, runXml, gpxXml);
 					String message = "Conversion & Upload Successful.";
 					succeed(out, jout, message);
 				}
+				
 			}
 		}
 		catch (Throwable t) {
@@ -215,12 +222,12 @@ public class ConvertServlet extends HttpServlet
 		out.print(output);
 		log.out("");
 	}
-		
+	/*
 	private void Upload(String nikePin, Document runXml, Document gpxXml) throws Throwable {
 		Upload u = new Upload();
 		u.fullSync(nikePin, runXml, gpxXml);
 	}
-
+	*/
 	
 	
 

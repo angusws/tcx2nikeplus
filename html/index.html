@@ -52,36 +52,20 @@
 				<div class="sectionSubHeading">Garmin TCX file / Garmin Activity ID</div>
 				<div class="sectionContent">
 					Option 1 - TCX file: After synchronising your garmin device with your computer the option is available to export the run to a tcx file both in the 'Garmin Training Center' and at <a href="http://connect.garmin.com" target="_blank">Garmin Connect.</a>.
-					<br /><br />Option 2 - Garmin Activity ID (nike+ heartrate): After synchronising your garmin device to <a href="http://connect.garmin.com" target="_blank">Garmin Connect.</a> the activity ID is in the url for the workout details page.  For example, for the workout http://connect.garmin.com/activity/21742933 the activity ID is 21742933.
-					<br /><br />Option 3 - Garmin Activity ID (nike+ gps): Instructions are the same as option 2.  When selected this will upload gps (mapping data) to nike+ rather than heart-rate (nike+ do not support both).
+					<br /><br />Option 2 - Garmin Activity ID: After synchronising your garmin device to <a href="http://connect.garmin.com" target="_blank">Garmin Connect.</a> the activity ID is in the url for the workout details page.  For example, for the workout http://connect.garmin.com/activity/21742933 the activity ID is 21742933.  Nike+ doesn't support workouts with both gps and heart-rate data so choose which you want to include.
 				</div>
 
-				<div class="sectionSubHeading">Nike+ PIN</div>
+				<div class="sectionSubHeading">Advanced Authentication: Nike+ PIN</div>
 				<div class="sectionContent">
 					Open a new window/tab in your web browser.
 					<br /><br />Visit https://secure-nikerunning.nike.com/nikeplus/v2/services/app/generate_pin.jsp?login=<span class="codeTextItalic">EMAIL-ADDRESS</span>&password=<span class="codeTextItalic">PASSWORD</span> (replacing the italics with your nike+ login details - email address and password).
 					<br /><br />The resultant page should have a section "pin", this is the value to use as the pin on this page.  Your pin will never change.
-					<br /><br />If you cannot see a section "pin" then contact me (see top of this page) with details of which browser you are using and I'll help you through the process.
-					<br /><br />Some browsers (I know apple's safari does this) might just display the data like success12345678-1234-1234-1234-123456789012.  If that is the case then simply remove the "success" text from the start, the rest of it is your pin.
 				</div>
 
 
-				<div class="sectionSubHeading">Emped ID (not essential)</div>
+				<div class="sectionSubHeading">Advanced Authentication: Emped ID</div>
 				<div class="sectionContent">
 					The easiest way to obtain your emped ID is probably to look at the list of your runs on <a href="http://www.slowgeek.com/" target="_blank">slowgeek.com</a>, there is a column for each run with the emped ID.
-				</div>
-
-				<div class="sectionSubHeading">Tips</div>
-				<div class="sectionContent">
-					You can pre-select the upload-type by specifying a value for "type" in the URL.
-					<br/>Valid options are "garminActivityId" &amp; "garminActivityID_GPS".
-					<br />For example, select "Garmin Connect Activity ID (include nike+ gps) with:
-					<br /> <span class="codeTextItalic">http://www.awsmithson.com/tcx2nikeplus/?type=garminActivityID_GPS</span>
-				</div>
-				<div class="sectionContent">
-					You can also auto-populate the pin &amp; emped ID fields in the form by including them in the URL.
-					<br />For example, the full url I have bookmarked is something like:
-					<br /> <span class="codeTextItalic">http://www.awsmithson.com/tcx2nikeplus/?type=garminActivityID_GPS&pin=12345678-1234-1234-1234-123456789012&amp;empedID=4H123ABCDEF</span>
 				</div>
 			</div>
 
