@@ -22,4 +22,4 @@ done
 
 
 # Execute the application with supplied arguments
-java -Djava.util.logging.config.file=$CONF/logging.properties -classpath $CP com.awsmithson.tcx2nikeplus.uploader.Upload $*
+java -Djava.util.logging.config.file=$CONF/logging.properties -classpath $CP com.awsmithson.tcx2nikeplus.uploader.NikePlus $*
