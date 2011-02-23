@@ -56,7 +56,7 @@ Ext.onReady(function() {
 	 */
 	 new Ext.TabPanel({
         renderTo: 'tabs',
-		width: 700,
+		width: 600,
         activeTab: 0,
 		plain: true,
 		style: 'text-align: left;',
@@ -108,6 +108,16 @@ Ext.onReady(function() {
 	}
 
 
+	/*
+	 * Override Ext.util.Cookies.clear so it nullifies the cookie.
+	 */
+	Ext.util.Cookies.clear = function(name) {
+		if (!this._clearExpireDate)
+			this._clearExpireDate = new Date(0);
+
+		this.set(name, '', this._clearExpireDate);
+	};
+
 
 	/*
 	 * Converter Form
@@ -115,7 +125,7 @@ Ext.onReady(function() {
 	var converterForm = new Ext.FormPanel({
 		renderTo: 'divConverter',
 		fileUpload: true,
-		width: 448,
+		width: 480,
 		frame: true,
 		title: 'Garmin Forerunner TCX file to Nike+ Converter &amp; Uploader',
 		autoHeight: true,
@@ -125,7 +135,7 @@ Ext.onReady(function() {
 
 
 		defaults: {
-			anchor: '95%',
+			anchor: '100%',
 			allowBlank: true,
 			msgTarget: 'side'
 		},
@@ -136,21 +146,33 @@ Ext.onReady(function() {
 			// Garmin TCX File
 			{
 				xtype: 'fieldset',
-				id: 'fileContainer',
+				id: 'fsTcxFile',
 				checkboxToggle: true,
 				title: 'Garmin TCX file',
 				autoHeight: true,
 				collapsed: true,
 
 				listeners: {
-					expand: function() {
-						Ext.getCmp('garminTcxFile').enable();
-						Ext.getCmp('idContanier').collapse();
-						Ext.getCmp('garminActivityId').disable();
+					expand: function(p) {
+						p.items.each(
+							function(i) {
+								i.enable();
+							}
+						, this);
+						
+						Ext.getCmp('fsGarminId').collapse();
 					},
 
-					collapse: function() {
-						Ext.getCmp('idContanier').expand();
+					collapse: function(p) {
+						p.items.each(
+							function(i) {
+								i.disable();
+								i.allowBlank = true;
+								i.validate();
+							}
+						, this);
+						
+						Ext.getCmp('fsGarminId').expand();
 					}
 				},
 
@@ -168,21 +190,33 @@ Ext.onReady(function() {
 			// Garmin Activity ID (nike+ heart-rate)
 			{
 				xtype: 'fieldset',
-				id: 'idContanier',
+				id: 'fsGarminId',
 				checkboxToggle: true,
 				title: 'Garmin Activity ID',
 				autoHeight: true,
 				style: {marginBottom: '32px'},
 
 				listeners: {
-					expand: function() {
-						Ext.getCmp('garminActivityId').enable();
-						Ext.getCmp('fileContainer').collapse();
-						Ext.getCmp('garminTcxFile').disable();
+					expand: function(p) {
+						p.items.each(
+							function(i) {
+								i.enable();
+							}
+						, this);
+						
+						Ext.getCmp('fsTcxFile').collapse();
 					},
 
-					collapse: function() {
-						Ext.getCmp('fileContainer').expand();
+					collapse: function(p) {
+						p.items.each(
+							function(i) {
+								i.disable();
+								i.allowBlank = true;
+								i.validate();
+							}
+						, this);
+
+						Ext.getCmp('fsTcxFile').expand();
 					}
 				},
 
@@ -197,11 +231,12 @@ Ext.onReady(function() {
 
 					{
 						xtype: 'radiogroup',
+						id: 'rbGpsHeartRate',
 						fieldLabel: 'Upload options',
 						columns: [50, 100],
 						items: [
-							{boxLabel: 'GPS', name: 'rbGpsHeartRate', inputValue: 'gps', checked: true},
-							{boxLabel: 'Heart Rate', name: 'rbGpsHeartRate', inputValue: 'heartrate'}
+							{id: "chkGps", boxLabel: 'GPS', name: 'rbGpsHeartRate', inputValue: 'gps', checked: true},
+							{id: "chkHeartrate", boxLabel: 'Heart Rate', name: 'rbGpsHeartRate', inputValue: 'heartrate'}
 						]
 					}
 				]
@@ -215,7 +250,7 @@ Ext.onReady(function() {
 			// Simple Authentication
 			{
 				xtype: 'fieldset',
-				id: 'idAuthSimple',
+				id: 'fsAuthSimple',
 				checkboxToggle: true,
 				title: 'Simple Authentication',
 				autoHeight: true,
@@ -224,20 +259,25 @@ Ext.onReady(function() {
 				},
 
 				listeners: {
-					expand: function() {
-						Ext.getCmp('nikeEmail').enable();
-						Ext.getCmp('nikePassword').enable();
-						Ext.getCmp('idAuthAdvanced').collapse();
-						Ext.getCmp('nikePin').disable();
-						Ext.getCmp('nikeEmpedId').disable();
-						Ext.getCmp('nikePin').allowBlank = true;
-						Ext.getCmp('nikePin').validate();
-						Ext.getCmp('nikeEmpedId').allowBlank = true;
-						Ext.getCmp('nikeEmpedId').validate();
+					expand: function(p) {
+						p.items.each(
+							function(i) {
+								i.enable();
+								i.allowBlank = false;
+							}
+						, this);
+
+						Ext.getCmp('fsAuthAdvanced').collapse();
 					},
 
-					collapse: function() {
-						Ext.getCmp('idAuthAdvanced').expand();
+					collapse: function(p) {
+						p.items.each(
+							function(i) {
+								i.disable();
+								i.allowBlank = true;
+								i.validate();
+							}
+						, this);
 					}
 				},
 				
@@ -264,7 +304,7 @@ Ext.onReady(function() {
 			// Advanced Authentication
 			{
 				xtype: 'fieldset',
-				id: 'idAuthAdvanced',
+				id: 'fsAuthAdvanced',
 				checkboxToggle: true,
 				title: 'Advanced Authentication',
 				autoHeight: true,
@@ -274,20 +314,25 @@ Ext.onReady(function() {
 				},
 				
 				listeners: {
-					expand: function() {
-						Ext.getCmp('nikeEmail').disable();
-						Ext.getCmp('nikePassword').disable();
-						Ext.getCmp('idAuthSimple').collapse();
-						Ext.getCmp('nikePin').enable();
-						Ext.getCmp('nikeEmpedId').enable();
-						Ext.getCmp('nikeEmail').allowBlank = true;
-						Ext.getCmp('nikeEmail').validate();
-						Ext.getCmp('nikePassword').allowBlank = true;
-						Ext.getCmp('nikePassword').validate();
+					expand: function(p) {
+						p.items.each(
+							function(i) {
+								i.enable();
+							}
+						, this);
+
+						Ext.getCmp('nikePin').allowBlank = false;
+						Ext.getCmp('fsAuthSimple').collapse();
 					},
 
-					collapse: function() {
-						Ext.getCmp('idAuthSimple').expand();
+					collapse: function(p) {
+						p.items.each(
+							function(i) {
+								i.disable();
+								i.allowBlank = true;
+								i.validate();
+							}
+						, this);
 					}
 				},
 				
@@ -306,43 +351,118 @@ Ext.onReady(function() {
 						fieldLabel: 'Emped ID'
 					}
 				]
+			},
+
+
+			// Remember settings?
+			{
+				xtype: 'checkbox',
+				id: 'chkSaveCookies',
+				labelStyle: 'width: 120px',
+				fieldLabel: "Remember settings"
 			}
 		],
 
 		buttons: [{
+			id: 'btnSubmit',
 			text: 'Convert &amp; Upload',
 			handler: function() {
 				if (converterForm.getForm().isValid()) {
-
 					// If we are dealing with a TCX file upload then ensure the file extension is tcx.
 					if ((!Ext.getCmp('garminTcxFile').disabled) && (!validateFileExtension(Ext.getCmp('garminTcxFile').getValue()))) {
 						Ext.MessageBox.alert('Garmin TCX File', 'Only tcx files are accepted.');
 						return;
 					}
 
-					var nikePinValue =	converterForm.findById('nikePin').getValue();
+
+					// Simple Convert
+					if ((Ext.getCmp('fsAuthSimple').collapsed) && (Ext.getCmp('fsAuthAdvanced').collapsed)) {
+						// FIX-ME: There will be a nicer way to disable/enable the submit button on a simple xml download.
+						this.setText('Please wait...');
+						this.disable();
+						converterForm.getForm().submit({
+							url: 'tcx2nikeplus/convert'
+						});
+					}
 
 					// Convert & Upload
-					converterForm.getForm().submit({
-						url: 'tcx2nikeplus/convert',
-						params:{clientTimeZoneOffset : (0 - (new Date().getTimezoneOffset()))},
-						timeout: 60,
-						waitMsg: 'Converting &amp; Uploading your workout, please wait...',
-						success: function(converterForm, o){
-							msgSuccess('Success', o.result.data.errorMessage);
-						},
-						failure: function(converterForm, o) {
-							msgFailure('Failure', o.result.data.errorMessage);
-						}
-					});
+					else {
+						converterForm.getForm().submit({
+							url: 'tcx2nikeplus/convert',
+							params:{clientTimeZoneOffset : (0 - (new Date().getTimezoneOffset()))},
+							timeout: 60000,
+							waitMsg: 'Converting &amp; Uploading your workout, please wait...',
+							success: function(converterForm, o) {
+
+								// Save/Clear state
+								// This is hacky but it'll do the job for now.
+								if (Ext.getCmp('chkSaveCookies').checked) {
+									Ext.util.Cookies.set('chkSaveCookies', true);
+
+									if (Ext.getCmp('fsGarminId').collapsed) {
+										Ext.util.Cookies.set('fsGarminIdCollapsed', true);
+										Ext.util.Cookies.clear('rbGpsHeartRate');
+									}
+									else {
+										Ext.util.Cookies.set('fsGarminIdCollapsed', false);
+										Ext.util.Cookies.set('rbGpsHeartRate', Ext.getCmp('rbGpsHeartRate').getValue().id);
+									}
+
+									if (Ext.getCmp('fsAuthAdvanced').collapsed) {
+										Ext.util.Cookies.set('nikeEmail', Ext.getCmp('nikeEmail').getValue());
+										Ext.util.Cookies.clear('nikePin');
+										Ext.util.Cookies.clear('nikeEmpedId');
+									}
+
+									if (Ext.getCmp('fsAuthSimple').collapsed) {
+										Ext.util.Cookies.set('nikePin', Ext.getCmp('nikePin').getValue());
+										Ext.util.Cookies.set('nikeEmpedId', Ext.getCmp('nikeEmpedId').getValue());
+										Ext.util.Cookies.clear('nikeEmail');
+									}
+								}
+								else {
+									Ext.util.Cookies.set('chkSaveCookies', false);
+									Ext.util.Cookies.clear('fsGarminIdCollapsed');
+									Ext.util.Cookies.clear('fsTcxFile');
+									Ext.util.Cookies.clear('rbGpsHeartRate');
+									Ext.util.Cookies.clear('nikePin');
+									Ext.util.Cookies.clear('nikeEmpedId');
+									Ext.util.Cookies.clear('nikeEmail');
+								}
+
+								msgSuccess('Success', o.result.data.errorMessage);
+							},
+							failure: function(converterForm, o) {
+								msgFailure('Failure', o.result.data.errorMessage);
+							}
+						});
+					}
+					
 				}
 			}
 		},
 		{
 			text: 'Reset',
 			handler: function() {
+				Ext.getCmp('btnSubmit').setText('Convert &amp; Upload');
+				Ext.getCmp('btnSubmit').enable();
 				converterForm.getForm().reset();
-				converterForm.findById('fileContainer').expand();
+
+				// Ensure that the fxTcxFile and fsAuthAdvanced elements are disabled.
+				Ext.getCmp('fsTcxFile').items.each(
+					function(i) {
+						i.disable();
+						i.allowBlank = true;
+						i.validate();
+					}
+				, this);
+				Ext.getCmp('fsAuthAdvanced').items.each(
+					function(i) {
+						i.disable();
+						i.allowBlank = true;
+						i.validate();
+					}
+				, this);
 			}
 		}]
 	});
@@ -402,11 +522,32 @@ Ext.onReady(function() {
 	};
 
 	var type = Ext.getUrlParam('type');
-	if ((type === 'garminActivityID') || (type === 'garminActivityID_GPS')) converterForm.findById('idContanier').expand();
+	if ((type === 'garminActivityID') || (type === 'garminActivityID_GPS')) Ext.getCmp('fsGarminId').expand();
 
-	if ((Ext.getUrlParam('pin') != null) || (Ext.getUrlParam('empedID') != null)) converterForm.findById('idAuthAdvanced').expand();
+	Ext.getCmp('nikePin').setValue(Ext.getUrlParam('pin'));
+	Ext.getCmp('nikeEmpedId').setValue(Ext.getUrlParam('empedID'));
+	
 
-	converterForm.findById('nikePin').setValue(Ext.getUrlParam('pin'));
-	converterForm.findById('nikeEmpedId').setValue(Ext.getUrlParam('empedID'));
 
+	/*
+	 * Cookies (these override the default values passed as http params).
+	 */
+	var fsGarminIdCollapsedValue = (Ext.util.Cookies.get('fsGarminIdCollapsed') === 'true');
+	var rbGpsHeartRateValue = Ext.util.Cookies.get('rbGpsHeartRate');
+	var nikePinValue = Ext.util.Cookies.get('nikePin');
+	var nikeEmpedIdValue = Ext.util.Cookies.get('nikeEmpedId');
+	var nikeEmailValue = Ext.util.Cookies.get('nikeEmail');
+	if (Ext.util.Cookies.get('chkSaveCookies') === 'true') {
+		Ext.getCmp('chkSaveCookies').setValue(true);
+		if (fsGarminIdCollapsedValue) Ext.getCmp('fsGarminId').collapse();
+		if (rbGpsHeartRateValue != null) Ext.getCmp(rbGpsHeartRateValue).setValue(true);
+		if (nikePinValue != null ) Ext.getCmp('nikePin').setValue(nikePinValue);
+		if (nikeEmpedIdValue != null ) Ext.getCmp('nikeEmpedId').setValue(nikeEmpedIdValue);
+		if (nikeEmailValue != null ) Ext.getCmp('nikeEmail').setValue(nikeEmailValue);
+	}
+
+
+	// Select the default simple/advanced authentication option.
+	if ((Ext.getCmp('nikePin').getValue().length > 0) || (Ext.getCmp('nikeEmpedId').getValue().length > 0))
+		Ext.getCmp('fsAuthAdvanced').expand();
 });
