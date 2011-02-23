@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.PrintStream;
+import java.io.StringReader;
 import java.io.StringWriter;
 import java.io.Writer;
 import java.net.MalformedURLException;
@@ -28,6 +29,7 @@ import javax.xml.transform.stream.StreamResult;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
+import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
 
 
@@ -199,6 +201,14 @@ public class Util {
 
 	public static Document generateDocument(File file) throws ParserConfigurationException, SAXException, IOException {
 		Document doc = DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(file);
+		if ((doc != null) && (doc.getDocumentElement() != null))
+			doc.getDocumentElement().normalize();
+
+		return doc;
+	}
+
+	public static Document generateDocument(String string) throws ParserConfigurationException, SAXException, IOException {
+		Document doc = DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(new InputSource(new StringReader(string)));
 		if ((doc != null) && (doc.getDocumentElement() != null))
 			doc.getDocumentElement().normalize();
 

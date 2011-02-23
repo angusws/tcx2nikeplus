@@ -25,19 +25,20 @@ import org.apache.http.entity.mime.MultipartEntity;
 import org.apache.http.impl.client.DefaultHttpClient;
 import org.w3c.dom.Document;
 import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
 
 
 public class NikePlus
 {
 
-	private static String URL_GENERATE_PIN = "https://secure-nikerunning.nike.com/nikeplus/v2/services/app/generate_pin.jsp";
-	private static String URL_CHECK_PIN_STATUS = "https://secure-nikerunning.nike.com/nikeplus/v2/services/device/get_pin_status.jsp";
-	private static String URL_DATA_SYNC_NON_GPS = "https://secure-nikerunning.nike.com/nikeplus/v2/services/device/sync.jsp";
-	private static String URL_DATA_SYNC_GPS = "https://secure-nikerunning.nike.com/gps/sync/plus/iphone";
-	private static String URL_DATA_SYNC_COMPLETE = "https://secure-nikerunning.nike.com/nikeplus/v2/services/device/sync_complete.jsp";
+	private static final String URL_GENERATE_PIN = "https://secure-nikerunning.nike.com/nikeplus/v2/services/app/generate_pin.jsp";
+	private static final String URL_CHECK_PIN_STATUS = "https://secure-nikerunning.nike.com/nikeplus/v2/services/device/get_pin_status.jsp";
+	private static final String URL_DATA_SYNC_NON_GPS = "https://secure-nikerunning.nike.com/nikeplus/v2/services/device/sync.jsp";
+	private static final String URL_DATA_SYNC_GPS = "https://secure-nikerunning.nike.com/gps/sync/plus/iphone";
+	private static final String URL_DATA_SYNC_COMPLETE = "https://secure-nikerunning.nike.com/nikeplus/v2/services/device/sync_complete.jsp";
 
-	private static String USER_AGENT = "iTunes/9.0.3 (Macintosh; N; Intel)";
+	private static final String USER_AGENT = "iTunes/9.0.3 (Macintosh; N; Intel)";
 
 	private static final Log log = Log.getInstance();
 
@@ -132,8 +133,47 @@ public class NikePlus
 			}
 
 			//<?xml version="1.0" encoding="UTF-8" standalone="no"?><plusService><status>failure</status><serviceException errorCode="InvalidRunError">snapshot duration greater than run (threshold 30000 ms): 82980</serviceException></plusService>
-			Node nikeServiceException = nikeResponse.getElementsByTagName("serviceException").item(0);
-			throw new RuntimeException(String.format("%s: %s", nikeServiceException.getAttributes().item(0).getNodeValue(), nikeServiceException.getNodeValue()));
+			NodeList nikeServiceExceptionL = nikeResponse.getElementsByTagName("serviceException");
+			if ((nikeServiceExceptionL != null) && (nikeServiceExceptionL.getLength() > 0)) {
+				Node nikeServiceException = nikeServiceExceptionL.item(0);
+				throw new RuntimeException(String.format("%s: %s", nikeServiceException.getAttributes().item(0).getNodeValue(), Util.getSimpleNodeValue(nikeServiceException)));
+			}
+			else {
+				log.out(Util.DocumentToString(nikeResponse));
+
+				String nikeError = Util.getSimpleNodeValue(nikeResponse, "error");
+				log.out(nikeError);
+				if (nikeError.indexOf("<?xml ") == -1)
+					throw new RuntimeException(String.format("Nike+ Error: %s", nikeError));
+
+				else {
+					/*
+					2011-02-19 - Oh dear nikeplus...  What is this xml nonsense you are coming out with?!?  Representing an xml document within an xml node?  Tasty.
+					 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
+					 <response>
+					 <status>failure</status>
+					 <error>
+
+					 <![CDATA[Failed to sync runXml: problem syncing runXML response from device sync service:
+					 <?xml version="1.0" encoding="UTF-8"?>
+					 <plusService>
+					 <status>failure</status>
+					 <serviceException errorCode="InvalidRunError">snapshot pace invalid. dist: 5.0 duration: -4074967</serviceException>
+					 </plusService>]]>
+
+					 </error>
+					 </response>
+					*/
+					// Failed to sync runXml: problem syncing runXML response from device sync service:<?xml version="1.0" encoding="UTF-8"?><plusService><status>failure</status><serviceException errorCode="InvalidRunError">snapshot pace invalid. dist: 5.0 duration: -4074967</serviceException></plusService>
+					nikeError = nikeError.substring(nikeError.indexOf("<?xml"));
+					log.out(nikeError);
+					nikeResponse = Util.generateDocument(nikeError);
+					Node nikeServiceException = nikeResponse.getElementsByTagName("serviceException").item(0);
+
+					//InvalidRunError: snapshot pace invalid. dist: 5.0 duration: -4074967
+					throw new RuntimeException(String.format("%s: %s", nikeServiceException.getAttributes().item(0).getNodeValue(), Util.getSimpleNodeValue(nikeServiceException)));
+				}
+			}
 		}
 		finally {
 			log.out(" - Ending sync...");
