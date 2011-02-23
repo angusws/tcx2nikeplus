@@ -71,9 +71,9 @@ public class ConvertServlet extends HttpServlet
 					if (item.isFormField()) {
 						// Garmin activity id
 						if (haveFieldValue(item, fieldName, "garminActivityId")) garminActivityId = getGarminActivityId(item);
-						
+
 						// GPS/Heartrate radiobutton
-						if (haveFieldValue(item, fieldName, "rbGpsHeartRate")) gpsUpload = item.getString().equals("gps");
+						if ((garminActivityId != null) && (haveFieldValue(item, fieldName, "rbGpsHeartRate"))) gpsUpload = item.getString().equals("gps");
 
 						// Nike email address
 						if (haveFieldValue(item, fieldName, "nikeEmail")) nikeEmail = item.getString();
