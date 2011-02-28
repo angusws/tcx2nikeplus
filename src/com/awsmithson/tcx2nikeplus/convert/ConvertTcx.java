@@ -1142,7 +1142,8 @@ public class ConvertTcx
 
 		protected boolean isRepeatDistance() {
 			//return (_previousTrackpoint != null) && (_distance.equals(_previousTrackpoint.getDistance()));
-			return (_previousTrackpoint != null) && ((_distance.compareTo(_previousTrackpoint.getDistance())) <= 0);
+			//return (_previousTrackpoint != null) && ((_distance.compareTo(_previousTrackpoint.getDistance())) <= 0);
+			return (_previousTrackpoint != null) && (_distance - _previousTrackpoint.getDistance() <= 1);	// Consider this a repeat trackpoint if the difference is less than one metre.
 		}
 
 		protected Long getPreviousDuration() {
