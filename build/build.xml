@@ -40,7 +40,7 @@
 
 
 
-	<target name="all" depends="clean,compile,build,dist,deploy.local"/>
+	<target name="all" depends="clean,compile,build,dist"/>
 
 
 
@@ -53,7 +53,7 @@
 
 
 
-	<target name="compile" if="tomcat.dir">
+	<target name="compile">
 
 		<mkdir dir="${out.dir}"/>
 		<mkdir dir="${classes.dir}"/>
