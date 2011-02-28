@@ -183,7 +183,9 @@
 		<!-- Create the war file -->
 		<war destfile="${dist.dir}/tcx2nikeplus.war" webxml="${src.dir}/metadata/web.xml">
 			<fileset dir="${html.dir}"/>
-			<lib dir="${lib.dir}"/>
+			<lib dir="${lib.dir}">
+				<exclude name="servlet-api.jar"/>
+			</lib>
 			<classes dir="${classes.dir}" includes="**/ConvertGpx.class,**/ConvertTcx.class,**/ConvertTcx$Trackpoint.class,**/ConvertServlet.class,**/HttpClientNaiveSsl*.class,**/Log.class,**/LogFormatter.class,**/SpoofFileBody.class,**/Util.class,**/NikePlus.class"/>
 			<classes dir="${out.dir}" includes = "**/logging.properties"/>
 		</war>
