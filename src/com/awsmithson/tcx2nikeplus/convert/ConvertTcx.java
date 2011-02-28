@@ -960,11 +960,11 @@ public class ConvertTcx
 			// A bit of debugging showed that some of the interpolated distances in these workouts were  less than the
 			// previous distance (impossible).  Hacked this fix so that this will never happen.
 			if (distance < previousDistance) distance = previousDistance;
-			sbDistance.append(String.format(", %.6f", distance));
+			sbDistance.append(String.format(", %.4f", distance));
 			previousDistance = distance;
 
 			// Speed
-			sbSpeed.append(String.format(", %.6f", MILLIS_PER_HOUR/(interpolate(durationToPace, i))));
+			sbSpeed.append(String.format(", %.4f", MILLIS_PER_HOUR/(interpolate(durationToPace, i))));
 
 			// Heart Rate
 			if (_includeHeartRateData) sbHeartRate.append(String.format(", %d", (int)(interpolate(durationToHeartRate, i))));
