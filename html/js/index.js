@@ -19,7 +19,8 @@ Ext.onReady(function() {
 		//msg = msg.concat("<br /><br />The converter code has recently been re-written; if you have old workouts which previously didn't convert with an \"InvalidRunError: null\" error - try them again, they should work now.");
 		
 		// Include the donate button randomly dependent on the date of the month.
-		if (Math.floor(Math.random() * (new Date().getDate()) * 2) == 0)
+		//if (Math.floor(Math.random() * (new Date().getDate()) * 2) == 0)			// 1/(day-of-month*2) likelhood?
+		if (Math.floor(Math.random() * (new Date().getDate())) == 0)
 			msg = msg.concat("<br /><br />If you are a regular user please consider donating." +
 				"<br /><br /><form action=\"https://www.paypal.com/cgi-bin/webscr\" method=\"post\">" +
 				"  <input type=\"hidden\" name=\"cmd\" value=\"_s-xclick\">" +
@@ -56,7 +57,7 @@ Ext.onReady(function() {
 	 */
 	 new Ext.TabPanel({
         renderTo: 'tabs',
-		width: 600,
+		width: 580,
         activeTab: 0,
 		plain: true,
 		style: 'text-align: left;',
@@ -130,7 +131,7 @@ Ext.onReady(function() {
 		title: 'Garmin Forerunner TCX file to Nike+ Converter &amp; Uploader',
 		autoHeight: true,
 		bodyStyle: 'padding: 10px 10px 0 10px;',
-		labelWidth: 100,
+		labelWidth: 116,
 		style: 'text-align: left;',
 
 
@@ -358,7 +359,6 @@ Ext.onReady(function() {
 			{
 				xtype: 'checkbox',
 				id: 'chkSaveCookies',
-				labelStyle: 'width: 120px',
 				fieldLabel: "Remember settings"
 			}
 		],
