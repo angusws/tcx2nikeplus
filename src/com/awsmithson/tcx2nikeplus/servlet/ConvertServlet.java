@@ -31,14 +31,14 @@ public class ConvertServlet extends HttpServlet
 	private static final Log log = Log.getInstance();
 
 
-    /** 
-     * Processes requests for both HTTP <code>GET</code> and <code>POST</code> methods.
-     * @param request servlet request
-     * @param response servlet response
-     * @throws ServletException if a servlet-specific error occurs
-     * @throws IOException if an I/O error occurs
-     */
-    protected void processRequest(HttpServletRequest request, HttpServletResponse response) throws IOException, ServletException {
+	/**
+	 * Processes requests for both HTTP <code>GET</code> and <code>POST</code> methods.
+	 * @param request servlet request
+	 * @param response servlet response
+	 * @throws ServletException if a servlet-specific error occurs
+	 * @throws IOException if an I/O error occurs
+	 */
+	protected void processRequest(HttpServletRequest request, HttpServletResponse response) throws IOException, ServletException {
 		response.setContentType("text/html;charset=UTF-8");
 		PrintWriter out = null;
 		JsonObject jout = null;
@@ -105,13 +105,12 @@ public class ConvertServlet extends HttpServlet
 						}
 					}
 				}
-
 				NikePlus u = new NikePlus();
 
 				// Get the nikePin if we have an email and password.
 				if ((nikePin == null) && ((nikeEmail != null) && (nikePassword != null)))
 					nikePin = u.generatePin(nikeEmail, nikePassword);
-				
+
 				Document garminTcxDocument = null;
 				Document garminGpxDocument = null;
 
@@ -147,11 +146,12 @@ public class ConvertServlet extends HttpServlet
 					String message = "Conversion & Upload Successful.";
 					succeed(out, jout, message);
 				}
-				
+
 			}
 		}
 		catch (Throwable t) {
-			fail(out, jout, t.getMessage(), t);
+			String msg = ((t != null) && (t.getMessage() != null)) ? t.getMessage() : "Unknown error, please contact me and include details of tcx-file/garmin-activity-id.";
+			fail(out, jout, msg, t);
 		}
 		finally {
 			out.close();
@@ -232,8 +232,14 @@ public class ConvertServlet extends HttpServlet
 	
 
 	private void fail(PrintWriter out, JsonObject jout, String errorMessage, Throwable t) throws ServletException {
-		if (t != null)
-			log.out(Level.SEVERE, t, t.getMessage());
+
+		log.out("Failing... Error message: %s", errorMessage);
+
+		// FIX-ME: Tidy this up!
+		if (t != null) {
+			if (t.getMessage() == null) log.out(t);
+			else log.out(Level.SEVERE, t, t.getMessage());
+		}
 
 		jout.addProperty("success", false);
 		exit(out, jout, -1, errorMessage);
