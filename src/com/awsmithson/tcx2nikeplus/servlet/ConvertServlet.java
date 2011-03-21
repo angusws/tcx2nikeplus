@@ -72,8 +72,8 @@ public class ConvertServlet extends HttpServlet
 						// Garmin activity id
 						if (haveFieldValue(item, fieldName, "garminActivityId")) garminActivityId = getGarminActivityId(item);
 
-						// GPS/Heartrate radiobutton
-						if ((garminActivityId != null) && (haveFieldValue(item, fieldName, "rbGpsHeartRate"))) gpsUpload = item.getString().equals("gps");
+						// GPS
+						if ((garminActivityId != null) && (haveFieldValue(item, fieldName, "chkGps"))) gpsUpload = true;
 
 						// Nike email address
 						if (haveFieldValue(item, fieldName, "nikeEmail")) nikeEmail = item.getString();
@@ -134,7 +134,7 @@ public class ConvertServlet extends HttpServlet
 				// Generate the output nike+ workout xml.
 				ConvertTcx cTcx = new ConvertTcx();
 				ConvertGpx cGpx = new ConvertGpx();
-				Document runXml = convertTcxDocument(cTcx, garminTcxDocument, nikeEmpedId, clientTimeZoneOffset, (gpsUpload));
+				Document runXml = convertTcxDocument(cTcx, garminTcxDocument, nikeEmpedId, clientTimeZoneOffset);
 				Document gpxXml = (gpsUpload) ? convertGpxDocument(cGpx, garminGpxDocument) : null;
 
 				// If a nikeplus pin hasn't been supplied then just return the nikeplus xml document.
@@ -146,7 +146,6 @@ public class ConvertServlet extends HttpServlet
 					String message = "Conversion & Upload Successful.";
 					succeed(out, jout, message);
 				}
-
 			}
 		}
 		catch (Throwable t) {
@@ -200,9 +199,9 @@ public class ConvertServlet extends HttpServlet
 		return doc;
 	}
 
-	private Document convertTcxDocument(ConvertTcx c, Document garminTcxDocument, String nikeEmpedId, Integer clientTimeZoneOffset, boolean forceExcludeHeartRateData) throws Throwable {
+	private Document convertTcxDocument(ConvertTcx c, Document garminTcxDocument, String nikeEmpedId, Integer clientTimeZoneOffset) throws Throwable {
 		// Generate the nike+ tcx xml.
-		Document doc = c.generateNikePlusXml(garminTcxDocument, nikeEmpedId, clientTimeZoneOffset, forceExcludeHeartRateData);
+		Document doc = c.generateNikePlusXml(garminTcxDocument, nikeEmpedId, clientTimeZoneOffset);
 		log.out("Generated nike+ run xml, workout start time: %s.", c.getStartTimeHumanReadable());
 		return doc;
 	}

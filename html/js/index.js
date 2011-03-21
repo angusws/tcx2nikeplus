@@ -230,15 +230,12 @@ Ext.onReady(function() {
 						width: 100
 					},
 
+					// Include GPS?
 					{
-						xtype: 'radiogroup',
-						id: 'rbGpsHeartRate',
-						fieldLabel: 'Upload options',
-						columns: [50, 100],
-						items: [
-							{id: "chkGps", boxLabel: 'GPS', name: 'rbGpsHeartRate', inputValue: 'gps', checked: true},
-							{id: "chkHeartrate", boxLabel: 'Heart Rate', name: 'rbGpsHeartRate', inputValue: 'heartrate'}
-						]
+						xtype: 'checkbox',
+						id: 'chkGps',
+						fieldLabel: 'Include GPS',
+						checked: true
 					}
 				]
 			},
@@ -401,11 +398,11 @@ Ext.onReady(function() {
 
 									if (Ext.getCmp('fsGarminId').collapsed) {
 										Ext.util.Cookies.set('fsGarminIdCollapsed', true);
-										Ext.util.Cookies.clear('rbGpsHeartRate');
+										Ext.util.Cookies.clear('chkGps');
 									}
 									else {
 										Ext.util.Cookies.set('fsGarminIdCollapsed', false);
-										Ext.util.Cookies.set('rbGpsHeartRate', Ext.getCmp('rbGpsHeartRate').getValue().id);
+										Ext.util.Cookies.set('chkGps', Ext.getCmp('chkGps').getValue());
 									}
 
 									if (Ext.getCmp('fsAuthAdvanced').collapsed) {
@@ -424,7 +421,7 @@ Ext.onReady(function() {
 									Ext.util.Cookies.set('chkSaveCookies', false);
 									Ext.util.Cookies.clear('fsGarminIdCollapsed');
 									Ext.util.Cookies.clear('fsTcxFile');
-									Ext.util.Cookies.clear('rbGpsHeartRate');
+									Ext.util.Cookies.clear('chkGps');
 									Ext.util.Cookies.clear('nikePin');
 									Ext.util.Cookies.clear('nikeEmpedId');
 									Ext.util.Cookies.clear('nikeEmail');
@@ -533,14 +530,14 @@ Ext.onReady(function() {
 	 * Cookies (these override the default values passed as http params).
 	 */
 	var fsGarminIdCollapsedValue = (Ext.util.Cookies.get('fsGarminIdCollapsed') === 'true');
-	var rbGpsHeartRateValue = Ext.util.Cookies.get('rbGpsHeartRate');
+	var chkGpsValue = Ext.util.Cookies.get('chkGps');
 	var nikePinValue = Ext.util.Cookies.get('nikePin');
 	var nikeEmpedIdValue = Ext.util.Cookies.get('nikeEmpedId');
 	var nikeEmailValue = Ext.util.Cookies.get('nikeEmail');
 	if (Ext.util.Cookies.get('chkSaveCookies') === 'true') {
 		Ext.getCmp('chkSaveCookies').setValue(true);
 		if (fsGarminIdCollapsedValue) Ext.getCmp('fsGarminId').collapse();
-		if (rbGpsHeartRateValue != null) Ext.getCmp(rbGpsHeartRateValue).setValue(true);
+		if (chkGpsValue != null) Ext.getCmp('chkGps').setValue(chkGpsValue);
 		if (nikePinValue != null ) Ext.getCmp('nikePin').setValue(nikePinValue);
 		if (nikeEmpedIdValue != null ) Ext.getCmp('nikeEmpedId').setValue(nikeEmpedIdValue);
 		if (nikeEmailValue != null ) Ext.getCmp('nikeEmail').setValue(nikeEmailValue);
