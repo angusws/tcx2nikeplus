@@ -2,7 +2,6 @@ package com.awsmithson.tcx2nikeplus.convert;
 
 import com.awsmithson.tcx2nikeplus.util.Log;
 import com.awsmithson.tcx2nikeplus.util.Util;
-import flanagan.interpolation.CubicSpline;
 import java.io.File;
 import java.io.IOException;
 import java.net.MalformedURLException;
@@ -17,6 +16,10 @@ import javax.xml.datatype.DatatypeConfigurationException;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
+import org.apache.commons.math.ArgumentOutsideDomainException;
+import org.apache.commons.math.MathException;
+import org.apache.commons.math.analysis.interpolation.SplineInterpolator;
+import org.apache.commons.math.analysis.polynomials.PolynomialSplineFunction;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
@@ -410,15 +413,15 @@ public class ConvertTcx
 	
 
 
-	private void appendWorkoutDetail(Document inDoc, Element sportsDataElement, Element runSummaryElement, ArrayList<Double> onDemandVPDistances) throws DatatypeConfigurationException {
+	private void appendWorkoutDetail(Document inDoc, Element sportsDataElement, Element runSummaryElement, ArrayList<Double> onDemandVPDistances) throws DatatypeConfigurationException, MathException {
 
 		// Generate the workout detail from the garmin Trackpoint data.
 		ArrayList<Trackpoint> trackpoints = new ArrayList<Trackpoint>();
 		ArrayList<Long> pauseResumeTimes = new ArrayList<Long>();
-		generateCubicSplineData(inDoc, trackpoints, pauseResumeTimes);
+		generateSplineData(inDoc, trackpoints, pauseResumeTimes);
 
-		// Generates the following CubicSplines: distanceToDuration, durationToDistance, durationToPace, durationToHeartRate.
-		CubicSpline[] splines = generateCubicSplines(trackpoints);
+		// Generates the following PolynomialSplineFunctions: distanceToDuration, durationToDistance, durationToPace, durationToHeartRate.
+		PolynomialSplineFunction[] splines = generateSplineFunctions(trackpoints);
 		appendSnapShotListAndExtendedData(sportsDataElement, onDemandVPDistances, pauseResumeTimes, splines[0], splines[1], splines[2], splines[3]);
 		
 		// Append heart rate detail to the run summary if required.
@@ -456,7 +459,7 @@ public class ConvertTcx
 
 
 
-	private void generateCubicSplineData(Document inDoc, ArrayList<Trackpoint> trackpointsStore, ArrayList<Long> pauseResumeTimes) throws DatatypeConfigurationException {
+	private void generateSplineData(Document inDoc, ArrayList<Trackpoint> trackpointsStore, ArrayList<Long> pauseResumeTimes) throws DatatypeConfigurationException {
 		
 		// Create a trackpoint based on the very start of the run.
 		Trackpoint previousTp = new Trackpoint(0l, 0d, 0d, null);
@@ -473,7 +476,7 @@ public class ConvertTcx
 
 			log.out(Level.FINE, "Start of lap %d\tDuration: %d -> %d.", (i + 1), lapStartDuration, (lapStartDuration + lapDuration));
 
-			ArrayList<Trackpoint> lapTrackpointStore = generateLapCubicSplineData(lap, pauseResumeTimes, getLastTrackpointFromArrayList(trackpointsStore), lapStartTime, lapStartDuration, lapDuration);
+			ArrayList<Trackpoint> lapTrackpointStore = generateLapSplineData(lap, pauseResumeTimes, getLastTrackpointFromArrayList(trackpointsStore), lapStartTime, lapStartDuration, lapDuration);
 			trackpointsStore.addAll(lapTrackpointStore);
 
 			lapStartDuration += lapDuration;
@@ -520,7 +523,7 @@ public class ConvertTcx
 	}
 
 
-	private ArrayList<Trackpoint> generateLapCubicSplineData(Node lap, ArrayList<Long> pauseResumeTimes, Trackpoint previousTp, long lapStartTime, long lapStartDuration, long lapDuration) throws DatatypeConfigurationException {
+	private ArrayList<Trackpoint> generateLapSplineData(Node lap, ArrayList<Long> pauseResumeTimes, Trackpoint previousTp, long lapStartTime, long lapStartDuration, long lapDuration) throws DatatypeConfigurationException {
 
 		ArrayList<Trackpoint> lapTrackpointStore = new ArrayList<Trackpoint>();
 		// Add the last trackpoint of the previous lap so we can calculate pause/resumes that span across laps.
@@ -595,7 +598,7 @@ public class ConvertTcx
 			lapTrackpointStore.add(new Trackpoint(lapEndDuration, lapEndDistance, previousTp.getHeartRate(), lastTp));
 		
 
-		validateLapCubicSplineData(lap, lapTrackpointStore, pauseResumeTimes, lapEndDuration);
+		validateLapSplineData(lap, lapTrackpointStore, pauseResumeTimes, lapEndDuration);
 		lapTrackpointStore.remove(0);		// Remove the final trackpoint from the previous lap which was added for the purpose of pause/resumes that span across laps.
 
 		long difference = lapTrackpointDurationVsLapEndDuration(lapTrackpointStore, lapEndDuration);
@@ -605,10 +608,10 @@ public class ConvertTcx
 	}
 
 
-	private void validateLapCubicSplineData(Node lap, ArrayList<Trackpoint> lapTrackpointStore, ArrayList<Long> pauseResumeDurations,  long lapEndDuration) {
+	private void validateLapSplineData(Node lap, ArrayList<Trackpoint> lapTrackpointStore, ArrayList<Long> pauseResumeDurations,  long lapEndDuration) {
 
 		// If we only have one trackpoint (the final trackpoint from the previous lap) then we don't need to validate.
-		if (lapTrackpointStore.size() == 1) return;
+		if (lapTrackpointStore.size() <= 2) return;
 
 		Node lapTotalTimeSeconds = Util.getFirstChildByNodeName(lap, "TotalTimeSeconds");
 		if (lapTotalTimeSeconds == null) return;
@@ -812,11 +815,11 @@ public class ConvertTcx
 	
 
 	/**
-	 * Generates the following CubicSplines: distanceToDuration, durationToDistance, durationToPace, durationToHeartRate.
-	 * @param trackpoints The Trackpoint data from which to build the CubicSplines.
-	 * @return A CubicSpline array in represnting the data listed in the description above.
+	 * Generates the following PolynomialSplineFunctions: distanceToDuration, durationToDistance, durationToPace, durationToHeartRate.
+	 * @param trackpoints The Trackpoint data from which to build the PolynomialSplineFunctions.
+	 * @return A PolynomialSplineFunction array in represnting the data listed in the description above.
 	 */
-	private CubicSpline[] generateCubicSplines(ArrayList<Trackpoint> trackpoints) {
+	private PolynomialSplineFunction[] generateSplineFunctions(ArrayList<Trackpoint> trackpoints) throws MathException {
 		int tpsSize = trackpoints.size();
 		double[] durationsArray = new double[tpsSize];
 		double[] distancesArray = new double[tpsSize];
@@ -826,19 +829,25 @@ public class ConvertTcx
 		populateDurationsAndDistancesArrays(trackpoints, durationsArray, distancesArray, pacesArray, heartRatesArray);
 		
 		// Generate cubic splines for distance -> duration, duration -> distance & distance -> pace.
-		// I'd have thought the flanagan classes would have offered some method of inverting the data, but I've not looked into it and this hack will do for now.
-		CubicSpline distanceToDuration = new CubicSpline(distancesArray, durationsArray);
-		CubicSpline durationToDistance = new CubicSpline(durationsArray, distancesArray);
-		CubicSpline durationToPace = new CubicSpline(durationsArray, pacesArray);
+		SplineInterpolator interpolator = new SplineInterpolator();
 
-		// Heartrate cubic spline
-		CubicSpline durationToHeartRate = new CubicSpline(durationsArray, heartRatesArray);
-		
-		return new CubicSpline[] { distanceToDuration, durationToDistance, durationToPace, durationToHeartRate };
+		// Generate and return PolynomialSplineFunctions for:
+		//  1) distance -> duration
+		//  2) duration -> distance
+		//  3) duration -> pace
+		//  4) duration -> heart-rate
+		return new PolynomialSplineFunction[] {
+			interpolator.interpolate(distancesArray, durationsArray),
+			interpolator.interpolate(durationsArray, distancesArray),
+			interpolator.interpolate(durationsArray, pacesArray),
+			interpolator.interpolate(durationsArray, heartRatesArray)
+		};
+
 	}
 
 
-	private void appendSnapShotListAndExtendedData(Element sportsDataElement, ArrayList<Double> onDemandVPDistances, ArrayList<Long> pauseResumeTimes, CubicSpline distanceToDuration, CubicSpline durationToDistance, CubicSpline durationToPace, CubicSpline durationToHeartRate) {
+	private void appendSnapShotListAndExtendedData(Element sportsDataElement, ArrayList<Double> onDemandVPDistances, ArrayList<Long> pauseResumeTimes, 
+			PolynomialSplineFunction distanceToDuration, PolynomialSplineFunction durationToDistance, PolynomialSplineFunction durationToPace, PolynomialSplineFunction durationToHeartRate) throws ArgumentOutsideDomainException {
 		Element snapShotKmListElement = Util.appendElement(sportsDataElement, "snapShotList", null, "snapShotType", "kmSplit");
 		Element snapShotMileListElement = Util.appendElement(sportsDataElement, "snapShotList", null, "snapShotType", "mileSplit");
 		Element snapShotClickListElement = Util.appendElement(sportsDataElement, "snapShotList", null, "snapShotType", "userClick");
@@ -904,12 +913,13 @@ public class ConvertTcx
 	 * @param odvps An array of distances representing all the onDemandVP elements we need to create for this workout.
 	 * @param odvpsIndex We ignore all cells in the odvps array before this index (it's likely onDeamndVP elements for them have already been created).
 	 * @param distanceLimit We stop iterating when we find an odvps cell >= this amount.
-	 * @param distanceToDuration Cubicspline for converting distances to duration.
-	 * @param durationToPace Cubicspline for converting duraiton to pace.
-	 * @param durationToHeartRate Cubicspline for converting duration to heart rate.
+	 * @param distanceToDuration PolynomialSplineFunction for converting distances to duration.
+	 * @param durationToPace PolynomialSplineFunction for converting duraiton to pace.
+	 * @param durationToHeartRate PolynomialSplineFunction for converting duration to heart rate.
 	 * @return Updated odvpsIndex value.
 	 */
-	private int addOnDemandVPClicks(Element snapShotClickListElement, double[] odvps, int odvpsIndex, double distanceLimit, CubicSpline distanceToDuration, CubicSpline durationToPace, CubicSpline durationToHeartRate) {
+	private int addOnDemandVPClicks(Element snapShotClickListElement, double[] odvps, int odvpsIndex, double distanceLimit, 
+			PolynomialSplineFunction distanceToDuration, PolynomialSplineFunction durationToPace, PolynomialSplineFunction durationToHeartRate) throws ArgumentOutsideDomainException {
 		while ((odvpsIndex < odvps.length) && (odvps[odvpsIndex] <= distanceLimit)) {
 			log.out(Level.FINE, "onDemandVP %d\tdistance-since-previous: %f", odvpsIndex + 1, (odvpsIndex == 0) ? odvps[odvpsIndex] : odvps[odvpsIndex] - odvps[odvpsIndex-1]);
 			double odvpDistance = odvps[odvpsIndex++];
@@ -923,7 +933,7 @@ public class ConvertTcx
 	}
 
 
-	// Copy data from the trackpoint ArrayList into the durations & distances arrays in preparation for creating CubicSplines.
+	// Copy data from the trackpoint ArrayList into the durations & distances arrays in preparation for creating PolynomialSplineFunction.
 	private void populateDurationsAndDistancesArrays(ArrayList<Trackpoint> trackpoints, double[] durations, double[] distances, double[] paces, double[] heartRates) {
 		Iterator<Trackpoint> tpsIt = trackpoints.iterator();
 		int i = 0;
@@ -942,8 +952,9 @@ public class ConvertTcx
 	  <extendedData dataType="distance" intervalType="time" intervalUnit="s" intervalValue="10">0.0. 1.1, 2.3, 4.7, etc</extendedData>
 	</extendedDataList>
 	*/
-	private void appendExtendedDataList(Element sportsDataElement, CubicSpline durationToDistance, CubicSpline durationToPace, CubicSpline durationToHeartRate) {
-		int finalReading = (int)(durationToDistance.getXmax());
+	private void appendExtendedDataList(Element sportsDataElement, PolynomialSplineFunction durationToDistance, PolynomialSplineFunction durationToPace, PolynomialSplineFunction durationToHeartRate) throws ArgumentOutsideDomainException {
+		//int finalReading = (int)(durationToDistance.getXmax());
+		final int finalReading = (int)(durationToDistance.getKnots()[durationToDistance.getN() - 1]);
 		double previousDistance = 0;
 		StringBuilder sbDistance = new StringBuilder("0.0");
 		StringBuilder sbSpeed = new StringBuilder("0.0");
@@ -991,11 +1002,18 @@ public class ConvertTcx
 	}
 
 
-	private double interpolate(CubicSpline spline, double x) {
-		if (x < spline.getXmin()) x = spline.getXmin();
-		else if (x > spline.getXmax()) x = spline.getXmax();
-
-		return spline.interpolate(x);
+	private double interpolate(PolynomialSplineFunction spline, double x) throws ArgumentOutsideDomainException {
+		//if (x < spline.getXmin()) x = spline.getXmin();
+		//else if (x > spline.getXmax()) x = spline.getXmax();
+		//return spline.interpolate(x);
+		
+		try {
+			return spline.value(x);
+		}
+		catch (ArgumentOutsideDomainException aode) {
+			double[] knots = spline.getKnots();
+			return spline.value(knots[(x < knots[0]) ? 0 : spline.getN() -1]);
+		}
 	}
 	
 

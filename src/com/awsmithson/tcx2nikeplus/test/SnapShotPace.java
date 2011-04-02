@@ -1,9 +1,11 @@
 package com.awsmithson.tcx2nikeplus.test;
 
-import flanagan.interpolation.CubicSpline;
 import java.io.File;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
+import org.apache.commons.math.ArgumentOutsideDomainException;
+import org.apache.commons.math.analysis.interpolation.SplineInterpolator;
+import org.apache.commons.math.analysis.polynomials.PolynomialSplineFunction;
 import org.w3c.dom.Document;
 import org.w3c.dom.Node;
 
@@ -46,8 +48,10 @@ public class SnapShotPace {
 				distance[i] = Double.parseDouble(splits[i]);
 			}
 
-			CubicSpline distanceToMillis = new CubicSpline(distance, millis);
-			CubicSpline millisToDistance = new CubicSpline(millis, distance);
+			SplineInterpolator interpolator = new SplineInterpolator();
+
+			PolynomialSplineFunction distanceToMillis = interpolator.interpolate(distance, millis);
+			PolynomialSplineFunction millisToDistance = interpolator.interpolate(millis, distance);
 
 
 
@@ -74,7 +78,7 @@ public class SnapShotPace {
 	}
 
 
-	private double getPace(CubicSpline distanceToMillis, CubicSpline millisToDistance, double endKm, double periodMillis) {
+	private double getPace(PolynomialSplineFunction distanceToMillis, PolynomialSplineFunction millisToDistance, double endKm, double periodMillis) throws ArgumentOutsideDomainException {
 
 		/*
 		double periodDistance = 0.08;				// distance in km
@@ -88,9 +92,9 @@ public class SnapShotPace {
 
 
 		//double periodMillis = 60 * 1000;			// duration in milliseconds
-		double endMillis = distanceToMillis.interpolate(endKm);
+		double endMillis = distanceToMillis.value(endKm);
 		double startMillis = endMillis - periodMillis;
-		double startKm = millisToDistance.interpolate(startMillis);
+		double startKm = millisToDistance.value(startMillis);
 		double periodDistance = endKm - startKm;
 		
 		

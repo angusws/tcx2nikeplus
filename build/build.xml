@@ -108,7 +108,7 @@
 		<copy todir="${dist.app.lib.dir}">
 			<fileset dir="${lib.dir}" includes="apache-mime4j-0.6.jar"/>
 			<fileset dir="${lib.dir}" includes="commons-logging-1.1.1.jar"/>
-			<fileset dir="${lib.dir}" includes="flanagan.jar"/>
+			<fileset dir="${lib.dir}" includes="commons-math-2.2.jar"/>
 			<fileset dir="${lib.dir}" includes="httpclient-4.0.2.jar"/>
 			<fileset dir="${lib.dir}" includes="httpcore-4.0.1.jar"/>
 			<fileset dir="${lib.dir}" includes="httpmime-4.0.2.jar"/>
@@ -145,7 +145,7 @@
 
 		<!-- Copy the jars required to the dist/lib directory. -->
 		<copy todir="${dist.test.lib.dir}">
-			<fileset dir="${lib.dir}" includes="flanagan.jar"/>
+			<fileset dir="${lib.dir}" includes="commons-math-2.2.jar"/>
 			<fileset dir="${out.dir}" includes="tcx2nikeplus-test.jar"/>
 		</copy>
 
