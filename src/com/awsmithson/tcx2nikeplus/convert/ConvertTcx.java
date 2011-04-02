@@ -619,68 +619,27 @@ public class ConvertTcx
 		long difference = lapTrackpointDurationVsLapEndDuration(lapTrackpointStore, lapEndDuration);
 		log.out(Level.FINE, "Lap duration difference before validation:\t%d", difference);
 
-		boolean paused = false;
-		long durationPaused = 0;
-		long lengthDecrement = 0;
-
 		Trackpoint previousTp = null;
 
-		// For pause/resmumes
-		// - 1. Get the duration of the pause trackpoint to use for the pause/resume duration.
-		// - 2. Remove the pause trackpoint.  Our cublic splies will work out what the actual distance was up until this point.
-		// - 3. The next trackpoint (or end of lap) will be the resume Trackpoint.
-		// - 4. Use the duration data of this resume Trackpoint to calculate the length we were paused for.
-		// - 5. Deduct the pause-length from all proceeding durations in the lap.
 		Iterator<Trackpoint> tpsIt = lapTrackpointStore.iterator();
 		while (tpsIt.hasNext()) {
 			Trackpoint tp = tpsIt.next();
-			tp.decrementDuration(lengthDecrement);
 
-			// Deal with 3-data pause/resume trackpoints.
-			// ==========================================
-			// If we are not paused already then this is a 'pause' trackpoint:
-			//  - 1. Record the duration.
-			//  - 2. Set paused=true.
-			//  - 3. Remove the trackpoint.
-			//  - 4. Loop again (get the next trackpoint).
-			//
-			// If we are paused then this is a 'resume' trackpoint:
-			//  - 1. Store the pause/resume details, adding the length paused to the lengthDecrement variable.
-			//  - 2. Set paused=false
-			//  - 3. Remove the trackpoint.
-			//  - 4. Loop again (get the next trackpoint).
-			if (tp.getDistance() == null) {
-				if (!paused) durationPaused = tp.getDuration();
-				else lengthDecrement += addPauseResume(pauseResumeDurations, tp, durationPaused);
-				paused = !paused;
-				tpsIt.remove();
-				continue;
-			}
+			// If we don't have a distance value just set it to the previous trackpoint's distance.
+			if (tp.getDistance() == null)
+				tp.setDistance((previousTp != null) ? previousTp.getDistance() : 0);
 
-			// Deal with normal trackpoints.
-			// =============================
-			// If we are paused then this is a 'resume' trackpoint:
-			//  - 1. Store the pause/resume details
-			//  - 2. Add the length paused to the lengthDecrement variable.
-			//  - 3. Decrement the current trackpoint with the amount we were paused for.
-			//  - 4. Set paused = false.
-			if (paused) {
-				long lengthPaused = addPauseResume(pauseResumeDurations, tp, durationPaused);
-				lengthDecrement += lengthPaused;
-				tp.decrementDuration(lengthPaused);
-				paused = false;
-			}
-
+			// Record the previous trackpoint.
 			tp.setPreviousTrackpoint(previousTp);
 			previousTp = tp;
 		}
 
-		// After applying the tcx-detailed pause/resumes we still might have trackpoints whose durations exceed
-		// the lap time.  I think the primary reason for this is that garmin automatically pauses the device if it is
-		// unable to get a satellite waypoint after a certain amount of seconds (seems to be 8 seconds on the 405 with
-		// 2.50 firmware).  To counter this I will basically strip away the slowest-paced (hopefully paused) sections of the
-		// lap until our final trackpoint has a less than or equal to that of the lap duration.
-		difference = lapTrackpointDurationVsLapEndDuration(lapTrackpointStore, lapEndDuration);
+		// As we haven't attempted to remove trackpoints with no distance or create pause/resumes, it is likely we will
+		// still have trackpoints whose durations exceed the lap time.
+		// I think the primary reason for this (in additiont to normal pause/resumes) is that garmin automatically pauses
+		// the device if it is unable to get a satellite waypoint after a certain amount of seconds (seems to be
+		// 8 seconds on the 405 with 2.50 firmware).  To counter this I will basically strip away the slowest-paced
+		// (hopefully paused) sections of the lap until our final trackpoint has a less than or equal to that of the lap duration.
 
 		// We allow up to 999 millis as due to rounding errors the lap-duration can be up to 1 second out.
 		if (difference > 0) {
@@ -695,7 +654,8 @@ public class ConvertTcx
 				while (tpsIt.hasNext()) {
 					Trackpoint tp = tpsIt.next();
 					// If our previous trackpoint is null then this is the first trackpoint so continue to the next trackpoint.
-					if (tp.getPreviousTrackpoint() == null) continue;
+					previousTp = tp.getPreviousTrackpoint();
+					if (previousTp == null) continue;
 
 					long duration = tp.getDuration();
 					long durationPrevious = tp.getPreviousDuration();
