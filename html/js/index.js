@@ -20,7 +20,8 @@ Ext.onReady(function() {
 		
 		// Include the donate button randomly dependent on the date of the month.
 		//if (Math.floor(Math.random() * (new Date().getDate()) * 2) == 0)			// 1/(day-of-month*2) likelhood?
-		if (Math.floor(Math.random() * (new Date().getDate())) == 0)
+		//if (Math.floor(Math.random() * (new Date().getDate())) == 0)
+		if (Math.floor(Math.random() * 10) == 0)
 			msg = msg.concat("<br /><br />If you are a regular user please consider donating." +
 				"<br /><br /><form action=\"https://www.paypal.com/cgi-bin/webscr\" method=\"post\">" +
 				"  <input type=\"hidden\" name=\"cmd\" value=\"_s-xclick\">" +
