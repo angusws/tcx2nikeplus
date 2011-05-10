@@ -395,26 +395,29 @@ Ext.onReady(function() {
 								// Save/Clear state
 								// This is hacky but it'll do the job for now.
 								if (Ext.getCmp('chkSaveCookies').checked) {
-									Ext.util.Cookies.set('chkSaveCookies', true);
+
+									var expiryDate = new Date(new Date().getTime()+(1000*60*60*24*90));		// 90 days
+
+									Ext.util.Cookies.set('chkSaveCookies', true, expiryDate);
 
 									if (Ext.getCmp('fsGarminId').collapsed) {
-										Ext.util.Cookies.set('fsGarminIdCollapsed', true);
+										Ext.util.Cookies.set('fsGarminIdCollapsed', true, expiryDate);
 										Ext.util.Cookies.clear('chkGps');
 									}
 									else {
-										Ext.util.Cookies.set('fsGarminIdCollapsed', false);
-										Ext.util.Cookies.set('chkGps', Ext.getCmp('chkGps').getValue());
+										Ext.util.Cookies.set('fsGarminIdCollapsed', false, expiryDate);
+										Ext.util.Cookies.set('chkGps', Ext.getCmp('chkGps').getValue(), expiryDate);
 									}
 
 									if (Ext.getCmp('fsAuthAdvanced').collapsed) {
-										Ext.util.Cookies.set('nikeEmail', Ext.getCmp('nikeEmail').getValue());
+										Ext.util.Cookies.set('nikeEmail', Ext.getCmp('nikeEmail').getValue(), expiryDate);
 										Ext.util.Cookies.clear('nikePin');
 										Ext.util.Cookies.clear('nikeEmpedId');
 									}
 
 									if (Ext.getCmp('fsAuthSimple').collapsed) {
-										Ext.util.Cookies.set('nikePin', Ext.getCmp('nikePin').getValue());
-										Ext.util.Cookies.set('nikeEmpedId', Ext.getCmp('nikeEmpedId').getValue());
+										Ext.util.Cookies.set('nikePin', Ext.getCmp('nikePin').getValue(), expiryDate);
+										Ext.util.Cookies.set('nikeEmpedId', Ext.getCmp('nikeEmpedId').getValue(), expiryDate);
 										Ext.util.Cookies.clear('nikeEmail');
 									}
 								}
