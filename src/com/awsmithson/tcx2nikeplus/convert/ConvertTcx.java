@@ -563,7 +563,12 @@ public class ConvertTcx
 
 							// If this is the first trackpoint in the lap with a DistanceMeters value then calculate the start/end distance of the lap.
 							if (lapEndDistance == null) lapEndDistance = distance + lapDistance;
-							tp.setDistance(distance);
+
+							// Only add trackpoints where the distance is greater than the most recent distance (other values, such as a load of
+							// 0.00m at the start of a workout indicate no satellites (I think).
+							// We discard the trackpoint here, otherwise it'll be used in the lap validation as a 'slowest pace' trackpoint when it shouldn't be.
+							if (distance > previousTp.getMostRecentDistance())
+								tp.setDistance(distance);
 						}
 
 						// Heart rate bpm
