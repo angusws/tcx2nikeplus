@@ -1,4 +1,4 @@
-package com.awsmithson.tcx2nikeplus.uploader;
+package com.awsmithson.tcx2nikeplus.http;
 
 import static com.awsmithson.tcx2nikeplus.Constants.*;
 import com.awsmithson.tcx2nikeplus.util.Log;
@@ -60,7 +60,7 @@ public class NikePlus
 	public String generatePin(String login, String password) throws IOException, MalformedURLException, ParserConfigurationException, SAXException, UnsupportedEncodingException {
 
 		// Send data
-		URL url = new URL(String.format("%s?%s&%s", URL_GENERATE_PIN, generateParameter("login", login), generateParameter("password", password)));
+		URL url = new URL(String.format("%s?%s&%s", URL_GENERATE_PIN, Util.generateHttpParameter("login", login), Util.generateHttpParameter("password", password)));
 		URLConnection conn = url.openConnection();
 		conn.setRequestProperty("user-agent", USER_AGENT);
 
@@ -189,7 +189,7 @@ public class NikePlus
 	private void checkPinStatus(String pin) throws IOException, MalformedURLException, ParserConfigurationException, SAXException, UnsupportedEncodingException {
 
 		// Send data
-		URL url = new URL(String.format("%s?%s", URL_CHECK_PIN_STATUS, generateParameter("pin", pin)));
+		URL url = new URL(String.format("%s?%s", URL_CHECK_PIN_STATUS, Util.generateHttpParameter("pin", pin)));
 		URLConnection conn = url.openConnection();
 		conn.setRequestProperty("user-agent", USER_AGENT);
 
@@ -255,7 +255,7 @@ public class NikePlus
 
 
 	private Document endSync(final String pin) throws MalformedURLException, IOException, ParserConfigurationException, SAXException {
-		URL url = new URL(String.format("%s?%s", URL_DATA_SYNC_COMPLETE, generateParameter("pin", pin)));
+		URL url = new URL(String.format("%s?%s", URL_DATA_SYNC_COMPLETE, Util.generateHttpParameter("pin", pin)));
 		URLConnection conn = url.openConnection();
 		conn.setRequestProperty("user-agent", USER_AGENT);
 
@@ -274,7 +274,7 @@ public class NikePlus
 				OutputStreamWriter wr = null;
 				try {
 					// Send data
-					URL url = new URL(String.format("%s?%s", URL_DATA_SYNC_COMPLETE, generateParameter("pin", pin)));
+					URL url = new URL(String.format("%s?%s", URL_DATA_SYNC_COMPLETE, Util.generateHttpParameter("pin", pin)));
 					URLConnection conn = url.openConnection();
 					conn.setRequestProperty("user-agent", USER_AGENT);
 				}
@@ -295,11 +295,6 @@ public class NikePlus
 		// Start the end-sync thread - and leave it to run in the background.
 		t.start();
 		*/
-	}
-	
-
-	private String generateParameter(String key, String val) throws UnsupportedEncodingException {
-		return String.format("%s=%s", URLEncoder.encode(key, "UTF-8"), URLEncoder.encode(val, "UTF-8"));
 	}
 
 

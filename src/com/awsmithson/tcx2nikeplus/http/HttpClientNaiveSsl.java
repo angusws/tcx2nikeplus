@@ -1,4 +1,4 @@
-package com.awsmithson.tcx2nikeplus.uploader;
+package com.awsmithson.tcx2nikeplus.http;
 
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;

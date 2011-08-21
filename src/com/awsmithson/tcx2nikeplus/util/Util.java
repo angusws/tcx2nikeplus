@@ -6,11 +6,13 @@ import java.io.IOException;
 import java.io.PrintStream;
 import java.io.StringReader;
 import java.io.StringWriter;
+import java.io.UnsupportedEncodingException;
 import java.io.Writer;
 import java.net.MalformedURLException;
 import java.net.SocketTimeoutException;
 import java.net.URL;
 import java.net.URLConnection;
+import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.logging.Level;
@@ -169,6 +171,10 @@ public class Util {
 		}
 	}
 
+
+	public static String generateHttpParameter(String key, String val) throws UnsupportedEncodingException {
+		return String.format("%s=%s", URLEncoder.encode(key, "UTF-8"), URLEncoder.encode(val, "UTF-8"));
+	}
 
 	public static Document downloadFile(String location) throws MalformedURLException, IOException, ParserConfigurationException, SAXException {
 		return downloadFile(location, null);

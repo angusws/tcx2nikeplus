@@ -1,4 +1,4 @@
-package com.awsmithson.tcx2nikeplus.uploader;
+package com.awsmithson.tcx2nikeplus.http;
 
 import java.io.UnsupportedEncodingException;
 import org.apache.http.entity.mime.content.StringBody;

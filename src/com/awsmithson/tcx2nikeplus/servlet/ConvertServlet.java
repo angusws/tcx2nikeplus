@@ -1,10 +1,10 @@
 package com.awsmithson.tcx2nikeplus.servlet;
 
-import static com.awsmithson.tcx2nikeplus.Constants.*;
 import com.awsmithson.tcx2nikeplus.convert.ConvertGpx;
 import com.awsmithson.tcx2nikeplus.convert.ConvertTcx;
+import com.awsmithson.tcx2nikeplus.http.Garmin;
+import com.awsmithson.tcx2nikeplus.http.NikePlus;
 import com.awsmithson.tcx2nikeplus.util.Util;
-import com.awsmithson.tcx2nikeplus.uploader.NikePlus;
 import com.awsmithson.tcx2nikeplus.util.Log;
 import com.google.gson.JsonObject;
 import java.io.File;
@@ -21,6 +21,7 @@ import org.apache.commons.fileupload.FileItemFactory;
 import org.apache.commons.fileupload.disk.DiskFileItem;
 import org.apache.commons.fileupload.disk.DiskFileItemFactory;
 import org.apache.commons.fileupload.servlet.ServletFileUpload;
+import org.apache.http.client.HttpClient;
 import org.w3c.dom.Document;
 
 
@@ -105,6 +106,7 @@ public class ConvertServlet extends HttpServlet
 						}
 					}
 				}
+				
 				NikePlus u = new NikePlus();
 
 				// Get the nikePin if we have an email and password.
@@ -123,8 +125,13 @@ public class ConvertServlet extends HttpServlet
 				// If we have a garmin activity id then download the garmin tcx file then convert it.
 				else if (garminActivityId != null) {
 					log.out("Received convert-activity-id request, id: %d", garminActivityId);
-					garminTcxDocument = downloadGarminDocument(URL_GARMIN_TCX, garminActivityId);
-					if (gpsUpload) garminGpxDocument = downloadGarminDocument(URL_GARMIN_GPX, garminActivityId);
+					HttpClient client = Garmin.getGarminHttpSession();
+					garminTcxDocument = Garmin.downloadGarminTcx(client, garminActivityId);
+					if (gpsUpload) garminGpxDocument = Garmin.downloadGarminGpx(client, garminActivityId);
+					client.getConnectionManager().shutdown();
+
+					//garminTcxDocument = Garmin.downloadGarminTcx(garminActivityId, null);
+					//if (gpsUpload) garminGpxDocument = Garmin.downloadGarminGpx(garminActivityId, null);
 				}
 
 				// If we didn't find a garmin tcx file or garmin activity id then we can't continue...
@@ -179,24 +186,6 @@ public class ConvertServlet extends HttpServlet
 	private int getGarminActivityId(DiskFileItem input) {
 		String[] split = input.getString().split("/");
 		return Integer.parseInt(split[split.length-1]);
-	}
-
-
-	private Document downloadGarminDocument(String url, int garminActivityId) throws Throwable {
-		url = String.format(url, garminActivityId);
-		Document doc = null;
-		
-		try {
-			doc = Util.downloadFile(url);
-		}
-		catch (Exception e) {
-			throw new Exception("Invalid Garmin Activity ID.  Please ensure your garmin workout is not marked as private.");
-		}
-
-		if (doc == null) throw new Exception("Invalid Garmin Activity ID.  Please ensure your garmin workout is not marked as private.");
-
-		log.out("Successfully downloaded data for garmin activity %d.", garminActivityId);
-		return doc;
 	}
 
 	private Document convertTcxDocument(ConvertTcx c, Document garminTcxDocument, String nikeEmpedId, Integer clientTimeZoneOffset) throws Throwable {

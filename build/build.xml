@@ -78,14 +78,14 @@
 	<target name="build.app" depends="compile">
 		<jar destfile="${out.dir}/tcx2nikeplus.jar"
 			basedir="${classes.dir}"
-			includes="com/awsmithson/tcx2nikeplus/convert/**,com/awsmithson/tcx2nikeplus/uploader/**,com/awsmithson/tcx2nikeplus/util/**"/>
+			includes="com/awsmithson/tcx2nikeplus/convert/**,com/awsmithson/tcx2nikeplus/http/**,com/awsmithson/tcx2nikeplus/util/**,tmp/**"/>
 	</target>
 
 
 	<target name="build.test" depends="compile">
 		<jar destfile="${out.dir}/tcx2nikeplus-test.jar"
 			basedir="${classes.dir}"
-			includes="com/awsmithson/tcx2nikeplus/convert/**,com/awsmithson/tcx2nikeplus/uploader/**,com/awsmithson/tcx2nikeplus/util/**,com/awsmithson/tcx2nikeplus/test/**"/>
+			includes="com/awsmithson/tcx2nikeplus/convert/**,com/awsmithson/tcx2nikeplus/http/**,com/awsmithson/tcx2nikeplus/util/**,com/awsmithson/tcx2nikeplus/test/**"/>
 	</target>
 
 
@@ -124,6 +124,8 @@
 		<exec executable="cp">
 			<arg value="${bin.dir}/convertGpx"/>
 			<arg value="${bin.dir}/convertTcx"/>
+			<arg value="${bin.dir}/garmintest"/>
+			<arg value="${bin.dir}/modifytcx"/>
 			<arg value="${bin.dir}/upload"/>
 			<arg value="${dist.app.bin.dir}"/>
 		</exec>
@@ -186,7 +188,7 @@
 			<lib dir="${lib.dir}">
 				<exclude name="servlet-api.jar"/>
 			</lib>
-			<classes dir="${classes.dir}" includes="**/ConvertGpx.class,**/ConvertTcx.class,**/ConvertTcx$Trackpoint.class,**/ConvertServlet.class,**/HttpClientNaiveSsl*.class,**/Log.class,**/LogFormatter.class,**/SpoofFileBody.class,**/Util.class,**/NikePlus.class"/>
+			<classes dir="${classes.dir}" includes="**/ConvertGpx.class,**/ConvertTcx.class,**/ConvertTcx$Trackpoint.class,**/ConvertServlet.class,**/HttpClientNaiveSsl*.class,**/Log.class,**/LogFormatter.class,**/SpoofFileBody.class,**/Util.class,**/NikePlus.class,**/Garmin.class"/>
 			<classes dir="${out.dir}" includes = "**/logging.properties"/>
 		</war>
 
