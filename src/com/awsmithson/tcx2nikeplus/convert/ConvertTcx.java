@@ -997,6 +997,13 @@ public class ConvertTcx
 		return ((al != null) && (al.size() > placesFromEnd)) ? al.get(al.size() - (placesFromEnd + 1)) : null;
 	}
 
+	public long getTotalDurationMillis() {
+		return _totalDuration;
+	}
+	public double getTotalDistanceMetres() {
+		return _totalDistance;
+	}
+
 
 
 

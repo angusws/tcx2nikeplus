@@ -151,7 +151,7 @@ public class ConvertServlet extends HttpServlet
 				else {
 					u.fullSync(nikePin, runXml, gpxXml);
 					String message = "Conversion & Upload Successful.";
-					succeed(out, jout, message);
+					succeed(out, jout, message, cTcx.getTotalDurationMillis(), cTcx.getTotalDistanceMetres());
 				}
 			}
 		}
@@ -233,7 +233,9 @@ public class ConvertServlet extends HttpServlet
 		exit(out, jout, -1, errorMessage);
 	}
 
-	private void succeed(PrintWriter out, JsonObject jout, String message) throws ServletException {
+	private void succeed(PrintWriter out, JsonObject jout, String message, long workoutDuration, double workoutDistance) throws ServletException {
+		log.out("success duration: %d", workoutDuration);
+		log.out("success distance: %d", Math.round(workoutDistance));
 		jout.addProperty("success", true);
 		exit(out, jout, 0, message);
 	}
