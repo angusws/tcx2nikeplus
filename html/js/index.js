@@ -69,12 +69,12 @@ Ext.onReady(function() {
 
 		items: [
 			{
-				title: 'Instructions',
-				contentEl:'tabInstructions'
-			},
-			{
 				title: 'About',
 				contentEl: 'tabAbout'
+			},
+			{
+				title: 'Instructions',
+				contentEl:'tabInstructions'
 			},
 			{
 				title: 'News',
@@ -129,7 +129,7 @@ Ext.onReady(function() {
 		fileUpload: true,
 		width: 480,
 		frame: true,
-		title: 'Garmin Forerunner TCX file to Nike+ Converter &amp; Uploader',
+		title: 'Garmin Forerunner TCX to Nike+ Converter &amp; Uploader',
 		autoHeight: true,
 		bodyStyle: 'padding: 10px 10px 0 10px;',
 		labelWidth: 116,
