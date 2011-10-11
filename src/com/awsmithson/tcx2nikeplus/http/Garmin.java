@@ -12,6 +12,7 @@ import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.impl.client.DefaultHttpClient;
 import org.apache.http.message.BasicNameValuePair;
+import org.apache.http.util.EntityUtils;
 import org.w3c.dom.Document;
 
 
@@ -42,7 +43,7 @@ public class Garmin
 		// 1 - Initial attempt to view activities, which will set cookies and redirect us to sign-in page.
 		HttpGet get = new HttpGet(URL_GARMIN_ACTIVITIES);
 		HttpResponse response = client.execute(get);
-		response.getEntity().consumeContent();
+		EntityUtils.consume(response.getEntity());
 
 
 		// 2 - Sign-in attempt
@@ -56,7 +57,7 @@ public class Garmin
 		//nameValuePairs.add(new BasicNameValuePair("login:signInButton", "Sign In"));
         post.setEntity(new UrlEncodedFormEntity(nameValuePairs));
 		response = client.execute(post);
-		response.getEntity().consumeContent();
+		EntityUtils.consume(response.getEntity());
 
 		return client;
 	}

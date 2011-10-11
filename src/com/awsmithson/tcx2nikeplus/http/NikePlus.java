@@ -23,6 +23,7 @@ import org.apache.http.client.methods.HttpPost;
 import org.apache.http.entity.mime.HttpMultipartMode;
 import org.apache.http.entity.mime.MultipartEntity;
 import org.apache.http.impl.client.DefaultHttpClient;
+import org.apache.http.util.EntityUtils;
 import org.w3c.dom.Document;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
@@ -248,6 +249,7 @@ public class NikePlus
 		HttpResponse response = client.execute(post);		
 		HttpEntity entity = response.getEntity();
 		Document outDoc = DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(entity.getContent());
+		EntityUtils.consume(entity);
 		outDoc.normalize();
 
 		return outDoc;
