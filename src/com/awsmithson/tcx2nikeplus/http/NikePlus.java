@@ -145,7 +145,7 @@ public class NikePlus
 				String nikeError = Util.getSimpleNodeValue(nikeResponse, "error");
 				log.out(nikeError);
 				if (nikeError.indexOf("<?xml ") == -1)
-					throw new RuntimeException(String.format("Nike+ Error: %s", nikeError));
+					throw new RuntimeException(String.format("Nike+ Error: %s.\nThis is likely to be a problem at Nike+'s end.\nPlease try again later, contact me if the problem persists.", nikeError));
 
 				else {
 					/*
