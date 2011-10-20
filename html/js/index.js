@@ -21,6 +21,7 @@ Ext.onReady(function() {
 		// Include the donate button randomly dependent on the date of the month.
 		//if (Math.floor(Math.random() * (new Date().getDate()) * 2) == 0)			// 1/(day-of-month*2) likelhood?
 		//if (Math.floor(Math.random() * (new Date().getDate())) == 0)
+		/*
 		if (Math.floor(Math.random() * 10) == 0)
 			msg = msg.concat("<br /><br />If you are a regular user please consider donating." +
 				"<br /><br /><form action=\"https://www.paypal.com/cgi-bin/webscr\" method=\"post\">" +
@@ -29,13 +30,22 @@ Ext.onReady(function() {
 				"  <input type=\"image\" src=\"https://www.paypal.com/en_US/GB/i/btn/btn_donateCC_LG.gif\" border=\"0\" name=\"submit\" alt=\"PayPal - The safer, easier way to pay online.\">" +
 				"  <img alt=\"\" border=\"0\" src=\"https://www.paypal.com/en_GB/i/scr/pixel.gif\" width=\"1\" height=\"1\">" +
 				"</form>");
+		*/
+
+		// Show CLIC Sargent donation option.
+		if (Math.floor(Math.random() * 10) == 0)
+			msg = msg.concat("<div style=\"margin-top: 8px;\">" +
+				"<a href=\"http://uk.virginmoneygiving.com/angus.smithson\" target=\"_blank\">" +
+				"<img src=\"http://uk.virginmoneygiving.com/giving/Images/banners/106x139_donate.png\" style=\"float: left; margin: 0px 16px 0px 0px;\" alt=\"Make a donation using Virgin Money Giving\"></a>" +
+				"<div style=\"display: table-cell; vertical-align: middle; height: 139px;\">To raise money for CLIC Sargent (UK childrens cancer charity) I am running the 2012 London marathon and attempting to run 2012 miles in 2012." +
+				"<br /><br />If you are a regular user of tcx2nikeplus please <a href=\"http://uk.virginmoneygiving.com/angus.smithson\" target=\"_blank\">visit my donation page</a> and considering donating, it's a great cause and every little helps.</div>");
+
 
 		Ext.Msg.show({
 			title: title,
 			msg: msg,
-			minWidth: 300,
+			minWidth: 420,
 			modal: true,
-			icon: Ext.Msg.INFO,
 			buttons: Ext.Msg.OK
 		});
 	};
