@@ -102,7 +102,7 @@ public class Util {
 		e.appendChild(doc.createCDATASection(data.toString()));
 	}
 
-	public static String generateStringOutput(Document doc) {
+	public static String documentToString(Document doc) {
 		try {
 			TransformerFactory transformerFactory = TransformerFactory.newInstance();
 			Transformer transformer = transformerFactory.newTransformer();
@@ -134,22 +134,6 @@ public class Util {
 		}
 	}
 	*/
-
-	public static String DocumentToString(Document doc) {
-		try {
-			TransformerFactory factory = TransformerFactory.newInstance();
-			Transformer transformer = factory.newTransformer();
-			DOMSource source = new DOMSource(doc);
-			StringWriter stringWriter = new StringWriter();
-			Result result = new StreamResult(stringWriter);
-			transformer.transform(source, result);
-			return stringWriter.getBuffer().toString();
-		}
-		catch (Exception e) {
-			log.out(e);
-		}
-		return null;
-	}
 
 
 

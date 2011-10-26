@@ -69,7 +69,7 @@ public class NikePlus
 		DocumentBuilder db = DocumentBuilderFactory.newInstance().newDocumentBuilder();
 		Document doc = db.parse(conn.getInputStream());
 		doc.normalize();
-		//log.out(Util.DocumentToString(doc));
+		//log.out(Util.documentToString(doc));
 
 		String pinStatus = Util.getSimpleNodeValue(doc, "status");
 
@@ -140,7 +140,7 @@ public class NikePlus
 				throw new RuntimeException(String.format("%s: %s", nikeServiceException.getAttributes().item(0).getNodeValue(), Util.getSimpleNodeValue(nikeServiceException)));
 			}
 			else {
-				log.out(Util.DocumentToString(nikeResponse));
+				log.out(Util.documentToString(nikeResponse));
 
 				String nikeError = Util.getSimpleNodeValue(nikeResponse, "error");
 				log.out(nikeError);
@@ -181,7 +181,7 @@ public class NikePlus
 			Document nikeResponse = endSync(pin);
 			log.out((Util.getSimpleNodeValue(nikeResponse, "status").equals(NIKE_SUCCESS))
 				? " - End sync successful."
-				: String.format(" - End sync failed: %s", Util.DocumentToString(nikeResponse))
+				: String.format(" - End sync failed: %s", Util.documentToString(nikeResponse))
 			);
 		}
 	}
@@ -198,7 +198,7 @@ public class NikePlus
 		DocumentBuilder db = DocumentBuilderFactory.newInstance().newDocumentBuilder();
 		Document doc = db.parse(conn.getInputStream());
 		doc.normalize();
-		//log.out(Util.DocumentToString(doc));
+		//log.out(Util.documentToString(doc));
 
 		String pinStatus = Util.getSimpleNodeValue(doc, "pinStatus");
 
@@ -208,7 +208,7 @@ public class NikePlus
 	
 	private Document syncDataNonGps(String pin, Document doc) throws MalformedURLException, IOException, ParserConfigurationException, SAXException {
 
-		String data = Util.generateStringOutput(doc);
+		String data = Util.documentToString(doc);
 
 		// Send data
 		URL url = new URL(URL_DATA_SYNC_NON_GPS);
@@ -227,7 +227,7 @@ public class NikePlus
 		wr.close();
 		
 		outDoc.normalize();
-		//log.out("    %s", Util.DocumentToString(outDoc));
+		//log.out("    %s", Util.documentToString(outDoc));
 
 		return outDoc;
 	}
@@ -242,8 +242,8 @@ public class NikePlus
 		post.addHeader("pin", URLEncoder.encode(pin, "UTF-8"));
 		
 		MultipartEntity reqEntity = new MultipartEntity(HttpMultipartMode.STRICT);
-		reqEntity.addPart("runXML", new SpoofFileBody(Util.generateStringOutput(runXml), "runXML.xml"));
-		reqEntity.addPart("gpxXML", new SpoofFileBody(Util.generateStringOutput(gpxXml), "gpxXML.xml"));
+		reqEntity.addPart("runXML", new SpoofFileBody(Util.documentToString(runXml), "runXML.xml"));
+		reqEntity.addPart("gpxXML", new SpoofFileBody(Util.documentToString(gpxXml), "gpxXML.xml"));
 		post.setEntity(reqEntity);
 
 		HttpResponse response = client.execute(post);		
@@ -266,7 +266,7 @@ public class NikePlus
 		DocumentBuilder db = DocumentBuilderFactory.newInstance().newDocumentBuilder();
 		Document doc = db.parse(conn.getInputStream());
 		doc.normalize();
-		//log.out("end sync reply: %s", Util.DocumentToString(doc));
+		//log.out("end sync reply: %s", Util.documentToString(doc));
 
 		return doc;
 

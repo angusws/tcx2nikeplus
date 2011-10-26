@@ -106,7 +106,7 @@ public class ConvertServlet extends HttpServlet
 						}
 					}
 				}
-				
+
 				NikePlus u = new NikePlus();
 
 				// Get the nikePin if we have an email and password.
@@ -204,7 +204,7 @@ public class ConvertServlet extends HttpServlet
 
 	private void returnOutputTcxDocument(ConvertTcx c, Document doc, HttpServletResponse response, PrintWriter out) {
 		String filename = c.generateFileName();
-		String output = Util.generateStringOutput(doc);
+		String output = Util.documentToString(doc);
 		response.setContentType("application/x-download");
 		response.setHeader("Content-Disposition", String.format("attachment; filename=\"%s\"", filename));
 		out.print(output);
