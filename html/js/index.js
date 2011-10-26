@@ -79,12 +79,12 @@ Ext.onReady(function() {
 
 		items: [
 			{
-				title: 'About',
-				contentEl: 'tabAbout'
-			},
-			{
 				title: 'Instructions',
 				contentEl:'tabInstructions'
+			},
+			{
+				title: 'About',
+				contentEl: 'tabAbout'
 			},
 			{
 				title: 'News',
