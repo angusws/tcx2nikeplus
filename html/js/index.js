@@ -7,14 +7,22 @@ Ext.onReady(function() {
 	Ext.Ajax.on('beforerequest', function(connection, options) {
 		pageTracker._trackPageview('/' + options.url);
 	});
-
-
+	
+	
+	/*
+	 * Charity url string
+	 */
+	function getCharityAnchor(text) {
+		return '<a href="http://uk.virginmoneygiving.com/angus.smithson" target="_blank">' + text + '</a>';
+	}
+	
+	
 	/*
 	 * Messages
 	 */
 	var msgSuccess = function(title, msg) {
 
-		msg = "<div style=\"text-align: center; font-weight: bold;\">" + msg + "</div>";
+		msg = '<div style="text-align: center; font-weight: bold;">' + msg + '</div>';
 		
 		//msg = msg.concat("<br /><br />The converter code has recently been re-written; if you have old workouts which previously didn't convert with an \"InvalidRunError: null\" error - try them again, they should work now.");
 		
@@ -34,11 +42,12 @@ Ext.onReady(function() {
 
 		// Show CLIC Sargent donation option.
 		if (Math.floor(Math.random() * 10) == 0)
-			msg = msg.concat("<div style=\"margin-top: 8px;\">" +
-				"<a href=\"http://uk.virginmoneygiving.com/angus.smithson\" target=\"_blank\">" +
-				"<img src=\"http://uk.virginmoneygiving.com/giving/Images/banners/106x139_donate.png\" style=\"float: left; margin: 0px 16px 0px 0px;\" alt=\"Make a donation using Virgin Money Giving\"></a>" +
-				"<div style=\"display: table-cell; vertical-align: middle; height: 139px;\">To raise money for CLIC Sargent (UK childrens cancer charity) I am running the 2012 London marathon and attempting to run 2012 miles in 2012." +
-				"<br /><br />If you are a regular user of tcx2nikeplus please <a href=\"http://uk.virginmoneygiving.com/angus.smithson\" target=\"_blank\">visit my donation page</a> and considering donating, it's a great cause and every little helps.</div>");
+			msg = msg.concat('<div style="margin-top: 8px;">' +
+				getCharityAnchor('<img src="http://uk.virginmoneygiving.com/giving/Images/banners/106x139_donate.png" style="float: left; margin: 0px 16px 0px 0px;" alt="Make a donation using Virgin Money Giving">') +
+				'<div style="display: table-cell; vertical-align: middle; height: 139px;">' + 
+				'To raise money for CLIC Sargent (UK childrens cancer charity) I am running the 2012 London marathon and attempting to run 2012 miles in 2012.<br /><br />' +
+				'If you are a regular user of tcx2nikeplus please ' + getCharityAnchor('visit my donation page') + ' and considering donating, it\'s a great cause and every little helps.' + 
+				'</div>');
 
 
 		Ext.Msg.show({
@@ -367,7 +376,7 @@ Ext.onReady(function() {
 			{
 				xtype: 'checkbox',
 				id: 'chkSaveCookies',
-				fieldLabel: "Remember settings"
+				fieldLabel: 'Remember settings'
 			}
 		],
 
@@ -395,11 +404,24 @@ Ext.onReady(function() {
 
 					// Convert & Upload
 					else {
+						
+						// Show wait message - this will get replaced in the success or failure callback of form.submit().
+						Ext.MessageBox.show({
+							msg: '<div style="text-align: center;"><b>Please wait while your run is uploaded to nike+</b></div><br />' +
+								'In 2012 I am running to raise money for CLIC Sargent (UK childrens cancer charity).  ' + 
+								'If you are a regular user of tcx2nikeplus please consider donating: ' + getCharityAnchor('http://awsmithson.com/charity') + ' (opens in new window).<br /><br />' + 
+								'Many thanks to those who\'ve donated so far.<br />' +
+								'Angus</br >',
+							width: 420,
+							wait: true,
+							waitConfig: { interval: 800 }
+						});
+						
+						// Submit form.
 						converterForm.getForm().submit({
 							url: 'tcx2nikeplus/convert',
 							params:{clientTimeZoneOffset : (0 - (new Date().getTimezoneOffset()))},
 							timeout: 60000,
-							waitMsg: 'Converting &amp; Uploading your workout, please wait...',
 							success: function(converterForm, o) {
 
 								// Save/Clear state
@@ -477,8 +499,6 @@ Ext.onReady(function() {
 			}
 		}]
 	});
-
-
 
 	
 	/*
