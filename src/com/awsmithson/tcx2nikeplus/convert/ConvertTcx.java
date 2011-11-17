@@ -624,8 +624,8 @@ public class ConvertTcx
 		long difference = lapTrackpointDurationVsLapEndDuration(lapTrackpointStore, lapEndDuration);
 		log.out(Level.FINE, "Lap duration difference before validation:\t%d", difference);
 
+		// Ensure all trackpoints have a valid distance.
 		Trackpoint previousTp = null;
-
 		Iterator<Trackpoint> tpsIt = lapTrackpointStore.iterator();
 		while (tpsIt.hasNext()) {
 			Trackpoint tp = tpsIt.next();
@@ -746,10 +746,8 @@ public class ConvertTcx
 	 * @param decrementLength How much to decrement the entries.
 	 */
 	private void decrementPauseResumes(ArrayList<Long> al, long durationMinimum, long decrementLength) {
-		Iterator prdIt = al.iterator();
 		int index = 0;
-		while (prdIt.hasNext()) {
-			Long prDuration = (Long)prdIt.next();
+		for (Long prDuration : al) {
 			if (prDuration > durationMinimum)
 				al.set(index, prDuration - decrementLength);
 			index++;
@@ -768,6 +766,7 @@ public class ConvertTcx
 	 * @param durationPaused The duration of the previous 'pause' trackpoint.
 	 * @return The length of time the device was paused for (so we can update decrement future trackpoint durations).
 	 */
+	/*
 	private long addPauseResume(ArrayList<Long> pauseResumeTimes, Trackpoint resumeTp, long durationPaused) {
 		long durationResume = resumeTp.getDuration();
 		long pauseLength = (durationResume- durationPaused);
@@ -777,6 +776,7 @@ public class ConvertTcx
 		}
 		return pauseLength;
 	}
+	*/
 	
 
 	/**
@@ -826,9 +826,7 @@ public class ConvertTcx
 
 		// Pause/Resume splits.
 		int odvpsIndex = 0;
-		Iterator<Long> prIt = pauseResumeTimes.iterator();
-		while (prIt.hasNext()) {
-			long pauseDuration = prIt.next();
+		for (long pauseDuration : pauseResumeTimes) {
 			double distance = interpolate(durationToDistance, pauseDuration);
 
 			// Add all onDemandVP clicks leading up to this pause/resume.
@@ -900,10 +898,8 @@ public class ConvertTcx
 
 	// Copy data from the trackpoint ArrayList into the durations & distances arrays in preparation for creating PolynomialSplineFunction.
 	private void populateDurationsAndDistancesArrays(ArrayList<Trackpoint> trackpoints, double[] durations, double[] distances, double[] paces, double[] heartRates) {
-		Iterator<Trackpoint> tpsIt = trackpoints.iterator();
 		int i = 0;
-		while (tpsIt.hasNext()) {
-			Trackpoint tp = tpsIt.next();
+		for (Trackpoint tp : trackpoints) {
 			if (_includeHeartRateData) heartRates[i] = tp.getHeartRate();
 			durations[i] = tp.getDuration();
 			distances[i] = tp.getDistance();
@@ -1144,10 +1140,12 @@ public class ConvertTcx
 			return (_previousTrackpoint == null) ? 0 : _previousTrackpoint.getDistance();
 		}
 
+		/*
 		protected void incrementDuration(long millis) {
 			_duration += millis;
 		}
-
+		*/
+		
 		protected void decrementDuration(long millis) {
 			_duration -= millis;
 		}

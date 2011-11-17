@@ -10,7 +10,6 @@ import com.google.gson.JsonObject;
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.util.Iterator;
 import java.util.List;
 import java.util.logging.Level;
 import javax.servlet.ServletException;
@@ -64,9 +63,7 @@ public class ConvertServlet extends HttpServlet
 				Integer clientTimeZoneOffset = null;
 
 				// Iterate through the uploaded items
-				Iterator it = items.iterator();
-				while (it.hasNext()) {
-					DiskFileItem item = (DiskFileItem) it.next();
+				for (DiskFileItem item : items) {
 					String fieldName = item.getFieldName();
 
 					if (item.isFormField()) {
