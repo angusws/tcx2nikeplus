@@ -384,101 +384,15 @@ Ext.onReady(function() {
 			id: 'btnSubmit',
 			text: 'Convert &amp; Upload',
 			handler: function() {
-				if (converterForm.getForm().isValid()) {
-					// If we are dealing with a TCX file upload then ensure the file extension is tcx.
-					if ((!Ext.getCmp('garminTcxFile').disabled) && (!validateFileExtension(Ext.getCmp('garminTcxFile').getValue()))) {
-						Ext.MessageBox.alert('Garmin TCX File', 'Only tcx files are accepted.');
-						return;
-					}
-
-
-					// Simple Convert
-					if ((Ext.getCmp('fsAuthSimple').collapsed) && (Ext.getCmp('fsAuthAdvanced').collapsed)) {
-						// FIX-ME: There will be a nicer way to disable/enable the submit button on a simple xml download.
-						this.setText('Please wait...');
-						this.disable();
-						converterForm.getForm().submit({
-							url: 'tcx2nikeplus/convert'
-						});
-					}
-
-					// Convert & Upload
-					else {
-						
-						// Show wait message - this will get replaced in the success or failure callback of form.submit().
-						Ext.MessageBox.show({
-							msg: '<div style="text-align: center;"><b>Please wait while your run is uploaded to nike+</b></div><br />' +
-								'In 2012 I am running to raise money for CLIC Sargent (UK childrens cancer charity).  ' + 
-								'If you are a regular user of tcx2nikeplus please consider donating: ' + getCharityAnchor('http://awsmithson.com/charity') + ' (opens in new window).<br /><br />' + 
-								'Many thanks to those who\'ve donated so far.<br />' +
-								'Angus</br >',
-							width: 420,
-							wait: true,
-							waitConfig: { interval: 800 }
-						});
-						
-						// Submit form.
-						converterForm.getForm().submit({
-							url: 'tcx2nikeplus/convert',
-							params:{clientTimeZoneOffset : (0 - (new Date().getTimezoneOffset()))},
-							timeout: 60000,
-							success: function(converterForm, o) {
-
-								// Save/Clear state
-								// This is hacky but it'll do the job for now.
-								if (Ext.getCmp('chkSaveCookies').checked) {
-
-									var expiryDate = new Date(new Date().getTime()+(1000*60*60*24*90));		// 90 days
-
-									Ext.util.Cookies.set('chkSaveCookies', true, expiryDate);
-
-									if (Ext.getCmp('fsGarminId').collapsed) {
-										Ext.util.Cookies.set('fsGarminIdCollapsed', true, expiryDate);
-										Ext.util.Cookies.clear('chkGps');
-									}
-									else {
-										Ext.util.Cookies.set('fsGarminIdCollapsed', false, expiryDate);
-										Ext.util.Cookies.set('chkGps', Ext.getCmp('chkGps').getValue(), expiryDate);
-									}
-
-									if (Ext.getCmp('fsAuthAdvanced').collapsed) {
-										Ext.util.Cookies.set('nikeEmail', Ext.getCmp('nikeEmail').getValue(), expiryDate);
-										Ext.util.Cookies.clear('nikePin');
-										Ext.util.Cookies.clear('nikeEmpedId');
-									}
-
-									if (Ext.getCmp('fsAuthSimple').collapsed) {
-										Ext.util.Cookies.set('nikePin', Ext.getCmp('nikePin').getValue(), expiryDate);
-										Ext.util.Cookies.set('nikeEmpedId', Ext.getCmp('nikeEmpedId').getValue(), expiryDate);
-										Ext.util.Cookies.clear('nikeEmail');
-									}
-								}
-								else {
-									Ext.util.Cookies.set('chkSaveCookies', false);
-									Ext.util.Cookies.clear('fsGarminIdCollapsed');
-									Ext.util.Cookies.clear('fsTcxFile');
-									Ext.util.Cookies.clear('chkGps');
-									Ext.util.Cookies.clear('nikePin');
-									Ext.util.Cookies.clear('nikeEmpedId');
-									Ext.util.Cookies.clear('nikeEmail');
-								}
-
-								msgSuccess('Success', o.result.data.errorMessage);
-							},
-							failure: function(converterForm, o) {
-								msgFailure('Failure', o.result.data.errorMessage);
-							}
-						});
-					}
-					
-				}
+				submit();
 			}
 		},
 		{
 			text: 'Reset',
 			handler: function() {
-				Ext.getCmp('btnSubmit').setText('Convert &amp; Upload');
-				Ext.getCmp('btnSubmit').enable();
+				var btnSubmit = Ext.getCmp('btnSubmit');
+				btnSubmit.setText('Convert &amp; Upload');
+				btnSubmit.enable();
 				converterForm.getForm().reset();
 
 				// Ensure that the fxTcxFile and fsAuthAdvanced elements are disabled.
@@ -497,8 +411,110 @@ Ext.onReady(function() {
 					}
 				, this);
 			}
-		}]
+		}],
+		
+		keys: [{ 
+			key: Ext.EventObject.ENTER, fn: function() {
+				submit();
+			} 
+		}],
 	});
+	
+	
+	function submit() {
+		
+		var form = converterForm.getForm();
+		
+		if (form.isValid()) {
+			// If we are dealing with a TCX file upload then ensure the file extension is tcx.
+			var garminTcxFile = Ext.getCmp('garminTcxFile');
+			if ((!garminTcxFile.disabled) && (!validateFileExtension(garminTcxFile.getValue()))) {
+				Ext.MessageBox.alert('Garmin TCX File', 'Only tcx files are accepted.');
+				return;
+			}
+
+
+			// Simple Convert
+			if ((Ext.getCmp('fsAuthSimple').collapsed) && (Ext.getCmp('fsAuthAdvanced').collapsed)) {
+				var btnSubmit = Ext.getCmp('btnSubmit');
+				btnSubmit.setText('Please wait...');
+				btnSubmit.disable();
+				form.submit({
+					url: 'tcx2nikeplus/convert'
+				});
+			}
+
+			// Convert & Upload
+			else {
+				
+				// Show wait message - this will get replaced in the success or failure callback of form.submit().
+				Ext.MessageBox.show({
+					msg: '<div style="text-align: center;"><b>Please wait while your run is uploaded to nike+</b></div><br />' +
+						'In 2012 I am running to raise money for CLIC Sargent (UK childrens cancer charity).  ' + 
+						'If you are a regular user of tcx2nikeplus please consider donating: ' + getCharityAnchor('http://awsmithson.com/charity') + ' (opens in new window).<br /><br />' + 
+						'Many thanks to those who\'ve donated so far,<br />' +
+						'Angus</br >',
+					width: 420,
+					wait: true,
+					waitConfig: { interval: 800 }
+				});
+				
+				// Submit form.
+				form.submit({
+					url: 'tcx2nikeplus/convert',
+					params:{clientTimeZoneOffset : (0 - (new Date().getTimezoneOffset()))},
+					timeout: 60000,
+					success: function(converterForm, o) {
+
+						// Save/Clear state
+						// This is hacky but it'll do the job for now.
+						if (Ext.getCmp('chkSaveCookies').checked) {
+
+							var expiryDate = new Date(new Date().getTime()+(1000*60*60*24*90));		// 90 days
+
+							Ext.util.Cookies.set('chkSaveCookies', true, expiryDate);
+
+							if (Ext.getCmp('fsGarminId').collapsed) {
+								Ext.util.Cookies.set('fsGarminIdCollapsed', true, expiryDate);
+								Ext.util.Cookies.clear('chkGps');
+							}
+							else {
+								Ext.util.Cookies.set('fsGarminIdCollapsed', false, expiryDate);
+								Ext.util.Cookies.set('chkGps', Ext.getCmp('chkGps').getValue(), expiryDate);
+							}
+
+							if (Ext.getCmp('fsAuthAdvanced').collapsed) {
+								Ext.util.Cookies.set('nikeEmail', Ext.getCmp('nikeEmail').getValue(), expiryDate);
+								Ext.util.Cookies.clear('nikePin');
+								Ext.util.Cookies.clear('nikeEmpedId');
+							}
+
+							if (Ext.getCmp('fsAuthSimple').collapsed) {
+								Ext.util.Cookies.set('nikePin', Ext.getCmp('nikePin').getValue(), expiryDate);
+								Ext.util.Cookies.set('nikeEmpedId', Ext.getCmp('nikeEmpedId').getValue(), expiryDate);
+								Ext.util.Cookies.clear('nikeEmail');
+							}
+						}
+						else {
+							Ext.util.Cookies.set('chkSaveCookies', false);
+							Ext.util.Cookies.clear('fsGarminIdCollapsed');
+							Ext.util.Cookies.clear('fsTcxFile');
+							Ext.util.Cookies.clear('chkGps');
+							Ext.util.Cookies.clear('nikePin');
+							Ext.util.Cookies.clear('nikeEmpedId');
+							Ext.util.Cookies.clear('nikeEmail');
+						}
+
+						msgSuccess('Success', o.result.data.errorMessage);
+					},
+					failure: function(converterForm, o) {
+						msgFailure('Failure', o.result.data.errorMessage);
+					}
+				});
+			}
+			
+		}
+	}
 
 	
 	/*
