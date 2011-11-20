@@ -417,7 +417,7 @@ Ext.onReady(function() {
 			key: Ext.EventObject.ENTER, fn: function() {
 				submit();
 			} 
-		}],
+		}]
 	});
 	
 	
