@@ -8,12 +8,19 @@ Ext.onReady(function() {
 		pageTracker._trackPageview('/' + options.url);
 	});
 	
-	
+
 	/*
 	 * Charity url string
 	 */
 	function getCharityAnchor(text) {
-		return '<a href="http://uk.virginmoneygiving.com/angus.smithson" target="_blank">' + text + '</a>';
+		return '<a href="http://www.awsmithson.com/charity" target="_blank">' + text + '</a>';
+	}
+	
+	/*
+	 * Progress url string
+	 */
+	function getProgressAnchor(text) {
+		return '<a href="http://www.awsmithson.com" target="_blank">' + text + '</a>';
 	}
 	
 	
@@ -30,7 +37,7 @@ Ext.onReady(function() {
 		//if (Math.floor(Math.random() * (new Date().getDate()) * 2) == 0)			// 1/(day-of-month*2) likelhood?
 		//if (Math.floor(Math.random() * (new Date().getDate())) == 0)
 		/*
-		if (Math.floor(Math.random() * 10) == 0)
+		if (Math.floor(Math.random() * 8) == 0)
 			msg = msg.concat("<br /><br />If you are a regular user please consider donating." +
 				"<br /><br /><form action=\"https://www.paypal.com/cgi-bin/webscr\" method=\"post\">" +
 				"  <input type=\"hidden\" name=\"cmd\" value=\"_s-xclick\">" +
@@ -41,12 +48,12 @@ Ext.onReady(function() {
 		*/
 
 		// Show CLIC Sargent donation option.
-		if (Math.floor(Math.random() * 10) == 0)
+		if (Math.floor(Math.random() * 8) == 0)
 			msg = msg.concat('<div style="margin-top: 8px;">' +
 				getCharityAnchor('<img src="http://uk.virginmoneygiving.com/giving/Images/banners/106x139_donate.png" style="float: left; margin: 0px 16px 0px 0px;" alt="Make a donation using Virgin Money Giving">') +
 				'<div style="display: table-cell; vertical-align: middle; height: 139px;">' + 
-				'To raise money for CLIC Sargent (UK childrens cancer charity) I am running the 2012 London marathon and attempting to run 2012 miles in 2012.<br /><br />' +
-				'If you are a regular user of tcx2nikeplus please ' + getCharityAnchor('visit my donation page') + ' and considering donating, it\'s a great cause and every little helps.' + 
+				'To raise money for CLIC Sargent (UK childrens cancer charity) I am running the 2012 London marathon and attempting to run ' + getProgressAnchor('2012 miles in 2012') + '.<br /><br />' +
+				'If you are a regular user of tcx2nikeplus please ' + getCharityAnchor('visit my donation page') + ' and consider donating, it\'s a great cause and every little helps.' + 
 				'</div>');
 
 
@@ -259,11 +266,6 @@ Ext.onReady(function() {
 					}
 				]
 			},
-
-
-
-
-
 			
 			// Simple Authentication
 			{
@@ -317,8 +319,7 @@ Ext.onReady(function() {
 					}
 				]
 			},
-
-
+			
 			// Advanced Authentication
 			{
 				xtype: 'fieldset',
@@ -370,8 +371,7 @@ Ext.onReady(function() {
 					}
 				]
 			},
-
-
+			
 			// Remember settings?
 			{
 				xtype: 'checkbox',
@@ -447,13 +447,19 @@ Ext.onReady(function() {
 			// Convert & Upload
 			else {
 				
-				// Show wait message - this will get replaced in the success or failure callback of form.submit().
-				Ext.MessageBox.show({
-					msg: '<div style="text-align: center;"><b>Please wait while your run is uploaded to nike+</b></div><br />' +
-						'In 2012 I am running to raise money for CLIC Sargent (UK childrens cancer charity).  ' + 
+				// Construct wait message text.
+				var msg = '<div style="text-align: center;"><b>Please wait while your run is uploaded to nike+</b></div><br />';
+				
+				if (Math.floor(Math.random() * 8) == 0) {
+					msg = msg.concat('In 2012 I am ' + getProgressAnchor('running 2012 miles') + ' to raise money for CLIC Sargent (UK childrens cancer charity).  ' + 
 						'If you are a regular user of tcx2nikeplus please consider donating: ' + getCharityAnchor('http://awsmithson.com/charity') + ' (opens in new window).<br /><br />' + 
 						'Many thanks to those who\'ve donated so far,<br />' +
-						'Angus</br >',
+						'Angus</br >');
+				}
+				
+				// Show wait message - this will get replaced in the success or failure callback of form.submit().
+				Ext.MessageBox.show({
+					msg: msg,
 					width: 420,
 					wait: true,
 					waitConfig: { interval: 800 }
