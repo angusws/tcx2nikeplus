@@ -29,6 +29,7 @@
 
 	<!-- Directories under dist/test -->
 	<property name="dist.test.dir" location="${dist.dir}/test"/>
+	<property name="dist.test.conf.dir" location="${dist.test.dir}/conf"/>
 	<property name="dist.test.lib.dir" location="${dist.test.dir}/lib"/>
 
 	<!-- Import the bldconf -->
@@ -143,6 +144,7 @@
 
 		<mkdir dir="${dist.test.dir}"/>
 		<mkdir dir="${dist.test.lib.dir}"/>
+		<mkdir dir="${dist.test.conf.dir}"/>
 		<mkdir dir="${dist.test.dir}/bin"/>
 
 		<!-- Copy the jars required to the dist/lib directory. -->
@@ -150,6 +152,14 @@
 			<fileset dir="${lib.dir}" includes="commons-math-2.2.jar"/>
 			<fileset dir="${out.dir}" includes="tcx2nikeplus-test.jar"/>
 		</copy>
+		
+		
+		<!-- Copy the app looging conf to the dist/app/conf directory. -->
+		<copy todir="${dist.test.conf.dir}">
+			<fileset dir="${conf.dir}" includes="logging_app.properties"/>
+			<globmapper from="logging_app.properties" to="logging.properties"/>
+		</copy>
+
 
 		<!-- Copy the bin files to the dist/bin directory. We use exec to preserve file permissions. -->
 		<!--
@@ -160,6 +170,7 @@
 
 		<exec executable="cp">
 			<arg value="${bin.dir}/testsnpace"/>
+			<arg value="${bin.dir}/testmultipleactivities"/>
 			<arg value="${dist.test.dir}/bin/"/>
 		</exec>
 

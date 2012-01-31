@@ -110,20 +110,20 @@ public class ConvertServlet extends HttpServlet
 				if ((nikePin == null) && ((nikeEmail != null) && (nikePassword != null)))
 					nikePin = u.generatePin(nikeEmail, nikePassword);
 
-				Document garminTcxDocument = null;
+				Document[] garminTcxDocuments = null;
 				Document garminGpxDocument = null;
 
 				// If we have a tcx file to convert...
 				if ((garminTcxFile != null) && (garminTcxFile.exists())) {
 					log.out("Received convert-tcx-file request");
-					garminTcxDocument = Util.generateDocument(garminTcxFile);
+					garminTcxDocuments = Util.parseMultipleWorkouts(garminTcxFile);
 				}
 
 				// If we have a garmin activity id then download the garmin tcx file then convert it.
 				else if (garminActivityId != null) {
 					log.out("Received convert-activity-id request, id: %d", garminActivityId);
 					HttpClient client = Garmin.getGarminHttpSession();
-					garminTcxDocument = Garmin.downloadGarminTcx(client, garminActivityId);
+					garminTcxDocuments = new Document[] { Garmin.downloadGarminTcx(client, garminActivityId)};
 					if (gpsUpload) garminGpxDocument = Garmin.downloadGarminGpx(client, garminActivityId);
 					client.getConnectionManager().shutdown();
 
@@ -138,15 +138,15 @@ public class ConvertServlet extends HttpServlet
 				// Generate the output nike+ workout xml.
 				ConvertTcx cTcx = new ConvertTcx();
 				ConvertGpx cGpx = new ConvertGpx();
-				Document runXml = convertTcxDocument(cTcx, garminTcxDocument, nikeEmpedId, clientTimeZoneOffset);
+				Document[] runXml = convertTcxDocuments(cTcx, garminTcxDocuments, nikeEmpedId, clientTimeZoneOffset);
 				Document gpxXml = (gpsUpload) ? convertGpxDocument(cGpx, garminGpxDocument) : null;
 
 				// If a nikeplus pin hasn't been supplied then just return the nikeplus xml document.
-				if (nikePin == null) returnOutputTcxDocument(cTcx, runXml, response, out);
+				if (nikePin == null) returnOutputTcxDocument(cTcx, runXml[0], response, out);
 
 				// If we did have a nikeplus pin then continue with the upload to nikeplus.
 				else {
-					u.fullSync(nikePin, runXml, gpxXml);
+					u.fullSync(nikePin, runXml, ((gpxXml != null) ? new Document[] { gpxXml } : null));
 					String message = "Conversion & Upload Successful.";
 					succeed(out, jout, message, cTcx.getTotalDurationMillis(), cTcx.getTotalDistanceMetres());
 				}
@@ -185,11 +185,15 @@ public class ConvertServlet extends HttpServlet
 		return Integer.parseInt(split[split.length-1]);
 	}
 
-	private Document convertTcxDocument(ConvertTcx c, Document garminTcxDocument, String nikeEmpedId, Integer clientTimeZoneOffset) throws Throwable {
-		// Generate the nike+ tcx xml.
-		Document doc = c.generateNikePlusXml(garminTcxDocument, nikeEmpedId, clientTimeZoneOffset);
-		log.out("Generated nike+ run xml, workout start time: %s.", c.getStartTimeHumanReadable());
-		return doc;
+	private Document[] convertTcxDocuments(ConvertTcx c, Document[] garminTcxDocuments, String nikeEmpedId, Integer clientTimeZoneOffset) throws Throwable {
+		int activitiesCount = garminTcxDocuments.length;
+		log.out("Activities: %d", activitiesCount);
+		Document[] output = new Document[activitiesCount];
+		for (int i = 0; i < activitiesCount; ++i) {
+			output[i] = c.generateNikePlusXml(garminTcxDocuments[i], nikeEmpedId, clientTimeZoneOffset);
+			log.out("Generated nike+ run xml, workout start time: %s.", c.getStartTimeHumanReadable());
+		}
+		return output;
 	}
 
 	private Document convertGpxDocument(ConvertGpx c, Document garminGpxDocument) throws Throwable {

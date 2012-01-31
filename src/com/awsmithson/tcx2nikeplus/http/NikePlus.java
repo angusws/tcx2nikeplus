@@ -97,11 +97,16 @@ public class NikePlus
 		fullSync(pin, db.parse(runXml), ((gpxXml != null) ? db.parse(gpxXml) : null));
 	}
 
+	private void fullSync(String pin, Document runXml, Document gpxXml) throws KeyManagementException, MalformedURLException, NoSuchAlgorithmException, IOException, ParserConfigurationException, SAXException {
+		fullSync(pin, new Document[] { runXml }, ((gpxXml != null) ? new Document[] { gpxXml } : null));
+	}
+
+
 	/**
 	 * Does a full synchronisation cycle (check-pin-status, sync, end-sync) with nike+ for the given pin and xml document(s).
 	 * @param pin Nike+ pin.
-	 * @param runXml Nike+ workout xml.
-	 * @param gpxXml Nike+ gpx xml.
+	 * @param runXml Nike+ workout xml array.
+	 * @param gpxXml Nike+ gpx xml array.
 	 * @throws IOException
 	 * @throws MalformedURLException
 	 * @throws ParserConfigurationException
@@ -109,72 +114,34 @@ public class NikePlus
 	 * @throws NoSuchAlgorithmException
 	 * @throws KeyManagementException
 	 */
-	public void fullSync(String pin, Document runXml, Document gpxXml) throws IOException, MalformedURLException, ParserConfigurationException, SAXException, NoSuchAlgorithmException, KeyManagementException {
+	public void fullSync(String pin, Document[] runXml, Document[] gpxXml) throws IOException, MalformedURLException, ParserConfigurationException, SAXException, NoSuchAlgorithmException, KeyManagementException {
 		
-		boolean haveGpx = (gpxXml != null);
-		runXml.normalizeDocument();
-		if (haveGpx) gpxXml.normalizeDocument();
-
 		log.out("Uploading to Nike+...");
 		
-		try {
+		try {			
 			log.out(" - Checking pin status...");
 			checkPinStatus(pin);
-
+			
 			log.out(" - Syncing data...");
-			Document nikeResponse = (haveGpx)
-				? syncDataGps(pin, runXml, gpxXml)
-				: syncDataNonGps(pin, runXml)
-			;
-
-			//<?xml version="1.0" encoding="UTF-8" standalone="no"?><plusService><status>success</status></plusService>
-			if (Util.getSimpleNodeValue(nikeResponse, "status").equals(NIKE_SUCCESS)) {
-				log.out(" - Sync successful.");
-				return;
+			boolean haveGpx = ((gpxXml != null) && (gpxXml.length == runXml.length));
+			boolean error = false;
+			int activitiesLength = runXml.length;
+			
+			for (int i = 0; i < activitiesLength; ++i) {
+				log.out("   - Syncing: %d", (i+1));
+				
+				// Upload
+				//log.out(Util.documentToString(runXml[i]));
+				Document nikeResponse = (haveGpx) 
+					? syncDataGps(pin, runXml[i], gpxXml[i]) 
+					: syncDataNonGps(pin, runXml[i])
+				;
+				
+				// Validate nike response.
+				error |= isUploadSuccess(nikeResponse);
 			}
-
-			//<?xml version="1.0" encoding="UTF-8" standalone="no"?><plusService><status>failure</status><serviceException errorCode="InvalidRunError">snapshot duration greater than run (threshold 30000 ms): 82980</serviceException></plusService>
-			NodeList nikeServiceExceptionL = nikeResponse.getElementsByTagName("serviceException");
-			if ((nikeServiceExceptionL != null) && (nikeServiceExceptionL.getLength() > 0)) {
-				Node nikeServiceException = nikeServiceExceptionL.item(0);
-				throw new RuntimeException(String.format("%s: %s", nikeServiceException.getAttributes().item(0).getNodeValue(), Util.getSimpleNodeValue(nikeServiceException)));
-			}
-			else {
-				log.out(Util.documentToString(nikeResponse));
-
-				String nikeError = Util.getSimpleNodeValue(nikeResponse, "error");
-				log.out(nikeError);
-				if (nikeError.indexOf("<?xml ") == -1)
-					throw new RuntimeException(String.format("Nike+ Error: %s.\nThis is likely to be a problem at Nike+'s end.\nPlease try again later, contact me if the problem persists.", nikeError));
-
-				else {
-					/*
-					2011-02-19 - Oh dear nikeplus...  What is this xml nonsense you are coming out with?!?  Representing an xml document within an xml node?  Tasty.
-					 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
-					 <response>
-					 <status>failure</status>
-					 <error>
-
-					 <![CDATA[Failed to sync runXml: problem syncing runXML response from device sync service:
-					 <?xml version="1.0" encoding="UTF-8"?>
-					 <plusService>
-					 <status>failure</status>
-					 <serviceException errorCode="InvalidRunError">snapshot pace invalid. dist: 5.0 duration: -4074967</serviceException>
-					 </plusService>]]>
-
-					 </error>
-					 </response>
-					*/
-					// Failed to sync runXml: problem syncing runXML response from device sync service:<?xml version="1.0" encoding="UTF-8"?><plusService><status>failure</status><serviceException errorCode="InvalidRunError">snapshot pace invalid. dist: 5.0 duration: -4074967</serviceException></plusService>
-					nikeError = nikeError.substring(nikeError.indexOf("<?xml"));
-					log.out(nikeError);
-					nikeResponse = Util.generateDocument(nikeError);
-					Node nikeServiceException = nikeResponse.getElementsByTagName("serviceException").item(0);
-
-					//InvalidRunError: snapshot pace invalid. dist: 5.0 duration: -4074967
-					throw new RuntimeException(String.format("%s: %s", nikeServiceException.getAttributes().item(0).getNodeValue(), Util.getSimpleNodeValue(nikeServiceException)));
-				}
-			}
+			
+			if (error) throw new RuntimeException("There was a problem uploading to nike+.  Please try again later, if the problem persists contact me with details of the activity-id or tcx file.");
 		}
 		finally {
 			log.out(" - Ending sync...");
@@ -184,6 +151,11 @@ public class NikePlus
 				: String.format(" - End sync failed: %s", Util.documentToString(nikeResponse))
 			);
 		}
+	}
+	
+	
+	private boolean isUploadSuccess(Document nikeResponse) throws ParserConfigurationException, SAXException, IOException {
+		return (!(Util.getSimpleNodeValue(nikeResponse, "status").equals(NIKE_SUCCESS)));
 	}
 
 
@@ -269,34 +241,6 @@ public class NikePlus
 		//log.out("end sync reply: %s", Util.documentToString(doc));
 
 		return doc;
-
-		/*
-		Thread t = new Thread(new Runnable() {
-			public void run() {
-				OutputStreamWriter wr = null;
-				try {
-					// Send data
-					URL url = new URL(String.format("%s?%s", URL_DATA_SYNC_COMPLETE, Util.generateHttpParameter("pin", pin)));
-					URLConnection conn = url.openConnection();
-					conn.setRequestProperty("user-agent", USER_AGENT);
-				}
-				catch (Throwable t) {
-					log.out(t);
-				}
-				finally {
-					try {
-						if (wr != null) wr.close();
-					}
-					catch (Throwable t) {
-						log.out(t);
-					}
-				}
-			}
-		});
-
-		// Start the end-sync thread - and leave it to run in the background.
-		t.start();
-		*/
 	}
 
 
@@ -314,30 +258,3 @@ public class NikePlus
 		}
 	}
 }
-
-/*
-private void syncDataNonGps(String pin, File file) throws MalformedURLException, IOException, ParserConfigurationException, SAXException {
-	// Load the file, ensuring it is valid xml
-	DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
-	DocumentBuilder db = dbf.newDocumentBuilder();
-	Document doc = db.parse(file);
-	doc.normalize();
-
-	syncDataNonGps(pin, doc);
-}
-
-
-private void syncDataGps(String pin, File runXml, File gpxXml) throws MalformedURLException, IOException, ParserConfigurationException, SAXException, NoSuchAlgorithmException, KeyManagementException {
-	// Load the file, ensuring it is valid xml
-	DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
-	DocumentBuilder db = dbf.newDocumentBuilder();
-
-	Document runXmlDoc = db.parse(runXml);
-	runXmlDoc.normalize();
-
-	Document gpxXmlDoc = db.parse(gpxXml);
-	runXmlDoc.normalize();
-
-	syncDataGps(pin, runXmlDoc, gpxXmlDoc);
-}
-*/

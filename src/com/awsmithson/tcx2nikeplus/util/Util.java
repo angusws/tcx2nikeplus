@@ -31,6 +31,7 @@ import javax.xml.transform.stream.StreamResult;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
 
@@ -203,5 +204,41 @@ public class Util {
 			doc.getDocumentElement().normalize();
 
 		return doc;
+	}
+	
+	
+	
+	private final static String TRAINING_CENTER_DATABASE = "<TrainingCenterDatabase " +
+			"xsi:schemaLocation=\"http://www.garmin.com/xmlschemas/TrainingCenterDatabase/v2 http://www.garmin.com/xmlschemas/TrainingCenterDatabasev2.xsd\" " +
+			"xmlns:ns5=\"http://www.garmin.com/xmlschemas/ActivityGoals/v1\" " +
+			"xmlns:ns3=\"http://www.garmin.com/xmlschemas/ActivityExtension/v2\" " +
+			"xmlns:ns2=\"http://www.garmin.com/xmlschemas/UserProfile/v2\" " +
+			"xmlns=\"http://www.garmin.com/xmlschemas/TrainingCenterDatabase/v2\" " +
+			"xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xmlns:ns4=\"http://www.garmin.com/xmlschemas/ProfileExtension/v1\"></TrainingCenterDatabase>";
+	
+	public static Document[] parseMultipleWorkouts(File inFile) throws ParserConfigurationException, SAXException, IOException {
+		return parseMultipleWorkouts(generateDocument(inFile));
+	}
+		
+	public static Document[] parseMultipleWorkouts(Document doc) throws ParserConfigurationException, SAXException, IOException {
+		NodeList activities = doc.getElementsByTagName("Activity");
+		int activitiesLength = activities.getLength();
+		
+		if (activitiesLength == 1) return new Document[] { doc };
+		else {
+			Document[] docs = new Document[activitiesLength];
+			
+			for (int i = 0; i < activitiesLength; ++i) {
+				Node n = activities.item(i);
+				
+				Document activity = generateDocument(TRAINING_CENTER_DATABASE);
+				Node imported = activity.importNode(n, true);
+				activity.getFirstChild().appendChild(imported);
+				
+				docs[i] = activity;
+			}
+			
+			return docs;
+		}
 	}
 }
