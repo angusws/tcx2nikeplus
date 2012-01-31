@@ -15,7 +15,8 @@ import org.apache.http.impl.client.DefaultHttpClient;
 // "Borrowed" from http://theskeleton.wordpress.com/2010/07/24/avoiding-the-javax-net-ssl-sslpeerunverifiedexception-peer-not-authenticated-with-httpclient/
 public class HttpClientNaiveSsl {
 
-    public static HttpClient wrapClient(HttpClient base) {
+    @SuppressWarnings("deprecation")
+	public static HttpClient wrapClient(HttpClient base) {
         try {
             SSLContext ctx = SSLContext.getInstance("TLS");
             X509TrustManager tm = new X509TrustManager() {
