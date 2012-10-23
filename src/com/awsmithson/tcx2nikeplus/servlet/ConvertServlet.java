@@ -107,8 +107,11 @@ public class ConvertServlet extends HttpServlet
 				NikePlus u = new NikePlus();
 
 				// Get the nikePin if we have an email and password.
-				if ((nikePin == null) && ((nikeEmail != null) && (nikePassword != null)))
+				if ((nikePin == null) && ((nikeEmail != null) && (nikePassword != null))) {
+					log.out("Using Nike+ email/password");
 					nikePin = u.generatePin(nikeEmail, nikePassword);
+				}
+				else log.out("Using Nike+ pin");
 
 				Document[] garminTcxDocuments = null;
 				Document garminGpxDocument = null;
@@ -221,7 +224,6 @@ public class ConvertServlet extends HttpServlet
 	
 
 	private void fail(PrintWriter out, JsonObject jout, String errorMessage, Throwable t) throws ServletException {
-
 		log.out("Failing... Error message: %s", errorMessage);
 
 		// FIX-ME: Tidy this up!
