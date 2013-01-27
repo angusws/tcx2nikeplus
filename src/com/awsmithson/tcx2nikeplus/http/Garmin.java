@@ -1,8 +1,13 @@
 package com.awsmithson.tcx2nikeplus.http;
 
 import com.awsmithson.tcx2nikeplus.util.Log;
+
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Properties;
+
 import javax.xml.parsers.DocumentBuilderFactory;
 import org.apache.http.HttpResponse;
 import org.apache.http.NameValuePair;
@@ -18,7 +23,28 @@ import org.w3c.dom.Document;
 
 public class Garmin
 {
-
+	// TODO: Tidy up exception-handling... java 7?
+	private static Properties garminProperties;
+	static {
+		garminProperties = new Properties();
+		InputStream in = null;
+		try {
+			in = Garmin.class.getResourceAsStream("/garmin.properties");
+			garminProperties.load(in);
+		}
+		catch (IOException ioe) {
+			throw new RuntimeException(ioe);
+		}
+		finally {
+			try {
+				if (in != null) in.close();
+			}
+			catch (IOException ioe) {
+				throw new RuntimeException(ioe);
+			}
+		}
+	}
+	
 	private static final String	URL_GARMIN_ACTIVITIES = "https://connect.garmin.com/activities";
 	private static final String	URL_GARMIN_SIGN_IN = "https://connect.garmin.com/signin";
 	private static final String	URL_GARMIN_TCX = "https://connect.garmin.com/proxy/activity-service-1.0/tcx/activity/%d?full=true";
@@ -30,7 +56,7 @@ public class Garmin
 	}
 
 
-	private static final String GARMIN_ID_ERROR = "Invalid Garmin Activity ID.  Please ensure your garmin workout is not marked as private.";
+	private static final String GARMIN_ID_ERROR = "Invalid Garmin Activity.  Please ensure your garmin workout is not marked as private.";
 
 
 
@@ -45,16 +71,13 @@ public class Garmin
 		HttpResponse response = client.execute(get);
 		EntityUtils.consume(response.getEntity());
 
-
 		// 2 - Sign-in attempt
 		HttpPost post = new HttpPost(URL_GARMIN_SIGN_IN);
         List<NameValuePair> nameValuePairs = new ArrayList<NameValuePair>(4);
         nameValuePairs.add(new BasicNameValuePair("login", "login"));
-        nameValuePairs.add(new BasicNameValuePair("login:loginUsernameField", "tcx2nikeplus"));
-        nameValuePairs.add(new BasicNameValuePair("login:password", "tcx2nikeplus"));
+        nameValuePairs.add(new BasicNameValuePair("login:loginUsernameField", garminProperties.getProperty("GARMIN_USERNAME")));
+        nameValuePairs.add(new BasicNameValuePair("login:password", garminProperties.getProperty("GARMIN_PASSWORD")));
 		nameValuePairs.add(new BasicNameValuePair("javax.faces.ViewState", "j_id1"));
-		//nameValuePairs.add(new BasicNameValuePair("login:rememberMe", "on"));
-		//nameValuePairs.add(new BasicNameValuePair("login:signInButton", "Sign In"));
         post.setEntity(new UrlEncodedFormEntity(nameValuePairs));
 		response = client.execute(post);
 		EntityUtils.consume(response.getEntity());

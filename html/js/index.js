@@ -30,30 +30,14 @@ Ext.onReady(function() {
 	var msgSuccess = function(title, msg) {
 
 		msg = '<div style="text-align: center; font-weight: bold;">' + msg + '</div>';
-		
-		//msg = msg.concat("<br /><br />The converter code has recently been re-written; if you have old workouts which previously didn't convert with an \"InvalidRunError: null\" error - try them again, they should work now.");
-		
-		// Include the donate button randomly dependent on the date of the month.
-		//if (Math.floor(Math.random() * (new Date().getDate()) * 2) == 0)			// 1/(day-of-month*2) likelhood?
-		//if (Math.floor(Math.random() * (new Date().getDate())) == 0)
-		/*
-		if (Math.floor(Math.random() * 8) == 0)
-			msg = msg.concat("<br /><br />If you are a regular user please consider donating." +
-				"<br /><br /><form action=\"https://www.paypal.com/cgi-bin/webscr\" method=\"post\">" +
-				"  <input type=\"hidden\" name=\"cmd\" value=\"_s-xclick\">" +
-				"  <input type=\"hidden\" name=\"encrypted\" value=\"-----BEGIN PKCS7-----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-----END PKCS7-----\">" +
-				"  <input type=\"image\" src=\"https://www.paypal.com/en_US/GB/i/btn/btn_donateCC_LG.gif\" border=\"0\" name=\"submit\" alt=\"PayPal - The safer, easier way to pay online.\">" +
-				"  <img alt=\"\" border=\"0\" src=\"https://www.paypal.com/en_GB/i/scr/pixel.gif\" width=\"1\" height=\"1\">" +
-				"</form>");
-		*/
 
 		// Show CLIC Sargent donation option.
-		if (Math.floor(Math.random() * 8) == 0)
+		if (Math.floor(Math.random() * 3) == 0)
 			msg = msg.concat('<div style="margin-top: 8px;">' +
 				getCharityAnchor('<img src="http://uk.virginmoneygiving.com/giving/Images/banners/106x139_donate.png" style="float: left; margin: 0px 16px 0px 0px;" alt="Make a donation using Virgin Money Giving">') +
 				'<div style="display: table-cell; vertical-align: middle; height: 139px;">' + 
-				'To raise money for CLIC Sargent (UK childrens cancer charity) I am running the 2012 London marathon and attempting to run ' + getProgressAnchor('2012 miles in 2012') + '.<br /><br />' +
-				'If you are a regular user of tcx2nikeplus please ' + getCharityAnchor('visit my donation page') + ' and consider donating, it\'s a great cause and every little helps.' + 
+				'To raise money for CLIC Sargent (UK childrens cancer charity) I ran ' + getProgressAnchor('2012 miles in 2012') + '.<br /><br />' +
+				'If you are a regular user of tcx2nikeplus please ' + getCharityAnchor('visit my donation page') + '.  It\'s a great cause and every little helps.' + 
 				'</div>');
 
 
@@ -113,6 +97,10 @@ Ext.onReady(function() {
 			{
 				title: 'Donate',
 				contentEl: 'tabDonate'
+			},
+			{
+				title: 'FAQ',
+				contentEl: 'tabFAQ'
 			}
 		],
 
@@ -122,9 +110,6 @@ Ext.onReady(function() {
             }
         }
     });
-
-
-
 
 
 	/*
@@ -215,12 +200,12 @@ Ext.onReady(function() {
 				}]
 			},
 
-			// Garmin Activity ID (nike+ heart-rate)
+			// Garmin Activity (nike+ heart-rate)
 			{
 				xtype: 'fieldset',
 				id: 'fsGarminId',
 				checkboxToggle: true,
-				title: 'Garmin Activity ID',
+				title: 'Garmin Activity',
 				autoHeight: true,
 				style: {marginBottom: '32px'},
 
@@ -254,15 +239,7 @@ Ext.onReady(function() {
 						id: 'garminActivityId',
 						hideLabel: true,
 						allowBlank: false,
-						width: 100
-					},
-
-					// Include GPS?
-					{
-						xtype: 'checkbox',
-						id: 'chkGps',
-						fieldLabel: 'Include GPS',
-						checked: true
+						anchor: '100%'
 					}
 				]
 			},
@@ -270,35 +247,11 @@ Ext.onReady(function() {
 			// Simple Authentication
 			{
 				xtype: 'fieldset',
-				id: 'fsAuthSimple',
-				checkboxToggle: true,
-				title: 'Simple Authentication',
+				id: 'fsAuth',
+				title: 'Nike+ Authentication',
 				autoHeight: true,
 				defaults: {
 					anchor: '100%'
-				},
-
-				listeners: {
-					expand: function(p) {
-						p.items.each(
-							function(i) {
-								i.enable();
-								i.allowBlank = false;
-							}
-						, this);
-
-						Ext.getCmp('fsAuthAdvanced').collapse();
-					},
-
-					collapse: function(p) {
-						p.items.each(
-							function(i) {
-								i.disable();
-								i.allowBlank = true;
-								i.validate();
-							}
-						, this);
-					}
 				},
 				
 				items: [
@@ -316,58 +269,6 @@ Ext.onReady(function() {
 						fieldLabel: 'Nike+ Password',
 						id: 'nikePassword',
 						allowBlank: false
-					}
-				]
-			},
-			
-			// Advanced Authentication
-			{
-				xtype: 'fieldset',
-				id: 'fsAuthAdvanced',
-				checkboxToggle: true,
-				title: 'Advanced Authentication',
-				autoHeight: true,
-				collapsed: true,
-				defaults: {
-					anchor: '100%'
-				},
-				
-				listeners: {
-					expand: function(p) {
-						p.items.each(
-							function(i) {
-								i.enable();
-							}
-						, this);
-
-						Ext.getCmp('nikePin').allowBlank = false;
-						Ext.getCmp('fsAuthSimple').collapse();
-					},
-
-					collapse: function(p) {
-						p.items.each(
-							function(i) {
-								i.disable();
-								i.allowBlank = true;
-								i.validate();
-							}
-						, this);
-					}
-				},
-				
-				items: [
-					// Nike+ pin
-					{
-						xtype: 'textfield',
-						id: 'nikePin',
-						fieldLabel: 'Nike+ PIN'
-					},
-
-					// Emped ID
-					{
-						xtype: 'textfield',
-						id: 'nikeEmpedId',
-						fieldLabel: 'Emped ID'
 					}
 				]
 			},
@@ -403,13 +304,6 @@ Ext.onReady(function() {
 						i.validate();
 					}
 				, this);
-				Ext.getCmp('fsAuthAdvanced').items.each(
-					function(i) {
-						i.disable();
-						i.allowBlank = true;
-						i.validate();
-					}
-				, this);
 			}
 		}],
 		
@@ -433,92 +327,61 @@ Ext.onReady(function() {
 				return;
 			}
 
-
-			// Simple Convert
-			if ((Ext.getCmp('fsAuthSimple').collapsed) && (Ext.getCmp('fsAuthAdvanced').collapsed)) {
-				var btnSubmit = Ext.getCmp('btnSubmit');
-				btnSubmit.setText('Please wait...');
-				btnSubmit.disable();
-				form.submit({
-					url: 'tcx2nikeplus/convert'
-				});
-			}
-
 			// Convert & Upload
-			else {
-				
-				// Construct wait message text.
-				var msg = '<div style="text-align: center;"><b>Please wait while your run is uploaded to nike+</b></div><br />';
-				
-				if (Math.floor(Math.random() * 8) == 0) {
-					msg = msg.concat('In 2012 I am ' + getProgressAnchor('running 2012 miles') + ' to raise money for CLIC Sargent (UK childrens cancer charity).  ' + 
-						'If you are a regular user of tcx2nikeplus please consider donating: ' + getCharityAnchor('http://awsmithson.com/charity') + ' (opens in new window).<br /><br />' + 
-						'Many thanks to those who\'ve donated so far,<br />' +
-						'Angus</br >');
-				}
-				
-				// Show wait message - this will get replaced in the success or failure callback of form.submit().
-				Ext.MessageBox.show({
-					msg: msg,
-					width: 420,
-					wait: true,
-					waitConfig: { interval: 800 }
-				});
-				
-				// Submit form.
-				form.submit({
-					url: 'tcx2nikeplus/convert',
-					params:{clientTimeZoneOffset : (0 - (new Date().getTimezoneOffset()))},
-					timeout: 60000,
-					success: function(converterForm, o) {
-
-						// Save/Clear state
-						// This is hacky but it'll do the job for now.
-						if (Ext.getCmp('chkSaveCookies').checked) {
-
-							var expiryDate = new Date(new Date().getTime()+(1000*60*60*24*90));		// 90 days
-
-							Ext.util.Cookies.set('chkSaveCookies', true, expiryDate);
-
-							if (Ext.getCmp('fsGarminId').collapsed) {
-								Ext.util.Cookies.set('fsGarminIdCollapsed', true, expiryDate);
-								Ext.util.Cookies.clear('chkGps');
-							}
-							else {
-								Ext.util.Cookies.set('fsGarminIdCollapsed', false, expiryDate);
-								Ext.util.Cookies.set('chkGps', Ext.getCmp('chkGps').getValue(), expiryDate);
-							}
-
-							if (Ext.getCmp('fsAuthAdvanced').collapsed) {
-								Ext.util.Cookies.set('nikeEmail', Ext.getCmp('nikeEmail').getValue(), expiryDate);
-								Ext.util.Cookies.clear('nikePin');
-								Ext.util.Cookies.clear('nikeEmpedId');
-							}
-
-							if (Ext.getCmp('fsAuthSimple').collapsed) {
-								Ext.util.Cookies.set('nikePin', Ext.getCmp('nikePin').getValue(), expiryDate);
-								Ext.util.Cookies.set('nikeEmpedId', Ext.getCmp('nikeEmpedId').getValue(), expiryDate);
-								Ext.util.Cookies.clear('nikeEmail');
-							}
-						}
-						else {
-							Ext.util.Cookies.set('chkSaveCookies', false);
-							Ext.util.Cookies.clear('fsGarminIdCollapsed');
-							Ext.util.Cookies.clear('fsTcxFile');
-							Ext.util.Cookies.clear('chkGps');
-							Ext.util.Cookies.clear('nikePin');
-							Ext.util.Cookies.clear('nikeEmpedId');
-							Ext.util.Cookies.clear('nikeEmail');
-						}
-
-						msgSuccess('Success', o.result.data.errorMessage);
-					},
-					failure: function(converterForm, o) {
-						msgFailure('Failure', o.result.data.errorMessage);
-					}
-				});
+			// Construct wait message text.
+			var msg = '<div style="text-align: center;"><b>Please wait while your run is uploaded to nike+</b></div><br />';
+			
+			if (Math.floor(Math.random() * 3) == 0) {
+				msg = msg.concat('In 2012 I ' + getProgressAnchor('ran 2012 miles') + ' to raise money for CLIC Sargent (UK childrens cancer charity).  ' + 
+					'If you are a regular user of tcx2nikeplus please consider donating: ' + getCharityAnchor('http://awsmithson.com/charity') + ' (opens in new window).<br /><br />' + 
+					'Many thanks to those who\'ve donated so far,<br />' +
+					'Angus</br >');
 			}
 			
+			// Show wait message - this will get replaced in the success or failure callback of form.submit().
+			Ext.MessageBox.show({
+				msg: msg,
+				width: 420,
+				wait: true,
+				waitConfig: { interval: 800 }
+			});
+			
+			// Submit form.
+			form.submit({
+				url: 'tcx2nikeplus/convert',
+				params:{clientTimeZoneOffset : (0 - (new Date().getTimezoneOffset()))},
+				timeout: 60000,
+				success: function(converterForm, o) {
+
+					// Save/Clear state
+					// This is hacky but it'll do the job for now.
+					if (Ext.getCmp('chkSaveCookies').checked) {
+
+						var expiryDate = new Date(new Date().getTime()+(1000*60*60*24*90));		// 90 days
+
+						Ext.util.Cookies.set('chkSaveCookies', true, expiryDate);
+
+						if (Ext.getCmp('fsGarminId').collapsed) {
+							Ext.util.Cookies.set('fsGarminIdCollapsed', true, expiryDate);
+						}
+						else {
+							Ext.util.Cookies.set('fsGarminIdCollapsed', false, expiryDate);
+						}
+						Ext.util.Cookies.set('nikeEmail', Ext.getCmp('nikeEmail').getValue(), expiryDate);
+					}
+					else {
+						Ext.util.Cookies.set('chkSaveCookies', false);
+						Ext.util.Cookies.clear('fsGarminIdCollapsed');
+						Ext.util.Cookies.clear('fsTcxFile');
+						Ext.util.Cookies.clear('nikeEmail');
+					}
+
+					msgSuccess('Success', o.result.data.errorMessage);
+				},
+				failure: function(converterForm, o) {
+					msgFailure('Failure', o.result.data.errorMessage);
+				}
+			});			
 		}
 	}
 
@@ -534,8 +397,8 @@ Ext.onReady(function() {
 
 	new Ext.ToolTip({
 		target: 'garminActivityId',
-		title: 'Garmin Connect Activity ID',
-		html: 'For the workout http://connect.garmin.com/activity/21742933 the activity ID is 21742933.'
+		title: 'Garmin Connect Activity',
+		html: 'For example: http://connect.garmin.com/activity/21742933'
 	});
 
 	new Ext.ToolTip({
@@ -550,21 +413,6 @@ Ext.onReady(function() {
 		html: 'The password you use to log into http://www.nikeplus.com'
 	});
 
-	new Ext.ToolTip({
-		target: 'nikePin',
-		title: 'Nike+ PIN',
-		html: 'Get your nike+ pin at<br />https://secure-nikerunning.nike.com/nikeplus/v2/services/app/generate_pin.jsp?login=LOGIN&password=PASSWORD'
-	});
-
-	new Ext.ToolTip({
-		target: 'nikeEmpedId',
-		title: 'Emped ID',
-		html: 'Not required, although you may want to include it.'
-	});
-
-
-
-
 
 	/*
 	 * Default values
@@ -577,30 +425,15 @@ Ext.onReady(function() {
 	var type = Ext.getUrlParam('type');
 	if ((type === 'garminActivityID') || (type === 'garminActivityID_GPS')) Ext.getCmp('fsGarminId').expand();
 
-	Ext.getCmp('nikePin').setValue(Ext.getUrlParam('pin'));
-	Ext.getCmp('nikeEmpedId').setValue(Ext.getUrlParam('empedID'));
-	
-
 
 	/*
 	 * Cookies (these override the default values passed as http params).
 	 */
 	var fsGarminIdCollapsedValue = (Ext.util.Cookies.get('fsGarminIdCollapsed') === 'true');
-	var chkGpsValue = Ext.util.Cookies.get('chkGps');
-	var nikePinValue = Ext.util.Cookies.get('nikePin');
-	var nikeEmpedIdValue = Ext.util.Cookies.get('nikeEmpedId');
 	var nikeEmailValue = Ext.util.Cookies.get('nikeEmail');
 	if (Ext.util.Cookies.get('chkSaveCookies') === 'true') {
 		Ext.getCmp('chkSaveCookies').setValue(true);
 		if (fsGarminIdCollapsedValue) Ext.getCmp('fsGarminId').collapse();
-		if (chkGpsValue != null) Ext.getCmp('chkGps').setValue(chkGpsValue);
-		if (nikePinValue != null ) Ext.getCmp('nikePin').setValue(nikePinValue);
-		if (nikeEmpedIdValue != null ) Ext.getCmp('nikeEmpedId').setValue(nikeEmpedIdValue);
 		if (nikeEmailValue != null ) Ext.getCmp('nikeEmail').setValue(nikeEmailValue);
 	}
-
-
-	// Select the default simple/advanced authentication option.
-	if ((Ext.getCmp('nikePin').getValue().length > 0) || (Ext.getCmp('nikeEmpedId').getValue().length > 0))
-		Ext.getCmp('fsAuthAdvanced').expand();
 });

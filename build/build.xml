@@ -32,9 +32,8 @@
 	<property name="dist.test.conf.dir" location="${dist.test.dir}/conf"/>
 	<property name="dist.test.lib.dir" location="${dist.test.dir}/lib"/>
 
-	<!-- Import the bldconf -->
-	<property name="bldconf.dir" location="${etc.dir}/bldconf"/>
-	<property file="${bldconf.dir}/tcx2nikeplus.properties"/>
+	<!-- Import the conf -->
+	<property file="${etc.dir}/build.properties"/>
 
 	<!-- Tomcat webapps directory -->
 	<property name="tomcat.webapps.dir" location="${tomcat.dir}/webapps"/>
@@ -69,6 +68,7 @@
 		</path>
 
 		<javac destdir="${classes.dir}"
+			includeantruntime="false"
 			debug="yes"
 			classpathref="compile.classpath">
 			<src path="${src.dir}"/>
@@ -77,9 +77,10 @@
 
 
 	<target name="build.app" depends="compile">
-		<jar destfile="${out.dir}/tcx2nikeplus.jar"
-			basedir="${classes.dir}"
-			includes="com/awsmithson/tcx2nikeplus/convert/**,com/awsmithson/tcx2nikeplus/http/**,com/awsmithson/tcx2nikeplus/util/**,tmp/**"/>
+		<jar destfile="${out.dir}/tcx2nikeplus.jar">
+			<fileset dir="${classes.dir}" includes="com/awsmithson/tcx2nikeplus/cli/**,com/awsmithson/tcx2nikeplus/convert/**,com/awsmithson/tcx2nikeplus/http/**,com/awsmithson/tcx2nikeplus/util/**"/>
+			<fileset dir="${etc.dir}" includes="garmin.properties,nikeplus.properties"/>
+		</jar>
 	</target>
 
 
@@ -110,6 +111,7 @@
 			<fileset dir="${lib.dir}" includes="apache-mime4j-0.6.jar"/>
 			<fileset dir="${lib.dir}" includes="commons-logging-1.1.1.jar"/>
 			<fileset dir="${lib.dir}" includes="commons-math-2.2.jar"/>
+			<fileset dir="${lib.dir}" includes="gson-2.2.2.jar"/>
 			<fileset dir="${lib.dir}" includes="httpclient-4.1.2.jar"/>
 			<fileset dir="${lib.dir}" includes="httpcore-4.1.2.jar"/>
 			<fileset dir="${lib.dir}" includes="httpmime-4.1.2.jar"/>
@@ -122,6 +124,7 @@
 			<globmapper from="logging_app.properties" to="logging.properties"/>
 		</copy>
 
+		<!-- Copy bin executables. -->
 		<exec executable="cp">
 			<arg value="${bin.dir}/convertGpx"/>
 			<arg value="${bin.dir}/convertTcx"/>
@@ -184,11 +187,15 @@
 
 
 	<target name="dist.war" depends="compile">
-		
-		<!-- Copy the war looging conf to the dist/app/conf directory. -->
+		<!-- Copy the war looging conf to the out directory. -->
 		<copy todir="${out.dir}">
 			<fileset dir="${conf.dir}" includes="logging_war.properties"/>
 			<globmapper from="logging_war.properties" to="logging.properties"/>
+		</copy>
+
+		<!-- Copy the garmin.properties and nikeplus.properties to the out directory. -->
+		<copy todir="${out.dir}">
+			<fileset dir="${etc.dir}" includes="garmin.properties,nikeplus.properties"/>
 		</copy>
 
 		<mkdir dir="${dist.dir}"/>
@@ -200,7 +207,7 @@
 				<exclude name="servlet-api.jar"/>
 			</lib>
 			<classes dir="${classes.dir}" includes="**/ConvertGpx.class,**/ConvertTcx.class,**/ConvertTcx$Trackpoint.class,**/ConvertServlet.class,**/HttpClientNaiveSsl*.class,**/Log.class,**/LogFormatter.class,**/SpoofFileBody.class,**/Util.class,**/NikePlus.class,**/Garmin.class"/>
-			<classes dir="${out.dir}" includes = "**/logging.properties"/>
+			<classes dir="${out.dir}" includes = "garmin.properties,logging.properties,nikeplus.properties"/>
 		</war>
 
 	</target>

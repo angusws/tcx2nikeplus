@@ -113,32 +113,34 @@
 		<!-- Instructions -->
 		<div id="tabInstructions" class="x-hide-display">
 
-			<div class="sectionSubHeading">Garmin TCX file or Garmin Activity ID</div>
+			<div class="sectionSubHeading">Garmin TCX file or Garmin Activity</div>
 			<div class="sectionContent">
 				TCX file: After synchronising your garmin device with your computer the option is available to export the run to a tcx file both in the 'Garmin Training Center' and at <a href="http://connect.garmin.com" target="_blank">Garmin Connect</a>.
-				<br /><br />Garmin Activity ID: After synchronising your garmin device to <a href="http://connect.garmin.com" target="_blank">Garmin Connect</a> the activity ID is in the url for the workout details page.  For example, for the workout http://connect.garmin.com/activity/21742933 the activity ID is 21742933.
+				<br /><br />Garmin Activity: After synchronising your garmin device to <a href="http://connect.garmin.com" target="_blank">Garmin Connect</a> is the url (link) for the workout details page.  For example, http://connect.garmin.com/activity/21742933.
 			</div>
 
-			<div class="sectionSubHeading">Simple Authentication</div>
+			<div class="sectionSubHeading">Authentication</div>
 			<div class="sectionContent">
 				Simply use the email address and password you use to log into <a href="http://nikeplus.com" target="_blank">Nike+</a>.
 			</div>
 
-			<div class="sectionSubHeading">Advanced Authentication: Nike+ PIN</div>
-			<div class="sectionContent">
-				Visit https://secure-nikerunning.nike.com/nikeplus/v2/services/app/generate_pin.jsp?login=<span class="codeTextItalic">EMAIL-ADDRESS</span>&amp;password=<span class="codeTextItalic">PASSWORD</span> (replacing the italics with your nike+ login details - email address and password).
-				<br /><br />The page should have a section "pin", this is the value to use as the pin on this page.  Your pin will never change.
-			</div>
-
-			<div class="sectionSubHeading">Advanced Authentication: Emped ID</div>
-			<div class="sectionContent">
-				The easiest way to obtain your emped ID is probably to look at the list of your runs on <a href="http://www.slowgeek.com/" target="_blank">slowgeek.com</a>, there is a column for each run with the emped ID.
-			</div>
 		</div>
 
 
 		<!-- News -->
 		<div id="tabNews" class="x-hide-display">
+			<div class="sectionSubHeading">December 15 2012</div>
+			<div class="sectionContent">
+				Rewrote nike+ requests to work with their latest changes (/nsl/v2.0/ and /v2.0/me/).
+			</div>
+			<div class="sectionSubHeading">October 23 2012</div>
+			<div class="sectionContent">
+				Added FAQ (Frequently Asked Questions).
+			</div>
+			<div class="sectionSubHeading">June 8 2012</div>
+			<div class="sectionContent">
+				Updated to work with new nike+.
+			</div>
 			<div class="sectionSubHeading">October 21 2011</div>
 			<div class="sectionContent">
 				Added CLIC Sargent donation stuff.
@@ -228,33 +230,29 @@
 			<div class="sectionContent"><img src="img/email_address.png" alt=""/></div>
 		</div>
 
-
-		<!-- Donate -->
-		<!--
-		<div id="tabDonate" class="x-hide-display">
-			<div class="sectionSubHeading">Donate</div>
-			<div class="sectionContent">
-				If you are regular user please consider donating to help cover the costs of domain/hosting &amp; future development.
-			</div>
-			<div class="sectionSubHeading">Paypal</div>
-			<div class="sectionContent" style="padding: 10px;">
-				<form action="https://www.paypal.com/cgi-bin/webscr" method="post">
-					<input type="hidden" name="cmd" value="_s-xclick">
-					<input type="hidden" name="encrypted" value="-----BEGIN PKCS7-----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-----END PKCS7-----">
-					<input type="image" src="https://www.paypal.com/en_US/GB/i/btn/btn_donateCC_LG.gif" name="submit" alt="PayPal - The safer, easier way to pay online.">
-					<img alt="" src="https://www.paypal.com/en_GB/i/scr/pixel.gif" width="1" height="1">
-				</form>
-			</div>
-		</div>
-		-->
-
 		<!-- Donate (CLIC Sargent) -->
 		<div id="tabDonate" class="x-hide-display">
 			<div class="sectionSubHeading">Donate</div>
 			<div class="sectionContent">
-				To raise money for CLIC Sargent (UK childrens cancer charity) I am running the 2012 London marathon and attempting to run <a href="http://www.awsmithson.com" target="_blank">2012 miles in 2012</a>.
+				To raise money for CLIC Sargent (UK childrens cancer charity) I am running <a href="http://www.awsmithson.com" target="_blank">2012 miles in 2012</a>.
 				<br /><br />If you are a regular user of tcx2nikeplus please <a href="http://uk.virginmoneygiving.com/angus.smithson" target="_blank">visit my donation page</a> and consider donating, it's a great cause and every little helps.
 				<br /><br /><div style="text-align: center;"><a href="http://uk.virginmoneygiving.com/angus.smithson" target="_blank"><img src="http://uk.virginmoneygiving.com/giving/Images/banners/211x85_donate.png" border="0" alt="Make a donation using Virgin Money Giving"></a></div>
+			</div>
+		</div>
+		
+		
+		<!-- FAQ -->
+		<div id="tabFAQ" class="x-hide-display">
+			<div class="sectionSubHeading">Can I upload multiple workouts in one go?</div>
+			<div class="sectionContent">
+				I've recently added a multiple-workouts feature.
+				<br />Export multiple workouts from garmin's "Garmin Training Center" application and upload the tcx file in the tcx-file section on the website. Let me know if you have any questions or problems using this.
+			</div>
+
+			<div class="sectionSubHeading">GPS (mapping data) doesn't transfer to nike+</div>
+			<div class="sectionContent">
+				GPS data will only transfer if you use the "Garmin Activity" option.
+				<br />If the data still doesn't show up try logging out then back into your nike+ account.
 			</div>
 		</div>
 
