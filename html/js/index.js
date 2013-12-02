@@ -31,15 +31,29 @@ Ext.onReady(function() {
 
 		msg = '<div style="text-align: center; font-weight: bold;">' + msg + '</div>';
 
-		// Show CLIC Sargent donation option.
-		if (Math.floor(Math.random() * 3) == 0)
-			msg = msg.concat('<div style="margin-top: 8px;">' +
-				getCharityAnchor('<img src="http://uk.virginmoneygiving.com/giving/Images/banners/106x139_donate.png" style="float: left; margin: 0px 16px 0px 0px;" alt="Make a donation using Virgin Money Giving">') +
-				'<div style="display: table-cell; vertical-align: middle; height: 139px;">' + 
-				'To raise money for CLIC Sargent (UK childrens cancer charity) I ran ' + getProgressAnchor('2012 miles in 2012') + '.<br /><br />' +
-				'If you are a regular user of tcx2nikeplus please ' + getCharityAnchor('visit my donation page') + '.  It\'s a great cause and every little helps.' + 
-				'</div>');
-
+		// Show paypal donation option.
+		if (Math.floor(Math.random() * 4) == 0) {
+			msg = msg.concat("<br /><br />If you are regular user please consider donating to help cover the costs of domain/hosting &amp; future development.<br /><br />" +
+				"<hr />" +
+				"<b>Bitcoin</b>" +
+				"<br />The address for donations to support tcx2nikeplus is:" +
+				"<br /><a href=\"bitcoin:16aB2V5HkYrUxWRreWvrVdRH13m4bQMqZ?label=tcx2nikeplus%20donation\">1NVMCeoBfTAJQ1qwX2Dx1C8zkcRCQWwHBq</a>" +
+				"<br />" +
+				"<br /><a href=\"bitcoin:16aB2V5HkYrUxWRreWvrVdRH13m4bQMqZ?label=tcx2nikeplus%20donation\">" +
+				"	<img alt=\"You can click or scan this QR code for the donation details.  Thanks.\" src=\"img/16aB2V5HkYrUxWRreWvrVdRH13m4bQMqZ.png\"/>" +
+				"</a>" +
+				"<hr />" +
+				"<b>Paypal</b>" +
+			    "<div style=\"text-align: center;\">" +
+				"  <form action=\"https://www.paypal.com/cgi-bin/webscr\" method=\"post\">" +
+				"    <input type=\"hidden\" name=\"cmd\" value=\"_s-xclick\">" +
+				"    <input type=\"hidden\" name=\"encrypted\" value=\"-----BEGIN PKCS7-----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-----END PKCS7-----\">" +
+				"    <input type=\"image\" src=\"https://www.paypal.com/en_US/GB/i/btn/btn_donateCC_LG.gif\" border=\"0\" name=\"submit\" alt=\"PayPal - The safer, easier way to pay online.\">" +
+				"    <img alt=\"\" border=\"0\" src=\"https://www.paypal.com/en_GB/i/scr/pixel.gif\" width=\"1\" height=\"1\">" +
+				"  </form>" +
+				"</div>" +
+				"<hr />");
+		}
 
 		Ext.Msg.show({
 			title: title,
@@ -330,13 +344,9 @@ Ext.onReady(function() {
 			// Convert & Upload
 			// Construct wait message text.
 			var msg = '<div style="text-align: center;"><b>Please wait while your run is uploaded to nike+</b></div><br />';
-			
-			if (Math.floor(Math.random() * 3) == 0) {
-				msg = msg.concat('In 2012 I ' + getProgressAnchor('ran 2012 miles') + ' to raise money for CLIC Sargent (UK childrens cancer charity).  ' + 
-					'If you are a regular user of tcx2nikeplus please consider donating: ' + getCharityAnchor('http://awsmithson.com/charity') + ' (opens in new window).<br /><br />' + 
-					'Many thanks to those who\'ve donated so far,<br />' +
-					'Angus</br >');
-			}
+
+			// Used to show donation options here (whilst the conversion/upload is taking place), but feel it would be confusing and
+			// users wouldn't be comfortable clicking a link in case it disturbed the upload process (which it wouldn't).
 			
 			// Show wait message - this will get replaced in the success or failure callback of form.submit().
 			Ext.MessageBox.show({
@@ -381,7 +391,7 @@ Ext.onReady(function() {
 				failure: function(converterForm, o) {
 					msgFailure('Failure', o.result.data.errorMessage);
 				}
-			});			
+			});
 		}
 	}
 
