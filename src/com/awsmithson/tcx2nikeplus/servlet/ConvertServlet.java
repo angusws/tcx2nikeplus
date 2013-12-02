@@ -167,6 +167,9 @@ public class ConvertServlet extends HttpServlet
 	private Document[] convertTcxDocuments(ConvertTcx c, Document[] garminTcxDocuments, String nikeEmpedId, Integer clientTimeZoneOffset) throws Throwable {
 		int activitiesCount = garminTcxDocuments.length;
 		log.out("Activities: %d", activitiesCount);
+		if (activitiesCount > 25) {
+			throw new IllegalArgumentException("Exceeded maximum workouts per upload (25)");
+		}
 		Document[] output = new Document[activitiesCount];
 		for (int i = 0; i < activitiesCount; ++i) {
 			output[i] = c.generateNikePlusXml(garminTcxDocuments[i], nikeEmpedId, clientTimeZoneOffset);
