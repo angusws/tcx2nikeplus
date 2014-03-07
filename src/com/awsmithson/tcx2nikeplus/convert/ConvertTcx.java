@@ -422,8 +422,13 @@ public class ConvertTcx
 
 		// Generates the following PolynomialSplineFunctions: distanceToDuration, durationToDistance, durationToPace, durationToHeartRate.
 		PolynomialSplineFunction[] splines = generateSplineFunctions(trackpoints);
-		appendSnapShotListAndExtendedData(sportsDataElement, onDemandVPDistances, pauseResumeTimes, splines[0], splines[1], splines[2], splines[3]);
-		
+
+    // Issue #7 - https://github.com/angusws/tcx2nikeplus/issues/7
+    // we need at least four splines to continue appending the snapshots (since these are not guaranteed anymore, we check)
+    if( splines.length == 4 ){
+      appendSnapShotListAndExtendedData(sportsDataElement, onDemandVPDistances, pauseResumeTimes, splines[0], splines[1], splines[2], splines[3]);
+    }
+
 		// Append heart rate detail to the run summary if required.
 		if (_includeHeartRateData) {
 
@@ -801,12 +806,23 @@ public class ConvertTcx
 		//  2) duration -> distance
 		//  3) duration -> pace
 		//  4) duration -> heart-rate
-		return new PolynomialSplineFunction[] {
-			interpolator.interpolate(distancesArray, durationsArray),
-			interpolator.interpolate(durationsArray, distancesArray),
-			interpolator.interpolate(durationsArray, pacesArray),
-			interpolator.interpolate(durationsArray, heartRatesArray)
-		};
+
+    // Issue #7 - https://github.com/angusws/tcx2nikeplus/issues/7
+    // since SplineInterpolator needs at least three values to 'interpolate', let's check this is the case before we
+    // attempt to do so
+    // (http://commons.apache.org/proper/commons-math/javadocs/api-2.2/index.html?org/apache/commons/math/analysis/polynomials/PolynomialSplineFunction.html)
+    PolynomialSplineFunction[] polynomialSplineFunctionArray = new PolynomialSplineFunction[]{};
+
+    if( distancesArray.length > 3 && durationsArray.length > 3 && pacesArray.length > 3 && heartRatesArray.length > 3 ){
+      polynomialSplineFunctionArray = new PolynomialSplineFunction[] {
+      			interpolator.interpolate(distancesArray, durationsArray),
+      			interpolator.interpolate(durationsArray, distancesArray),
+      			interpolator.interpolate(durationsArray, pacesArray),
+      			interpolator.interpolate(durationsArray, heartRatesArray)
+      		};
+    }
+
+		return  polynomialSplineFunctionArray;
 
 	}
 
