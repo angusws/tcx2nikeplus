@@ -35,14 +35,6 @@ Ext.onReady(function() {
 		if (Math.floor(Math.random() * 4) == 0) {
 			msg = msg.concat("<br /><br />If you are regular user please consider donating to help cover the costs of domain/hosting &amp; future development.<br /><br />" +
 				"<hr />" +
-				"<b>Bitcoin</b>" +
-				"<br />The address for donations to support tcx2nikeplus is:" +
-				"<br /><a href=\"bitcoin:16aB2V5HkYrUxWRreWvrVdRH13m4bQMqZ?label=tcx2nikeplus%20donation\">1NVMCeoBfTAJQ1qwX2Dx1C8zkcRCQWwHBq</a>" +
-				"<br />" +
-				"<br /><a href=\"bitcoin:16aB2V5HkYrUxWRreWvrVdRH13m4bQMqZ?label=tcx2nikeplus%20donation\">" +
-				"	<img alt=\"You can click or scan this QR code for the donation details.  Thanks.\" src=\"img/16aB2V5HkYrUxWRreWvrVdRH13m4bQMqZ.png\"/>" +
-				"</a>" +
-				"<hr />" +
 				"<b>Paypal</b>" +
 			    "<div style=\"text-align: center;\">" +
 				"  <form action=\"https://www.paypal.com/cgi-bin/webscr\" method=\"post\">" +
@@ -52,6 +44,13 @@ Ext.onReady(function() {
 				"    <img alt=\"\" border=\"0\" src=\"https://www.paypal.com/en_GB/i/scr/pixel.gif\" width=\"1\" height=\"1\">" +
 				"  </form>" +
 				"</div>" +
+				"<hr />" +
+				"<b>Bitcoin</b>" +
+				"<br /><a href=\"bitcoin:16aB2V5HkYrUxWRreWvrVdRH13m4bQMqZ?label=tcx2nikeplus%20donation\">1NVMCeoBfTAJQ1qwX2Dx1C8zkcRCQWwHBq</a>" +
+				"<br />" +
+				"<br /><a href=\"bitcoin:16aB2V5HkYrUxWRreWvrVdRH13m4bQMqZ?label=tcx2nikeplus%20donation\">" +
+				"	<img alt=\"You can click or scan this QR code for the donation details.  Thanks.\" src=\"img/16aB2V5HkYrUxWRreWvrVdRH13m4bQMqZ.png\"/>" +
+				"</a>" +
 				"<hr />");
 		}
 
