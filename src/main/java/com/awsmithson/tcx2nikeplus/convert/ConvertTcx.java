@@ -267,7 +267,7 @@ public class ConvertTcx
 				if ((latitude != null) && (longitude != null)) {
 					// Send a post to the geonames.org webservice with the lat & lng parameters.
 					String url = "http://ws.geonames.org/timezone";
-					String parameters = String.format("lat=%s&lng=%s", latitude, longitude);
+					String parameters = String.format("&username=tcx2nikeplus_app&lat=%s&lng=%s", latitude, longitude);
 					
 					log.out("Looking up time zone for lat/lon: %.4f / %.4f", latitude, longitude);
 					try {
