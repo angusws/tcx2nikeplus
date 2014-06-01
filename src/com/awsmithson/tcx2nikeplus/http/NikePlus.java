@@ -2,21 +2,26 @@ package com.awsmithson.tcx2nikeplus.http;
 
 import com.awsmithson.tcx2nikeplus.util.Log;
 import com.awsmithson.tcx2nikeplus.util.Util;
-import com.google.gson.stream.JsonReader;
 
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
 import org.apache.http.NameValuePair;
 import org.apache.http.client.ClientProtocolException;
+import org.apache.http.client.CookieStore;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.entity.UrlEncodedFormEntity;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.params.ClientPNames;
 import org.apache.http.client.params.CookiePolicy;
+import org.apache.http.client.protocol.ClientContext;
+import org.apache.http.cookie.Cookie;
 import org.apache.http.entity.mime.HttpMultipartMode;
 import org.apache.http.entity.mime.MultipartEntity;
+import org.apache.http.impl.client.BasicCookieStore;
 import org.apache.http.impl.client.DefaultHttpClient;
 import org.apache.http.message.BasicNameValuePair;
+import org.apache.http.protocol.BasicHttpContext;
+import org.apache.http.protocol.HttpContext;
 import org.apache.http.util.EntityUtils;
 import org.w3c.dom.Document;
 import org.xml.sax.SAXException;
@@ -28,7 +33,6 @@ import javax.xml.parsers.ParserConfigurationException;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.io.UnsupportedEncodingException;
 import java.net.MalformedURLException;
 import java.security.KeyManagementException;
@@ -62,11 +66,8 @@ public class NikePlus {
 			}
 		}
 	}
-	
-	private static final String URL_LOGIN = String.format("https://api.nike.com/nsl/v2.0/user/login?client_id=%s&client_secret=%s&app=%s",
-			nikePlusProperties.getProperty("NIKEPLUS_CLIENT_ID"),
-			nikePlusProperties.getProperty("NIKEPLUS_CLIENT_SECRET"),
-			nikePlusProperties.getProperty("NIKEPLUS_APP"));
+
+    private static final String URL_LOGIN = "https://secure-nikeplus.nike.com/login/loginViaNike.do?mode=login";
 	private static final String URL_DATA_SYNC = "https://api.nike.com/v2.0/me/sync?access_token=%s";
 	private static final String URL_DATA_SYNC_COMPLETE_ACCESS_TOKEN = "https://api.nike.com/v2.0/me/sync/complete";
 	
@@ -97,52 +98,42 @@ public class NikePlus {
 	
 	
 	/**
-	 * Logins into Nike+, setting the access_token, expires_in, refresh_token and pin
+	 * Performs a login to Nike+, setting the access_token.
 	 * @param login The login String (email address).
 	 * @param password The login password.
-	 * @return Nike+ pin.
+	 * @return Nike+ access_token.
 	 * @throws IOException
-	 * @throws MalformedURLException
 	 * @throws ParserConfigurationException
 	 * @throws SAXException
-	 * @throws UnsupportedEncodingException
 	 */
-	public void login(String login, char[] password) throws IOException, MalformedURLException, ParserConfigurationException, SAXException, UnsupportedEncodingException {		
+	public void login(String login, char[] password) throws IOException, ParserConfigurationException, SAXException {
 		HttpClient client = new DefaultHttpClient();
 		client = HttpClientNaiveSsl.wrapClient(client);
-		client.getParams().setParameter(ClientPNames.COOKIE_POLICY, CookiePolicy.IGNORE_COOKIES);
 
 		try {
-			//HttpPost post = new HttpPost(String.format(URL_LOGIN, prop.getProperty("NIKEPLUS_CLIENT_ID"), prop.getProperty("NIKEPLUS_CLIENT_SECRET"), prop.getProperty("NIKEPLUS_APP")));
 			HttpPost post = new HttpPost(URL_LOGIN);
 			post.addHeader("user-agent", USER_AGENT);
 			post.setEntity(generateFormNVPs("email", login, "password", new String(password)));
-	
-			HttpResponse response = client.execute(post);
-			HttpEntity entity = response.getEntity();
-			if (entity != null) {				
-				// Parse a json response, looking for a "pin" value.
-				JsonReader reader = null;
-				InputStream responseContent = entity.getContent();
-				try {
-					reader = new JsonReader(new InputStreamReader(responseContent, "UTF-8"));
-					reader.setLenient(true);
-					reader.beginObject();
-					while (reader.hasNext()) {
-						//String name = reader.nextName();
-						//log.out(Level.FINEST, name);
-						//if (reader.nextName().equals("pin")) return reader.nextString();
-						
-						String name = reader.nextName();
-						//log.out(Level.INFO, "name: %s", name);
-						if (name.equals("access_token")) _accessToken = reader.nextString();
-						else reader.skipValue();
+
+			// Set cookies for the request.
+			post.addHeader("Cookie", String.format("app=%s; client_id=%s; client_secret=%s",
+					nikePlusProperties.getProperty("NIKEPLUS_APP"),
+					nikePlusProperties.getProperty("NIKEPLUS_CLIENT_ID"),
+					nikePlusProperties.getProperty("NIKEPLUS_CLIENT_SECRET")));
+
+			CookieStore cookieStore = new BasicCookieStore();
+			HttpContext localContext = new BasicHttpContext();
+			localContext.setAttribute(ClientContext.COOKIE_STORE, cookieStore);
+
+			// Send the HTTP request.
+			HttpResponse response = client.execute(post, localContext);
+
+			if (response.getEntity() != null) {
+				for (Cookie cookie : cookieStore.getCookies()) {
+					if (cookie.getName().equals("access_token")) {
+						_accessToken = cookie.getValue();
+						break;
 					}
-					reader.endObject();
-				}
-				catch (IllegalStateException ise ) {}	// Hack for when a json structure is not returned - will throw IllegalArgException below.
-				finally {
-					if (reader != null) reader.close();
 				}
 
 				// If we reach here, we haven't got an access-token back for whatever reason.
