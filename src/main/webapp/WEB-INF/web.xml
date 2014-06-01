@@ -1,0 +1,14 @@
+<!DOCTYPE web-app PUBLIC
+ "-//Sun Microsystems, Inc.//DTD Web Application 2.3//EN"
+ "http://java.sun.com/dtd/web-app_2_3.dtd" >
+<web-app>
+  <!-- Servlets -->
+  <servlet>
+    <servlet-name>ConvertService</servlet-name>
+    <servlet-class>com.awsmithson.tcx2nikeplus.servlet.ConvertServlet</servlet-class>
+  </servlet>
+  <servlet-mapping>
+    <servlet-name>ConvertService</servlet-name>
+    <url-pattern>/tcx2nikeplus/convert</url-pattern>
+  </servlet-mapping>  
+</web-app>
