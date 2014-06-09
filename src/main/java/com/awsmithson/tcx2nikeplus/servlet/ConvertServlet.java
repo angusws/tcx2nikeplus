@@ -2,17 +2,20 @@ package com.awsmithson.tcx2nikeplus.servlet;
 
 import com.awsmithson.tcx2nikeplus.convert.ConvertGpx;
 import com.awsmithson.tcx2nikeplus.convert.ConvertTcx;
+import com.awsmithson.tcx2nikeplus.garmin.GarminActivityData;
 import com.awsmithson.tcx2nikeplus.http.Garmin;
 import com.awsmithson.tcx2nikeplus.http.NikePlus;
+import com.awsmithson.tcx2nikeplus.nike.NikeActivityData;
 import com.awsmithson.tcx2nikeplus.util.Log;
 import com.awsmithson.tcx2nikeplus.util.Util;
+import com.google.common.collect.Lists;
 import com.google.gson.JsonObject;
 
 import org.apache.commons.fileupload.FileItemFactory;
 import org.apache.commons.fileupload.disk.DiskFileItem;
 import org.apache.commons.fileupload.disk.DiskFileItemFactory;
 import org.apache.commons.fileupload.servlet.ServletFileUpload;
-import org.apache.http.client.HttpClient;
+import org.apache.http.impl.client.CloseableHttpClient;
 import org.w3c.dom.Document;
 
 import javax.servlet.ServletException;
@@ -95,39 +98,49 @@ public class ConvertServlet extends HttpServlet
 					}
 				}
 
-				Document[] garminTcxDocuments = null;
-				Document garminGpxDocument = null;
+				List<GarminActivityData> garminActivitiesData = Lists.newArrayList();
 
-				// If we have a tcx file to convert...
-				if ((garminTcxFile != null) && (garminTcxFile.exists())) {
-					log.out("Received convert-tcx-file request");
-					garminTcxDocuments = Util.parseMultipleWorkouts(garminTcxFile);
-				}
-
-				// If we have a garmin activity id then download the garmin tcx file then convert it.
-				else if (garminActivityId != null) {
+				if (garminActivityId != null) {
+					// If we have a garmin actvity ID, download the garmin tcx & gpx data and add to our garmin-activities list..
 					log.out("Received convert-activity-id request, id: %d", garminActivityId);
-					HttpClient client = Garmin.getGarminHttpSession();
-					garminTcxDocuments = new Document[] { Garmin.downloadGarminTcx(client, garminActivityId)};
-					garminGpxDocument = Garmin.downloadGarminGpx(client, garminActivityId);
-					client.getConnectionManager().shutdown();
+					try (CloseableHttpClient client = Garmin.getGarminHttpSession()) {
+						garminActivitiesData.add(new GarminActivityData(
+								Garmin.downloadGarminTcx(client, garminActivityId),
+								Garmin.downloadGarminGpx(client, garminActivityId)));
+					}
+				} else if ((garminTcxFile != null) && (garminTcxFile.exists())) {
+					// If we have a tcx-file to convert it may consist of multiple activities, parse them out as individual TCX documents.
+					log.out("Received convert-tcx-file request");
+					for (Document tcxDocument : Util.parseMultipleWorkouts(garminTcxFile)) {
+						garminActivitiesData.add(new GarminActivityData(tcxDocument, null));
+					}
+				} else {
+					throw new NullPointerException("You must supply either a Garmin activity id or provide a TCX file.");
 				}
 
-				// If we didn't find a garmin tcx file or garmin activity id then we can't continue...
-				else throw new Exception("You must supply either a Garmin TCX file or Garmin activity id.");
+				if (garminActivitiesData.size() > 25) {
+					log.out("Activities: %d", garminActivitiesData.size());
+					throw new IllegalArgumentException(String.format("Exceeded maximum activities per upload (25).  Your TCX file contains %d activities.", garminActivitiesData.size()));
+				}
 
 
-				// Generate the output nike+ workout xml.
-				ConvertTcx cTcx = new ConvertTcx();
-				ConvertGpx cGpx = new ConvertGpx();
-				Document[] runXml = convertTcxDocuments(cTcx, garminTcxDocuments, "", clientTimeZoneOffset);
-				Document gpxXml = (garminGpxDocument != null) ? convertGpxDocument(cGpx, garminGpxDocument) : null;
+				ConvertTcx convertTcx = new ConvertTcx();
+				ConvertGpx convertGpx = new ConvertGpx();
+				NikeActivityData[] nikeActivitiesData = new NikeActivityData[garminActivitiesData.size()];
+				int i = 0;
+				for (GarminActivityData garminActivityData : garminActivitiesData) {
+					Document runXml = convertTcxDocument(convertTcx, garminActivityData.getTcxDocument(), clientTimeZoneOffset);
+					Document gpxXml = (garminActivityData.getGpxDocument() == null)
+							? null
+							: convertGpxDocument(convertGpx, garminActivityData.getGpxDocument());
+					nikeActivitiesData[i++] = new NikeActivityData(runXml, gpxXml);
+				}
 
 				// Upload to nikeplus.
 				NikePlus u = new NikePlus();
-				u.fullSync(nikeEmail, nikePassword, runXml, ((gpxXml != null) ? new Document[] { gpxXml } : null));
+				u.fullSync(nikeEmail, nikePassword, nikeActivitiesData);
 				String message = "Conversion & Upload Successful.";
-				succeed(out, jout, message, cTcx.getTotalDurationMillis(), cTcx.getTotalDistanceMetres());
+				succeed(out, jout, message, convertTcx.getTotalDurationMillis(), convertTcx.getTotalDistanceMetres());
 
 			}
 		}
@@ -164,18 +177,11 @@ public class ConvertServlet extends HttpServlet
 		return Integer.parseInt(split[split.length-1]);
 	}
 
-	private Document[] convertTcxDocuments(ConvertTcx c, Document[] garminTcxDocuments, String nikeEmpedId, Integer clientTimeZoneOffset) throws Throwable {
-		int activitiesCount = garminTcxDocuments.length;
-		log.out("Activities: %d", activitiesCount);
-		if (activitiesCount > 25) {
-			throw new IllegalArgumentException("Exceeded maximum workouts per upload (25)");
-		}
-		Document[] output = new Document[activitiesCount];
-		for (int i = 0; i < activitiesCount; ++i) {
-			output[i] = c.generateNikePlusXml(garminTcxDocuments[i], nikeEmpedId, clientTimeZoneOffset);
-			log.out("Generated nike+ run xml, workout start time: %s.", c.getStartTimeHumanReadable());
-		}
-		return output;
+	private Document convertTcxDocument(ConvertTcx c, Document garminTcxDocument, int clientTimeZoneOffset) throws Throwable {
+		// Generate the nike+ gpx xml.
+		Document doc = c.generateNikePlusXml(garminTcxDocument, "", clientTimeZoneOffset);
+		log.out("Generated nike+ run xml, workout start time: %s.", c.getStartTimeHumanReadable());
+		return doc;
 	}
 
 	private Document convertGpxDocument(ConvertGpx c, Document garminGpxDocument) throws Throwable {
@@ -183,7 +189,7 @@ public class ConvertServlet extends HttpServlet
 		Document doc = c.generateNikePlusGpx(garminGpxDocument);
 		log.out("Generated nike+ gpx xml.");
 		return doc;
-	}	
+	}
 
 	private void fail(PrintWriter out, JsonObject jout, String errorMessage, Throwable t) throws ServletException {
 		log.out("Failing... Error message: %s", errorMessage);

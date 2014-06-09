@@ -15,7 +15,9 @@ import org.apache.http.client.HttpClient;
 import org.apache.http.client.entity.UrlEncodedFormEntity;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
+import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.DefaultHttpClient;
+import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.message.BasicNameValuePair;
 import org.apache.http.util.EntityUtils;
 import org.w3c.dom.Document;
@@ -60,12 +62,11 @@ public class Garmin
 
 
 
-	public static HttpClient getGarminHttpSession() throws Throwable {
+	public static CloseableHttpClient getGarminHttpSession() throws IOException {
 
 		// Setup
-		HttpClient client = new DefaultHttpClient();
-		client = HttpClientNaiveSsl.wrapClient(client);
-		
+		CloseableHttpClient client = HttpClientBuilder.create().build();
+
 		// 1 - Initial attempt to view activities, which will set cookies and redirect us to sign-in page.
 		HttpGet get = new HttpGet(URL_GARMIN_ACTIVITIES);
 		HttpResponse response = client.execute(get);
