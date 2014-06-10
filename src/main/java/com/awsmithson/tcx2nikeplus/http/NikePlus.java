@@ -51,14 +51,14 @@ public class NikePlus {
 	}
 
 	private static final @Nonnull String URL_LOGIN_DOMAIN = "secure-nikeplus.nike.com";
-    private static final @Nonnull String URL_LOGIN = String.format("https://%s/login/loginViaNike.do?mode=login", URL_LOGIN_DOMAIN);
+	private static final @Nonnull String URL_LOGIN = String.format("https://%s/login/loginViaNike.do?mode=login", URL_LOGIN_DOMAIN);
 	private static final @Nonnull String URL_DATA_SYNC = "https://api.nike.com/v2.0/me/sync?access_token=%s";
 	private static final @Nonnull String URL_DATA_SYNC_COMPLETE_ACCESS_TOKEN = "https://api.nike.com/v2.0/me/sync/complete";
-	
+
 	private static final @Nonnull String USER_AGENT = "NPConnect";
 
 	private static final int URL_DATA_SYNC_SUCCESS = HttpStatus.SC_OK;
-	
+
 	private static final @Nonnull Log log = Log.getInstance();
 
 
@@ -76,7 +76,7 @@ public class NikePlus {
 
 		return new UrlEncodedFormEntity(formParams, "UTF-8");
 	}
-	
+
 
 	private @Nonnull SetCookie createCookie(@Nonnull String key, @Nonnull String value) {
 		SetCookie cookie = new BasicClientCookie(key, value);
@@ -147,11 +147,11 @@ public class NikePlus {
 		Preconditions.checkNotNull(nikeEmail, "nikeEmail argument was null.");
 		Preconditions.checkNotNull(nikePassword, "nikePassword argument was null.");
 		Preconditions.checkNotNull(nikeActivitiesData, "garminActivitiesData argument was null.");
-		
+
 		log.out("Uploading to Nike+...");
 		log.out(" - Authenticating...");
 		String accessToken = login(nikeEmail, nikePassword);
-		
+
 		try {
 			log.out(" - Syncing data...");
 			for (NikeActivityData nikeActivityData : nikeActivitiesData) {
