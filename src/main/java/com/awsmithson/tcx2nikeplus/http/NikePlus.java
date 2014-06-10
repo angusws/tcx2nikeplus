@@ -5,11 +5,11 @@ import com.awsmithson.tcx2nikeplus.util.Log;
 import com.awsmithson.tcx2nikeplus.util.Util;
 import com.google.common.base.Preconditions;
 import org.apache.http.HttpEntity;
-import org.apache.http.HttpResponse;
 import org.apache.http.HttpStatus;
 import org.apache.http.NameValuePair;
 import org.apache.http.client.CookieStore;
 import org.apache.http.client.entity.UrlEncodedFormEntity;
+import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.protocol.HttpClientContext;
 import org.apache.http.cookie.Cookie;
@@ -39,9 +39,8 @@ import java.util.logging.Level;
 public class NikePlus {
 
 	// Load "nikeplus.properties" file.
-	private static final @Nonnull Properties nikePlusProperties;
+	private static final @Nonnull Properties nikePlusProperties = new Properties();;
 	static {
-		nikePlusProperties = new Properties();
 		try (InputStream inputStream = NikePlus.class.getResourceAsStream("/nikeplus.properties")) {
 			nikePlusProperties.load(inputStream);
 		}
@@ -115,17 +114,22 @@ public class NikePlus {
 
 			// Send the HTTP request.
 			HttpClientContext httpClientContext = HttpClientContext.create();
-			HttpResponse response = client.execute(post, httpClientContext);
-
-			// Get the response and iterate through the cookies for "access_token".
-			if (response.getEntity() != null) {
-				for (Cookie cookie : httpClientContext.getCookieStore().getCookies()) {
-					if (cookie.getName().equals("access_token")) {
-						return cookie.getValue();
+			try (CloseableHttpResponse response = client.execute(post, httpClientContext)) {
+				HttpEntity httpEntity = response.getEntity();
+				try {
+					// Get the response and iterate through the cookies for "access_token".
+					if (httpEntity != null) {
+						for (Cookie cookie : httpClientContext.getCookieStore().getCookies()) {
+							if (cookie.getName().equals("access_token")) {
+								return cookie.getValue();
+							}
+						}
+					} else {
+						throw new IOException("Http response empty");
 					}
+				} finally {
+					EntityUtils.consume(httpEntity);
 				}
-			} else {
-				throw new IOException("Http response empty");
 			}
 		}
 
@@ -182,8 +186,10 @@ public class NikePlus {
 			}
 
 			post.setEntity(multipartEntityBuilder.build());
-			HttpResponse response = client.execute(post);
-			return (URL_DATA_SYNC_SUCCESS == response.getStatusLine().getStatusCode());
+			try (CloseableHttpResponse response = client.execute(post)) {
+				int statusCode = response.getStatusLine().getStatusCode();
+				return (URL_DATA_SYNC_SUCCESS == statusCode);
+			}
 		}
 	}
 
@@ -194,20 +200,24 @@ public class NikePlus {
 			post.addHeader("user-agent", USER_AGENT);
 			post.addHeader("appId", "NIKEPLUSGPS");
 
-			HttpResponse response = client.execute(post);
-			HttpEntity entity = response.getEntity();
-			if (entity != null) {
-				try (InputStream inputStream = entity.getContent()) {
-					Document outDoc = DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(inputStream);
-					EntityUtils.consume(entity);
-					outDoc.normalize();
-					log.out(Level.FINER, "\t%s", Util.documentToString(outDoc));
-				} catch (ParserConfigurationException | SAXException e) {
-					log.out(e);
+			try (CloseableHttpResponse response = client.execute(post)) {
+				HttpEntity httpEntity = response.getEntity();
+				try {
+					if (httpEntity != null) {
+						try (InputStream inputStream = httpEntity.getContent()) {
+							Document outDoc = DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(inputStream);
+							outDoc.normalize();
+							log.out(Level.FINER, "\t%s", Util.documentToString(outDoc));
+						} catch (ParserConfigurationException | SAXException e) {
+							log.out(e);
+						}
+					}
+					else {
+						throw new NullPointerException("Http response empty");
+					}
+				} finally {
+					EntityUtils.consume(httpEntity);
 				}
-			}
-			else {
-				throw new NullPointerException("Http response empty");
 			}
 		}
 	}

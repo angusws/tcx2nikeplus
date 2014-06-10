@@ -14,9 +14,8 @@ import java.util.Properties;
 public class NikePlusSlowTest {
 
 	// Load "test.properties" file.
-	private static final @Nonnull Properties testProperties;
+	private static final @Nonnull Properties testProperties = new Properties();
 	static {
-		testProperties = new Properties();
 		try (InputStream inputStream = NikePlus.class.getResourceAsStream("/test.properties")) {
 			testProperties.load(inputStream);
 		}
