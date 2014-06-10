@@ -116,19 +116,19 @@ public class NikePlus {
 			HttpClientContext httpClientContext = HttpClientContext.create();
 			try (CloseableHttpResponse response = client.execute(post, httpClientContext)) {
 				HttpEntity httpEntity = response.getEntity();
-				try {
-					// Get the response and iterate through the cookies for "access_token".
-					if (httpEntity != null) {
+				// Get the response and iterate through the cookies for "access_token".
+				if (httpEntity != null) {
+					try {
 						for (Cookie cookie : httpClientContext.getCookieStore().getCookies()) {
 							if (cookie.getName().equals("access_token")) {
 								return cookie.getValue();
 							}
 						}
-					} else {
-						throw new IOException("Http response empty");
+					} finally {
+						EntityUtils.consume(httpEntity);
 					}
-				} finally {
-					EntityUtils.consume(httpEntity);
+				} else {
+					throw new IOException("Http response empty");
 				}
 			}
 		}
@@ -202,21 +202,19 @@ public class NikePlus {
 
 			try (CloseableHttpResponse response = client.execute(post)) {
 				HttpEntity httpEntity = response.getEntity();
-				try {
-					if (httpEntity != null) {
-						try (InputStream inputStream = httpEntity.getContent()) {
-							Document outDoc = DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(inputStream);
-							outDoc.normalize();
-							log.out(Level.FINER, "\t%s", Util.documentToString(outDoc));
-						} catch (ParserConfigurationException | SAXException e) {
-							log.out(e);
-						}
+				if (httpEntity != null) {
+					try (InputStream inputStream = httpEntity.getContent()) {
+						Document outDoc = DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(inputStream);
+						outDoc.normalize();
+						log.out(Level.FINER, "\t%s", Util.documentToString(outDoc));
+					} catch (ParserConfigurationException | SAXException e) {
+						log.out(e);
+					} finally {
+						EntityUtils.consume(httpEntity);
 					}
-					else {
-						throw new NullPointerException("Http response empty");
-					}
-				} finally {
-					EntityUtils.consume(httpEntity);
+				}
+				else {
+					throw new NullPointerException("Http response empty");
 				}
 			}
 		}
