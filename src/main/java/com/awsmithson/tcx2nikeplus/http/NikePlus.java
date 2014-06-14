@@ -63,7 +63,7 @@ public class NikePlus {
 
 
 	@Nonnull UrlEncodedFormEntity generateFormNameValuePairs(@Nonnull String ... inputKeyValues) throws UnsupportedEncodingException {
-		Preconditions.checkNotNull(inputKeyValues, "inputKeyValues argument was null.");
+		Preconditions.checkNotNull(inputKeyValues, "inputKeyValues argument is null.");
 		int inputLength = inputKeyValues.length;
 		Preconditions.checkArgument(inputLength > 0, "No input key/values specified.");
 		Preconditions.checkArgument((inputLength % 2) == 0, String.format("Odd number of name-value pairs: %d.", inputLength));
@@ -92,8 +92,8 @@ public class NikePlus {
 	 * @throws IOException If we are unable to successfully authenticate with Nike+.
 	 */
 	public @Nonnull String login(@Nonnull String nikeEmail, @Nonnull char[] nikePassword) throws IOException {
-		Preconditions.checkNotNull(nikeEmail, "nikeEmail argument was null.");
-		Preconditions.checkNotNull(nikePassword, "nikePassword argument was null.");
+		Preconditions.checkNotNull(nikeEmail, "nikeEmail argument is null.");
+		Preconditions.checkNotNull(nikePassword, "nikePassword argument is null.");
 
 		// Create CookieStore for the nikeEmail request.
 		CookieStore cookieStore = new BasicCookieStore();
@@ -148,9 +148,9 @@ public class NikePlus {
 	 * @throws IOException If there was a problem communicating with nike+.
 	 */
 	public void fullSync(@Nonnull String nikeEmail, @Nonnull char[] nikePassword, @Nonnull NikeActivityData... nikeActivitiesData) throws IOException {
-		Preconditions.checkNotNull(nikeEmail, "nikeEmail argument was null.");
-		Preconditions.checkNotNull(nikePassword, "nikePassword argument was null.");
-		Preconditions.checkNotNull(nikeActivitiesData, "garminActivitiesData argument was null.");
+		Preconditions.checkNotNull(nikeEmail, "nikeEmail argument is null.");
+		Preconditions.checkNotNull(nikePassword, "nikePassword argument is null.");
+		Preconditions.checkNotNull(nikeActivitiesData, "garminActivitiesData argument is null.");
 
 		log.out("Uploading to Nike+...");
 		log.out(" - Authenticating...");

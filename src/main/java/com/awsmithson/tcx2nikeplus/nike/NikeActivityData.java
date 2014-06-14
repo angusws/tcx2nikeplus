@@ -8,11 +8,11 @@ import javax.annotation.Nullable;
 
 
 public class NikeActivityData {
-	private @Nonnull Document runXML;
-	private @Nullable Document gpxXML;
+	private final @Nonnull Document runXML;
+	private final @Nullable Document gpxXML;
 
 	public NikeActivityData(@Nonnull Document runXML, @Nullable Document gpxXML) {
-		this.runXML = Preconditions.checkNotNull(runXML, "runXML argument was null.");
+		this.runXML = Preconditions.checkNotNull(runXML, "runXML argument is null.");
 		this.gpxXML = gpxXML;
 	}
 

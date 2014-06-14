@@ -8,11 +8,11 @@ import javax.annotation.Nullable;
 
 
 public class GarminActivityData {
-	private @Nonnull Document tcxDocument;
-	private @Nullable Document gpxDocument;
+	private final @Nonnull Document tcxDocument;
+	private final @Nullable Document gpxDocument;
 
 	public GarminActivityData(@Nonnull Document tcxDocument, @Nullable Document gpxDocument) {
-		this.tcxDocument = Preconditions.checkNotNull(tcxDocument, "tcxDocument argument was null.");
+		this.tcxDocument = Preconditions.checkNotNull(tcxDocument, "tcxDocument argument is null.");
 		this.gpxDocument = gpxDocument;
 	}
 

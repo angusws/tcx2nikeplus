@@ -3,6 +3,7 @@ package com.awsmithson.tcx2nikeplus.servlet;
 import com.awsmithson.tcx2nikeplus.convert.ConvertGpx;
 import com.awsmithson.tcx2nikeplus.convert.ConvertTcx;
 import com.awsmithson.tcx2nikeplus.garmin.GarminActivityData;
+import com.awsmithson.tcx2nikeplus.garmin.GarminDataType;
 import com.awsmithson.tcx2nikeplus.http.Garmin;
 import com.awsmithson.tcx2nikeplus.http.NikePlus;
 import com.awsmithson.tcx2nikeplus.nike.NikeActivityData;
@@ -10,7 +11,6 @@ import com.awsmithson.tcx2nikeplus.util.Log;
 import com.awsmithson.tcx2nikeplus.util.Util;
 import com.google.common.collect.Lists;
 import com.google.gson.JsonObject;
-
 import org.apache.commons.fileupload.FileItemFactory;
 import org.apache.commons.fileupload.disk.DiskFileItem;
 import org.apache.commons.fileupload.disk.DiskFileItemFactory;
@@ -22,7 +22,6 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -103,7 +102,7 @@ public class ConvertServlet extends HttpServlet
 				if (garminActivityId != null) {
 					// If we have a garmin actvity ID, download the garmin tcx & gpx data and add to our garmin-activities list..
 					log.out("Received convert-activity-id request, id: %d", garminActivityId);
-					try (CloseableHttpClient client = Garmin.getGarminHttpSession()) {
+					try (CloseableHttpClient client = GarminDataType.getGarminHttpSession()) {
 						garminActivitiesData.add(new GarminActivityData(
 								Garmin.downloadGarminTcx(client, garminActivityId),
 								Garmin.downloadGarminGpx(client, garminActivityId)));
@@ -197,7 +196,8 @@ public class ConvertServlet extends HttpServlet
 		//errorMessage = String.format("Nike+ are making ongoing changes to their site which may affect the converter.  Please try again later - I am modifying the converter to keep up with the changes<br /><br />Error message: %s", errorMessage);
 		//errorMessage = String.format("Nike+ have made changes which have broken the converter.  I need to make significant changes to the converter to make it work again and hope to fixed by Sunday 16th December.<br /><br />Error message: %s", errorMessage);
 		//errorMessage = String.format("Nike+ have made changes to their website and the converter no longer works.  I am on vacation just now but please check back in early June (2014), hopefully I'll have had a chance to fix it by then.  Check the 'news' tab for updates.<br /><br />Error message: %s", errorMessage);
-		errorMessage = String.format("Error message: %s<br /><br />Please check the FAQ, if you can't find an answer there and your problem persists please contact me.", errorMessage);
+		//errorMessage = String.format("Error message: %s<br /><br />Please check the FAQ, if you can't find an answer there and your problem persists please contact me.", errorMessage);
+		errorMessage = String.format("Error message: %s", errorMessage);
 
 		// FIX-ME: Tidy this up!
 		if (t != null) {

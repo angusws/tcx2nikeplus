@@ -20,7 +20,7 @@ public class NikePlusFastTest {
 	public void testGenerateFormNameValuePairsInputNull() throws UnsupportedEncodingException {
 		// Test we handle null input correctly.
 		expectedException.expect(NullPointerException.class);
-		expectedException.expectMessage("inputKeyValues argument was null.");
+		expectedException.expectMessage("inputKeyValues argument is null.");
 		new NikePlus().generateFormNameValuePairs(null);
 	}
 
