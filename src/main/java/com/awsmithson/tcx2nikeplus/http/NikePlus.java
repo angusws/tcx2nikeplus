@@ -20,7 +20,6 @@ import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.impl.cookie.BasicClientCookie;
 import org.apache.http.message.BasicNameValuePair;
-import org.apache.http.util.EntityUtils;
 import org.w3c.dom.Document;
 import org.xml.sax.SAXException;
 
@@ -118,14 +117,10 @@ public class NikePlus {
 				HttpEntity httpEntity = response.getEntity();
 				// Get the response and iterate through the cookies for "access_token".
 				if (httpEntity != null) {
-					try {
-						for (Cookie cookie : httpClientContext.getCookieStore().getCookies()) {
-							if (cookie.getName().equals("access_token")) {
-								return cookie.getValue();
-							}
+					for (Cookie cookie : httpClientContext.getCookieStore().getCookies()) {
+						if (cookie.getName().equals("access_token")) {
+							return cookie.getValue();
 						}
-					} finally {
-						EntityUtils.consume(httpEntity);
 					}
 				} else {
 					throw new IOException("Http response empty");
@@ -209,8 +204,6 @@ public class NikePlus {
 						log.out(Level.FINER, "\t%s", Util.documentToString(outDoc));
 					} catch (ParserConfigurationException | SAXException e) {
 						log.out(e);
-					} finally {
-						EntityUtils.consume(httpEntity);
 					}
 				}
 				else {
