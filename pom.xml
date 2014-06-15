@@ -36,6 +36,12 @@
     </dependency>
 
     <dependency>
+      <groupId>org.webjars</groupId>
+      <artifactId>extjs</artifactId>
+      <version>3.4.0</version>
+    </dependency>
+
+    <dependency>
       <groupId>com.google.code.findbugs</groupId>
       <artifactId>jsr305</artifactId>
       <version>2.0.3</version>
@@ -111,32 +117,77 @@
     <plugins>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
-          <artifactId>maven-compiler-plugin</artifactId>
-	  <version>3.1</version>
-          <configuration>
-            <source>1.7</source>
-            <target>1.7</target>
-          </configuration>
-        </plugin>
+        <artifactId>maven-compiler-plugin</artifactId>
+	<version>3.1</version>
+        <configuration>
+          <source>1.7</source>
+          <target>1.7</target>
+        </configuration>
+      </plugin>
 
-        <plugin>
-          <groupId>org.apache.maven.plugins</groupId>
-          <artifactId>maven-surefire-plugin</artifactId>
-          <version>2.17</version>
-        </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-dependency-plugin</artifactId>
+        <version>2.8</version>
+        <executions>
+          <execution>
+            <id>unpack</id>
+            <phase>prepare-package</phase>
+            <goals>
+              <goal>unpack</goal>
+            </goals>
+            <configuration>
+              <artifactItems>
+                <artifactItem>
+                  <groupId>org.webjars</groupId>
+                  <artifactId>extjs</artifactId>
+                  <version>3.4.0</version>
+                  <type>jar</type>
+		  <includes>
+		    META-INF/resources/webjars/extjs/3.4.0/ext-all.js,
+		    META-INF/resources/webjars/extjs/3.4.0/adapter/ext/ext-base.js,
+		    META-INF/resources/webjars/extjs/3.4.0/examples/ux/fileuploadfield/FileUploadField.js,
+		    META-INF/resources/webjars/extjs/3.4.0/resources/**
+		  </includes>
+                </artifactItem>
+              </artifactItems>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
 
-	<plugin>
-	  <groupId>org.jvnet.jaxb2.maven2</groupId>
-	  <artifactId>maven-jaxb2-plugin</artifactId>
-	  <version>0.9.0</version>
-	  <executions>
-	    <execution>
-	      <goals>
-		<goal>generate</goal>
-	      </goals>
-	    </execution>
-	  </executions>
-	</plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <version>2.17</version>
+      </plugin>
+
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-war-plugin</artifactId>
+        <version>2.4</version>
+        <configuration>
+	  <packagingExcludes>WEB-INF/lib/extjs-3.4.0.jar</packagingExcludes>
+          <webResources>
+            <resource>
+              <directory>${project.build.directory}/dependency/META-INF/resources/webjars</directory>
+            </resource>
+          </webResources>
+        </configuration>
+      </plugin>
+
+      <plugin>
+	<groupId>org.jvnet.jaxb2.maven2</groupId>
+	<artifactId>maven-jaxb2-plugin</artifactId>
+	<version>0.9.0</version>
+	<executions>
+	  <execution>
+	    <goals>
+	      <goal>generate</goal>
+	    </goals>
+	  </execution>
+	</executions>
+      </plugin>
     </plugins>
   </build>
 </project>
