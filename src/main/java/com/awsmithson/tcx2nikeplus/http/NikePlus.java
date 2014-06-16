@@ -1,9 +1,14 @@
 package com.awsmithson.tcx2nikeplus.http;
 
+import com.awsmithson.tcx2nikeplus.jaxb.JAXBObject;
 import com.awsmithson.tcx2nikeplus.nike.NikeActivityData;
 import com.awsmithson.tcx2nikeplus.util.Log;
 import com.awsmithson.tcx2nikeplus.util.Util;
 import com.google.common.base.Preconditions;
+import com.google.gson.Gson;
+import com.google.gson.JsonElement;
+import com.topografix.gpx._1._1.GpxType;
+import com.topografix.gpx._1._1.ObjectFactory;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpStatus;
 import org.apache.http.NameValuePair;
@@ -14,18 +19,23 @@ import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.protocol.HttpClientContext;
 import org.apache.http.cookie.Cookie;
 import org.apache.http.cookie.SetCookie;
+import org.apache.http.entity.ContentType;
 import org.apache.http.entity.mime.MultipartEntityBuilder;
+import org.apache.http.entity.mime.content.StringBody;
 import org.apache.http.impl.client.BasicCookieStore;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.impl.cookie.BasicClientCookie;
 import org.apache.http.message.BasicNameValuePair;
+import org.apache.http.util.EntityUtils;
 import org.w3c.dom.Document;
 import org.xml.sax.SAXException;
 
 import javax.annotation.Nonnull;
+import javax.xml.bind.JAXBException;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
@@ -57,7 +67,7 @@ public class NikePlus {
 
 	private static final int URL_DATA_SYNC_SUCCESS = HttpStatus.SC_OK;
 
-	private static final @Nonnull Log log = Log.getInstance();
+	private static final @Nonnull Log logger = Log.getInstance();
 
 
 
@@ -147,12 +157,12 @@ public class NikePlus {
 		Preconditions.checkNotNull(nikePassword, "nikePassword argument is null.");
 		Preconditions.checkNotNull(nikeActivitiesData, "garminActivitiesData argument is null.");
 
-		log.out("Uploading to Nike+...");
-		log.out(" - Authenticating...");
+		logger.out("Uploading to Nike+...");
+		logger.out(" - Authenticating...");
 		String accessToken = login(nikeEmail, nikePassword);
 
 		try {
-			log.out(" - Syncing data...");
+			logger.out(" - Syncing data...");
 			for (NikeActivityData nikeActivityData : nikeActivitiesData) {
 				if (!syncData(accessToken, nikeActivityData)) {
 					throw new IOException("There was a problem uploading to nike+.  Please try again later, if the problem persists contact me with details of the activity-id or tcx file.");
@@ -160,11 +170,12 @@ public class NikePlus {
 			}
 		}
 		finally {
-			log.out(" - Ending sync...");
+			logger.out(" - Ending sync...");
 			endSync(accessToken);
 		}
 	}
 
+	@Deprecated
 	private boolean syncData(@Nonnull String accessToken, @Nonnull NikeActivityData nikeActivityData) throws IOException {
 		try (CloseableHttpClient client = HttpClientBuilder.create().build()) {
 			HttpPost post = new HttpPost(String.format(URL_DATA_SYNC, accessToken));
@@ -188,8 +199,38 @@ public class NikePlus {
 		}
 	}
 
+	boolean syncData(@Nonnull String accessToken, @Nonnull JsonElement runJsonElement, @Nonnull GpxType gpxType) throws IOException, JAXBException {
+		Preconditions.checkNotNull(accessToken, "accessToken argument is null.");
+		Preconditions.checkNotNull(runJsonElement, "runJsonElement argument is null.");
+		Preconditions.checkNotNull(gpxType, "gpxType argument is null.");
 
-	private void endSync(@Nonnull String accessToken) throws IOException {
+		try (CloseableHttpClient client = HttpClientBuilder.create().build()) {
+			HttpPost post = new HttpPost(String.format(URL_DATA_SYNC, accessToken));
+			post.addHeader("user-agent", USER_AGENT);
+			post.addHeader("appid", "NIKEPLUSGPS");
+
+			try (ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream()) {
+				JAXBObject.GPX_TYPE.getMarshaller().marshal(new ObjectFactory().createGpx(gpxType), byteArrayOutputStream);
+
+				HttpEntity httpEntity = MultipartEntityBuilder.create()
+						.addPart("run", new StringBody(new Gson().toJson(runJsonElement), ContentType.APPLICATION_JSON))
+						.addBinaryBody("gpxXML", byteArrayOutputStream.toByteArray(), ContentType.TEXT_PLAIN, null)
+						.build();
+				post.setEntity(httpEntity);
+
+				logger.out("Posting to nikeplus...");
+				try (CloseableHttpResponse response = client.execute(post)) {
+					int statusCode = response.getStatusLine().getStatusCode();
+					logger.out("Nike+ sync response: %s - %s", statusCode, EntityUtils.toString(response.getEntity()));
+					return (URL_DATA_SYNC_SUCCESS == statusCode);
+				}
+			}
+		}
+	}
+
+	void endSync(@Nonnull String accessToken) throws IOException {
+		Preconditions.checkNotNull(accessToken, "accessToken argument is null.");
+
 		try (CloseableHttpClient client = HttpClientBuilder.create().build()) {
 			HttpPost post = new HttpPost(String.format("%s?%s", URL_DATA_SYNC_COMPLETE_ACCESS_TOKEN, Util.generateHttpParameter("access_token", accessToken)));
 			post.addHeader("user-agent", USER_AGENT);
@@ -201,12 +242,11 @@ public class NikePlus {
 					try (InputStream inputStream = httpEntity.getContent()) {
 						Document outDoc = DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(inputStream);
 						outDoc.normalize();
-						log.out(Level.FINER, "\t%s", Util.documentToString(outDoc));
+						logger.out(Level.FINER, "\t%s", Util.documentToString(outDoc));
 					} catch (ParserConfigurationException | SAXException e) {
-						log.out(e);
+						logger.out(e);
 					}
-				}
-				else {
+				} else {
 					throw new NullPointerException("Http response empty");
 				}
 			}

@@ -1,17 +1,27 @@
 package com.awsmithson.tcx2nikeplus.http;
 
 
+import com.awsmithson.tcx2nikeplus.jaxb.JAXBObject;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonParser;
+import com.topografix.gpx._1._1.GpxType;
 import org.junit.Assert;
 import org.junit.Test;
 import org.xml.sax.SAXException;
 
 import javax.annotation.Nonnull;
+import javax.xml.bind.JAXBException;
 import javax.xml.parsers.ParserConfigurationException;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.util.Properties;
 
 public class NikePlusSlowTest {
+
+	private static final @Nonnull String GPX_XML_2014_06_14 = "/nikeplus/gpxXML/2014-06-14_gpxXML-original.xml";
+	private static final @Nonnull String RUN_2014_06_14 = "/nikeplus/run/2014-06-14_run-original.json";
+	private static final @Nonnull String RUN_2014_06_14_MINIMAL = "/nikeplus/run/2014-06-14_run-minimal.json";
 
 	// Load "test.properties" file.
 	private static final @Nonnull Properties testProperties = new Properties();
@@ -33,7 +43,40 @@ public class NikePlusSlowTest {
 		String accessToken = nikePlus.login(testProperties.getProperty(PROPERTY_NIKEPLUS_EMAIL), testProperties.getProperty(PROPERTY_NIKEPLUS_PASSWORD).toCharArray());
 		Assert.assertNotNull("accessToken was null", accessToken);
 		Assert.assertTrue("accessToken length was 0", accessToken.length() > 0);
+		nikePlus.endSync(accessToken);
 	}
 
+	@Test
+	public void testNikePlusUploadOriginalRunJson() throws IOException, JAXBException {
+		Assert.assertNotNull("gpxXML file missing", getClass().getResource(GPX_XML_2014_06_14));
+		Assert.assertNotNull("Test file missing", getClass().getResource(RUN_2014_06_14));
+		testNikePlusUpload(getClass().getResourceAsStream(GPX_XML_2014_06_14), getClass().getResourceAsStream(RUN_2014_06_14));
+	}
 
+	@Test
+	public void testNikePlusUploadMinimalRunJson() throws IOException, JAXBException {
+		Assert.assertNotNull("gpxXML file missing", getClass().getResource(GPX_XML_2014_06_14));
+		Assert.assertNotNull("Test file missing", getClass().getResource(RUN_2014_06_14_MINIMAL));
+		testNikePlusUpload(getClass().getResourceAsStream(GPX_XML_2014_06_14), getClass().getResourceAsStream(RUN_2014_06_14_MINIMAL));
+	}
+
+	private void testNikePlusUpload(@Nonnull InputStream gpxXMLInputStream, @Nonnull InputStream runJsonInputStream) throws IOException, JAXBException {
+		NikePlus nikePlus = new NikePlus();
+		String accessToken = nikePlus.login(testProperties.getProperty(PROPERTY_NIKEPLUS_EMAIL), testProperties.getProperty(PROPERTY_NIKEPLUS_PASSWORD).toCharArray());
+		Assert.assertNotNull("accessToken was null", accessToken);
+		Assert.assertTrue("accessToken length was 0", accessToken.length() > 0);
+
+		try {
+			JsonElement runJsonElement = new JsonParser().parse(new InputStreamReader(runJsonInputStream));
+
+			//System.out.println(new Gson().toJson(runJsonElement));
+
+			GpxType gpxType = JAXBObject.GPX_TYPE.unmarshall(gpxXMLInputStream);
+			Assert.assertEquals("trk size incorrect", 1, gpxType.getTrk().size());
+			Assert.assertTrue("Got bad status-code from NikePlus", nikePlus.syncData(accessToken, runJsonElement, gpxType));
+		}
+		finally {
+			nikePlus.endSync(accessToken);
+		}
+	}
 }

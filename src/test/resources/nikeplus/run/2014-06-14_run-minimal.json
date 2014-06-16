@@ -1,0 +1,57 @@
+{
+    "distance": 2.317167236328125,
+    "duration": 489550.1098632812,
+    "startTime": 1402763450520,
+    "timeZoneId": "Europe\/London",
+    "type": "run",
+    "detail": [{
+        "metricType": "distance",
+        "intervalType": "time",
+        "intervalUnit": "sec",
+        "startTimeOffset": 0,
+        "intervalMetric": "10",
+        "objType": "dataStream",
+        "value": [0.037, 0.084, 0.131, 0.179, 0.226, 0.273, 0.341, 0.368, 0.415, 0.462, 0.510, 0.557, 0.604, 0.652, 0.699, 0.746, 0.793, 0.841, 0.888, 0.935, 0.983, 1.030, 1.077, 1.124, 1.172, 1.219, 1.266, 1.314, 1.361, 1.408, 1.455, 1.503, 1.550, 1.607, 1.655, 1.702, 1.749, 1.796, 1.844, 1.891, 1.938, 1.986, 2.033, 2.080, 2.128, 2.175, 2.222, 2.269, 2.317]
+    }, {
+        "metricType": "heartrate",
+        "intervalType": "time",
+        "intervalUnit": "sec",
+        "startTimeOffset": 0,
+        "intervalMetric": "10",
+        "objType": "dataStream",
+        "value": [120, 130, 140, 150, 160, 161, 162, 163, 164, 165, 166, 166, 167, 168, 169, 170, 170, 170, 170, 170, 170, 170, 170, 170, 170, 170, 170, 170, 170, 170, 170, 170, 170, 170, 170, 170, 170, 170, 170, 170, 170, 170, 170, 170, 170, 170, 170, 165, 160]
+    }],
+    "summary": {
+        "snapshots": [{
+            "name": "mileSplit",
+            "dataSeries": [{
+                "metrics": {
+                    "distance": 1,
+                    "duration": 312802
+                },
+                "objType": "dataPoint"
+            }]
+        }, {
+            "name": "kmSplit",
+            "dataSeries": [{
+                "metrics": {
+                    "distance": 1,
+                    "duration": 196084
+                },
+                "objType": "dataPoint"
+            }, {
+                "metrics": {
+                    "distance": 2,
+                    "duration": 363439
+                },
+                "objType": "dataPoint"
+            }]
+        }],
+        "deviceConfig": [{
+            "component": {
+                "type": "iphone",
+                "category": "device"
+            }
+        }]
+    }
+}

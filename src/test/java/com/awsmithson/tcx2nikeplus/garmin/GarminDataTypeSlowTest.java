@@ -2,6 +2,7 @@ package com.awsmithson.tcx2nikeplus.garmin;
 
 
 import com.awsmithson.tcx2nikeplus.convert.ConvertTcxV2;
+import com.awsmithson.tcx2nikeplus.jaxb.JAXBObject;
 import com.garmin.xmlschemas.trainingcenterdatabase.v2.TrainingCenterDatabaseT;
 import com.topografix.gpx._1._1.GpxType;
 import org.apache.http.impl.client.CloseableHttpClient;
@@ -13,11 +14,7 @@ import javax.xml.bind.JAXBException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URISyntaxException;
-import java.net.URL;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.util.Calendar;
-import java.util.TimeZone;
 
 public class GarminDataTypeSlowTest {
 
@@ -44,7 +41,7 @@ public class GarminDataTypeSlowTest {
 	public void testUnmarshallTcx() throws IOException, JAXBException {
 		Assert.assertNotNull("Test file missing", getClass().getResource(ACTIVITY_148656142_TCX));
 		try (InputStream inputStream = getClass().getResourceAsStream(ACTIVITY_148656142_TCX)) {
-			TrainingCenterDatabaseT trainingCenterDatabase = GarminDataType.TCX.unmarshall(inputStream);
+			TrainingCenterDatabaseT trainingCenterDatabase = JAXBObject.TRAINING_CENTER_DATABASE.unmarshall(inputStream);
 			Assert.assertEquals("activities size incorrect", 1, trainingCenterDatabase.getActivities().getActivity().size());
 			Calendar expected = Calendar.getInstance();
 			expected.set(2012, 1, 11, 9, 31, 5);
@@ -57,7 +54,7 @@ public class GarminDataTypeSlowTest {
 	public void testUnmarshallGpx() throws IOException, JAXBException {
 		Assert.assertNotNull("Test file missing", getClass().getResource(ACTIVITY_148656142_GPX));
 		try (InputStream inputStream = getClass().getResourceAsStream(ACTIVITY_148656142_GPX)) {
-			GpxType gpxType = GarminDataType.GPX.unmarshall(inputStream);
+			GpxType gpxType = JAXBObject.GPX_TYPE.unmarshall(inputStream);
 			Calendar expected = Calendar.getInstance();
 			expected.set(2012, 1, 11, 9, 31, 5);
 			expected.set(Calendar.MILLISECOND, 0);

@@ -1,11 +1,10 @@
 package com.awsmithson.tcx2nikeplus.garmin;
 
 
+import com.awsmithson.tcx2nikeplus.jaxb.JAXBObject;
 import com.awsmithson.tcx2nikeplus.util.Log;
-import com.garmin.xmlschemas.trainingcenterdatabase.v2.TrainingCenterDatabaseT;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
-import com.topografix.gpx._1._1.GpxType;
 import org.apache.http.client.entity.UrlEncodedFormEntity;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
@@ -16,10 +15,7 @@ import org.apache.http.message.BasicNameValuePair;
 import org.apache.http.util.EntityUtils;
 
 import javax.annotation.Nonnull;
-import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBException;
-import javax.xml.bind.Unmarshaller;
-import javax.xml.transform.stream.StreamSource;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
@@ -32,81 +28,29 @@ public enum GarminDataType {
 	TCX {
 		private static final @Nonnull String DOWNLOAD_URL = "https://connect.garmin.com/proxy/activity-service-1.0/tcx/activity/%d?full=true";
 
-		// JAXBContext and unmarshaller.
-		private final JAXBContext JAXB_CONTEXT = createTrainingCenterDatabaseJAXBContect();
-		private @Nonnull JAXBContext createTrainingCenterDatabaseJAXBContect() {
-			try {
-				return JAXBContext.newInstance(TrainingCenterDatabaseT.class);
-			} catch (JAXBException je) {
-				throw new ExceptionInInitializerError(je);
-			}
-		}
-		private final @Nonnull ThreadLocal<Unmarshaller> UNMARSHALLER = new ThreadLocal<Unmarshaller>() {
-			protected synchronized Unmarshaller initialValue() {
-				try {
-					return JAXB_CONTEXT.createUnmarshaller();
-				} catch (JAXBException e) {
-					throw new ExceptionInInitializerError(e);
-				}
-			}
-		};
-
-
 		@Override
 		@Nonnull String getDownloadUrlStringFormat() {
 			return DOWNLOAD_URL;
 		}
 
 		@Override
-		@Nonnull Unmarshaller getUnmarshaller() {
-			return UNMARSHALLER.get();
-		}
-
-		@Override
-		@Nonnull Class getUnmarshalledClass() {
-			return TrainingCenterDatabaseT.class;
+		@Nonnull JAXBObject getJAXBObject() {
+			return JAXBObject.TRAINING_CENTER_DATABASE;
 		}
 	},
 	GPX {
 		private static final @Nonnull String DOWNLOAD_URL = "https://connect.garmin.com/proxy/activity-service-1.1/gpx/activity/%s?full=true";
 
-		// JAXBContext and unmarshaller.
-		private final JAXBContext JAXB_CONTEXT = createGpxTypeJAXBContect();
-		private @Nonnull JAXBContext createGpxTypeJAXBContect() {
-			try {
-				return JAXBContext.newInstance(GpxType.class);
-			} catch (JAXBException je) {
-				throw new ExceptionInInitializerError(je);
-			}
-		}
-		private final @Nonnull ThreadLocal<Unmarshaller> UNMARSHALLER = new ThreadLocal<Unmarshaller>() {
-			protected synchronized Unmarshaller initialValue() {
-				try {
-					return JAXB_CONTEXT.createUnmarshaller();
-				} catch (JAXBException e) {
-					throw new ExceptionInInitializerError(e);
-				}
-			}
-		};
-
 		@Override
 		@Nonnull String getDownloadUrlStringFormat() {
 			return DOWNLOAD_URL;
 		}
 
-
 		@Override
-		@Nonnull Unmarshaller getUnmarshaller() {
-			return UNMARSHALLER.get();
-		}
-
-		@Override
-		@Nonnull Class getUnmarshalledClass() {
-			return GpxType.class;
+		@Nonnull JAXBObject getJAXBObject() {
+			return JAXBObject.GPX_TYPE;
 		}
 	};
-
-
 
 	private static final @Nonnull Log logger = Log.getInstance();
 	private static final @Nonnull String URL_ACTIVITIES = "https://connect.garmin.com/activities";
@@ -141,8 +85,7 @@ public enum GarminDataType {
 	}
 
 	abstract @Nonnull String getDownloadUrlStringFormat();
-	abstract @Nonnull Unmarshaller getUnmarshaller();
-	abstract @Nonnull Class getUnmarshalledClass();
+	abstract @Nonnull JAXBObject getJAXBObject();
 
 
 	public static @Nonnull CloseableHttpClient getGarminHttpSession() throws IOException {
@@ -166,13 +109,6 @@ public enum GarminDataType {
 		}
 	}
 
-	public @Nonnull <T> T unmarshall(@Nonnull InputStream inputStream) throws JAXBException {
-		Preconditions.checkNotNull(inputStream, "inputStream argument is null.");
-
-		//noinspection unchecked
-		return (T) getUnmarshaller().unmarshal(new StreamSource(inputStream), getUnmarshalledClass()).getValue();
-	}
-
 	public @Nonnull CloseableHttpResponse executeGarminHttpRequest(@Nonnull CloseableHttpClient httpClient, int activityId) throws IOException, URISyntaxException {
 		Preconditions.checkNotNull(httpClient, "httpClient argument is null.");
 
@@ -191,7 +127,7 @@ public enum GarminDataType {
 
 		try (CloseableHttpResponse response = executeGarminHttpRequest(httpClient, activityId)) {
 			try (InputStream inputStream = response.getEntity().getContent()) {
-				return unmarshall(inputStream);
+				return getJAXBObject().unmarshall(inputStream);
 			}
 		}
 	}
