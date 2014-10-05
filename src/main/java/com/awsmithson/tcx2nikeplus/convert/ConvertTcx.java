@@ -2,29 +2,24 @@ package com.awsmithson.tcx2nikeplus.convert;
 
 import com.awsmithson.tcx2nikeplus.util.Log;
 import com.awsmithson.tcx2nikeplus.util.Util;
-import java.io.File;
-import java.io.IOException;
-import java.net.MalformedURLException;
-import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Calendar;
-import java.util.Date;
-import java.util.Iterator;
-import java.util.TimeZone;
-import java.util.logging.Level;
-import javax.xml.datatype.DatatypeConfigurationException;
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
-import javax.xml.parsers.ParserConfigurationException;
-import org.apache.commons.math.ArgumentOutsideDomainException;
-import org.apache.commons.math.MathException;
-import org.apache.commons.math.analysis.interpolation.SplineInterpolator;
-import org.apache.commons.math.analysis.polynomials.PolynomialSplineFunction;
+import org.apache.commons.math3.analysis.interpolation.SplineInterpolator;
+import org.apache.commons.math3.analysis.polynomials.PolynomialSplineFunction;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
+
+import javax.xml.datatype.DatatypeConfigurationException;
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
+import java.io.File;
+import java.io.IOException;
+import java.net.MalformedURLException;
+import java.text.SimpleDateFormat;
+import java.util.*;
+import java.util.logging.Level;
 
 
 
@@ -335,14 +330,14 @@ public class ConvertTcx
 		}
 
 
-		long totalDuration = (long)(totalSeconds * 1000);
+		long totalDuration = (long) (totalSeconds * 1000);
 
 		_totalDuration = totalDuration;
 		_totalDistance = totalDistance;
 
 		// Calculate the end-time of the run (for use late to generate the xml filename).
 		_calEnd = (Calendar)(_calStart.clone());
-		_calEnd.add(Calendar.MILLISECOND, (int)totalDuration);
+		_calEnd.add(Calendar.MILLISECOND, (int) totalDuration);
 
 		// Total Duration
 		Util.appendElement(parent, "duration", totalDuration);
@@ -413,7 +408,7 @@ public class ConvertTcx
 	
 
 
-	private void appendWorkoutDetail(Document inDoc, Element sportsDataElement, Element runSummaryElement, ArrayList<Double> onDemandVPDistances) throws DatatypeConfigurationException, MathException {
+	private void appendWorkoutDetail(Document inDoc, Element sportsDataElement, Element runSummaryElement, ArrayList<Double> onDemandVPDistances) throws DatatypeConfigurationException {
 
 		// Generate the workout detail from the garmin Trackpoint data.
 		ArrayList<Trackpoint> trackpoints = new ArrayList<Trackpoint>();
@@ -421,6 +416,7 @@ public class ConvertTcx
 		generateSplineData(inDoc, trackpoints, pauseResumeTimes);
 
 		// Generates the following PolynomialSplineFunctions: distanceToDuration, durationToDistance, durationToPace, durationToHeartRate.
+
 		PolynomialSplineFunction[] splines = generateSplineFunctions(trackpoints);
 		appendSnapShotListAndExtendedData(sportsDataElement, onDemandVPDistances, pauseResumeTimes, splines[0], splines[1], splines[2], splines[3]);
 		
@@ -472,7 +468,7 @@ public class ConvertTcx
 		for (int i = 0; i < lapsLength; ++i) {
 			Node lap = laps.item(i);
 			long lapStartTime = Util.getCalendarNodeValue(lap.getAttributes().getNamedItem("StartTime")).getTimeInMillis();
-			long lapDuration = (long)(Double.parseDouble(Util.getSimpleNodeValue(Util.getFirstChildByNodeName(lap, "TotalTimeSeconds"))) * 1000);
+			long lapDuration = (long) Double.parseDouble(Util.getSimpleNodeValue(Util.getFirstChildByNodeName(lap, "TotalTimeSeconds"))) * 1000;
 
 			log.out(Level.FINE, "Start of lap %d\tDuration: %d -> %d.", (i + 1), lapStartDuration, (lapStartDuration + lapDuration));
 
@@ -735,7 +731,7 @@ public class ConvertTcx
 	 * @return The rounded number.
 	 */
 	private long roundToNearestThousand(long n) {
-		return (Math.round((double)n / 1000) * 1000);
+		return (Math.round((double) n / 1000) * 1000);
 	}
 
 
@@ -784,7 +780,7 @@ public class ConvertTcx
 	 * @param trackpoints The Trackpoint data from which to build the PolynomialSplineFunctions.
 	 * @return A PolynomialSplineFunction array in represnting the data listed in the description above.
 	 */
-	private PolynomialSplineFunction[] generateSplineFunctions(ArrayList<Trackpoint> trackpoints) throws MathException {
+	private PolynomialSplineFunction[] generateSplineFunctions(ArrayList<Trackpoint> trackpoints) {
 		int tpsSize = trackpoints.size();
 		double[] durationsArray = new double[tpsSize];
 		double[] distancesArray = new double[tpsSize];
@@ -812,7 +808,7 @@ public class ConvertTcx
 
 
 	private void appendSnapShotListAndExtendedData(Element sportsDataElement, ArrayList<Double> onDemandVPDistances, ArrayList<Long> pauseResumeTimes, 
-			PolynomialSplineFunction distanceToDuration, PolynomialSplineFunction durationToDistance, PolynomialSplineFunction durationToPace, PolynomialSplineFunction durationToHeartRate) throws ArgumentOutsideDomainException {
+			PolynomialSplineFunction distanceToDuration, PolynomialSplineFunction durationToDistance, PolynomialSplineFunction durationToPace, PolynomialSplineFunction durationToHeartRate) {
 		Element snapShotKmListElement = Util.appendElement(sportsDataElement, "snapShotList", null, "snapShotType", "kmSplit");
 		Element snapShotMileListElement = Util.appendElement(sportsDataElement, "snapShotList", null, "snapShotType", "mileSplit");
 		Element snapShotClickListElement = Util.appendElement(sportsDataElement, "snapShotList", null, "snapShotType", "userClick");
@@ -835,8 +831,8 @@ public class ConvertTcx
 			// Sometimes a pause/resume happens at the very end of a workout - if this is the case then we will not have decremented the
 			// durations properly so just leave them out - there's no point in documeting a pause directly before the end of the workout anyway.
 			if (pauseDuration < _totalDuration) {
-				long pace = (long)(interpolate(durationToPace, pauseDuration));
-				int heartRateBpm = (int)(interpolate(durationToHeartRate, pauseDuration));
+				long pace = (long) interpolate(durationToPace, pauseDuration);
+				int heartRateBpm = (int) interpolate(durationToHeartRate, pauseDuration);
 
 				// 2009-12-01: Looking at various runs on nike+ it seems the each pause/resume pair now has the same duration/distance
 				// (using the pause event).  I can't find my nike+ stuff to check this is 100% accurate but will go with it for now.
@@ -850,18 +846,18 @@ public class ConvertTcx
 
 		// Km splits
 		for (int i = 1000; i <= _totalDistance; i += 1000) {
-			double duration = (long)(interpolate(distanceToDuration, i));
-			appendSnapShot(snapShotKmListElement, (long)duration, i, (long)(interpolate(durationToPace, duration)), (int)(interpolate(durationToHeartRate, duration)));
+			double duration = (long) interpolate(distanceToDuration, i);
+			appendSnapShot(snapShotKmListElement, (long) duration, i, (long) interpolate(durationToPace, duration), (int) interpolate(durationToHeartRate, duration));
 		}
 
 		// Mile splits
 		for (double i = D_METRES_PER_MILE; i <= _totalDistance; i += D_METRES_PER_MILE) {
-			double duration = (long)(interpolate(distanceToDuration, i));
-			appendSnapShot(snapShotMileListElement, (long)duration, i, (long)(interpolate(durationToPace, duration)), (int)(interpolate(durationToHeartRate, duration)));
+			double duration = (long) interpolate(distanceToDuration, i);
+			appendSnapShot(snapShotMileListElement, (long) duration, i, (long) interpolate(durationToPace, duration), (int) interpolate(durationToHeartRate, duration));
 		}
 
 		// Stop split
-		appendSnapShot(snapShotClickListElement, _totalDuration, _totalDistance, (long)(interpolate(durationToPace, _totalDuration)), (int)(interpolate(durationToHeartRate, _totalDuration)), "event", "stop");
+		appendSnapShot(snapShotClickListElement, _totalDuration, _totalDistance, (long) interpolate(durationToPace, _totalDuration), (int) interpolate(durationToHeartRate, _totalDuration), "event", "stop");
 
 		// ExtendedDataLists
 		appendExtendedDataList(sportsDataElement, durationToDistance, durationToPace, durationToHeartRate);
@@ -882,13 +878,13 @@ public class ConvertTcx
 	 * @return Updated odvpsIndex value.
 	 */
 	private int addOnDemandVPClicks(Element snapShotClickListElement, double[] odvps, int odvpsIndex, double distanceLimit, 
-			PolynomialSplineFunction distanceToDuration, PolynomialSplineFunction durationToPace, PolynomialSplineFunction durationToHeartRate) throws ArgumentOutsideDomainException {
+			PolynomialSplineFunction distanceToDuration, PolynomialSplineFunction durationToPace, PolynomialSplineFunction durationToHeartRate) {
 		while ((odvpsIndex < odvps.length) && (odvps[odvpsIndex] <= distanceLimit)) {
 			log.out(Level.FINE, "onDemandVP %d\tdistance-since-previous: %f", odvpsIndex + 1, (odvpsIndex == 0) ? odvps[odvpsIndex] : odvps[odvpsIndex] - odvps[odvpsIndex-1]);
 			double odvpDistance = odvps[odvpsIndex++];
-			long odvpDuration = (long)(interpolate(distanceToDuration, odvpDistance));
-			long odvpPace = (long)(interpolate(durationToPace, odvpDuration));
-			int odvpHeartRateBpm = (int)(interpolate(durationToHeartRate, odvpDuration));
+			long odvpDuration = (long) interpolate(distanceToDuration, odvpDistance);
+			long odvpPace = (long) interpolate(durationToPace, odvpDuration);
+			int odvpHeartRateBpm = (int) interpolate(durationToHeartRate, odvpDuration);
 			appendSnapShot(snapShotClickListElement, odvpDuration, odvpDistance, odvpPace, odvpHeartRateBpm, "event", "onDemandVP");
 		}
 
@@ -913,15 +909,14 @@ public class ConvertTcx
 	  <extendedData dataType="distance" intervalType="time" intervalUnit="s" intervalValue="10">0.0. 1.1, 2.3, 4.7, etc</extendedData>
 	</extendedDataList>
 	*/
-	private void appendExtendedDataList(Element sportsDataElement, PolynomialSplineFunction durationToDistance, PolynomialSplineFunction durationToPace, PolynomialSplineFunction durationToHeartRate) throws ArgumentOutsideDomainException {
-		//int finalReading = (int)(durationToDistance.getXmax());
-		final int finalReading = (int)(durationToDistance.getKnots()[durationToDistance.getN() - 1]);
+	private void appendExtendedDataList(Element sportsDataElement, PolynomialSplineFunction durationToDistance, PolynomialSplineFunction durationToPace, PolynomialSplineFunction durationToHeartRate) {
+		final int finalReading = (int) durationToDistance.getKnots()[durationToDistance.getN() - 1];
 		double previousDistance = 0;
 		StringBuilder sbDistance = new StringBuilder("0.0");
 		StringBuilder sbSpeed = new StringBuilder("0.0");
 		StringBuilder sbHeartRate = new StringBuilder();
 
-		if (_includeHeartRateData) sbHeartRate.append((int)(interpolate(durationToHeartRate, 0d)));
+		if (_includeHeartRateData) sbHeartRate.append((int) interpolate(durationToHeartRate, 0d));
 
 		for (int i = 10000; i < finalReading; i = i + 10000) {
 
@@ -939,7 +934,7 @@ public class ConvertTcx
 			sbSpeed.append(String.format(", %.4f", MILLIS_PER_HOUR/(interpolate(durationToPace, i))));
 
 			// Heart Rate
-			if (_includeHeartRateData) sbHeartRate.append(String.format(", %d", (int)(interpolate(durationToHeartRate, i))));
+			if (_includeHeartRateData) sbHeartRate.append(String.format(", %d", (int) interpolate(durationToHeartRate, i)));
 		}
 
 		Element extendedDataListElement	= Util.appendElement(sportsDataElement, "extendedDataList");
@@ -963,18 +958,12 @@ public class ConvertTcx
 	}
 
 
-	private double interpolate(PolynomialSplineFunction spline, double x) throws ArgumentOutsideDomainException {
-		//if (x < spline.getXmin()) x = spline.getXmin();
-		//else if (x > spline.getXmax()) x = spline.getXmax();
-		//return spline.interpolate(x);
-		
-		try {
-			return spline.value(x);
-		}
-		catch (ArgumentOutsideDomainException aode) {
-			double[] knots = spline.getKnots();
-			return spline.value(knots[(x < knots[0]) ? 0 : spline.getN() -1]);
-		}
+	private double interpolate(PolynomialSplineFunction spline, double x) {
+		// Ensure that spline-min <= x <= spline-max
+		double[] knots = spline.getKnots();
+		x = Math.max(x, knots[0]);
+		x = Math.min(x, knots[knots.length - 1]);
+		return spline.value(x);
 	}
 	
 
@@ -1101,7 +1090,7 @@ public class ConvertTcx
 			long splitDuration = (startTp == null) ? _duration : (_duration - startTp.getDuration());
 			double splitDistance = (startTp == null) ? _distance : (_distance - startTp.getDistance());
 
-			return (long)((1000d/splitDistance) * splitDuration);
+			return (long) ((1000d/splitDistance) * splitDuration);
 		}
 
 		protected Trackpoint getPreviousTrackpoint() {

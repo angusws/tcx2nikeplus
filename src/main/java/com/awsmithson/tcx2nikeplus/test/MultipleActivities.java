@@ -8,7 +8,7 @@ import org.w3c.dom.Document;
 
 import java.io.File;
 
-
+@Deprecated
 public class MultipleActivities {
 
 	private static final Log log = Log.getInstance();

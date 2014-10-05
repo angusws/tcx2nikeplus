@@ -2,12 +2,11 @@ package com.awsmithson.tcx2nikeplus.http;
 
 import com.awsmithson.tcx2nikeplus.jaxb.JAXBObject;
 import com.awsmithson.tcx2nikeplus.nike.NikeActivityData;
+import com.awsmithson.tcx2nikeplus.nike.NikePlusSyncData;
 import com.awsmithson.tcx2nikeplus.util.Log;
 import com.awsmithson.tcx2nikeplus.util.Util;
 import com.google.common.base.Preconditions;
 import com.google.gson.Gson;
-import com.google.gson.JsonElement;
-import com.topografix.gpx._1._1.GpxType;
 import com.topografix.gpx._1._1.ObjectFactory;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpStatus;
@@ -48,7 +47,7 @@ import java.util.logging.Level;
 public class NikePlus {
 
 	// Load "nikeplus.properties" file.
-	private static final @Nonnull Properties nikePlusProperties = new Properties();;
+	private static final @Nonnull Properties nikePlusProperties = new Properties();
 	static {
 		try (InputStream inputStream = NikePlus.class.getResourceAsStream("/nikeplus.properties")) {
 			nikePlusProperties.load(inputStream);
@@ -199,33 +198,42 @@ public class NikePlus {
 		}
 	}
 
-	boolean syncData(@Nonnull String accessToken, @Nonnull JsonElement runJsonElement, @Nonnull GpxType gpxType) throws IOException, JAXBException {
+	boolean syncData(@Nonnull String accessToken, @Nonnull NikePlusSyncData... nikePlusSyncDatas) throws IOException, JAXBException {
 		Preconditions.checkNotNull(accessToken, "accessToken argument is null.");
-		Preconditions.checkNotNull(runJsonElement, "runJsonElement argument is null.");
-		Preconditions.checkNotNull(gpxType, "gpxType argument is null.");
+		Preconditions.checkNotNull(nikePlusSyncDatas, "nikePlusSyncDatas argument is null.");
+		Preconditions.checkArgument(nikePlusSyncDatas.length > 0, "No nikePlusSyncData to sync");
 
-		try (CloseableHttpClient client = HttpClientBuilder.create().build()) {
-			HttpPost post = new HttpPost(String.format(URL_DATA_SYNC, accessToken));
-			post.addHeader("user-agent", USER_AGENT);
-			post.addHeader("appid", "NIKEPLUSGPS");
+		// TODO: we must return some object which details which workouts succeeded/failed.
+		boolean success = true;
 
-			try (ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream()) {
-				JAXBObject.GPX_TYPE.getMarshaller().marshal(new ObjectFactory().createGpx(gpxType), byteArrayOutputStream);
+		for (NikePlusSyncData nikePlusSyncData : nikePlusSyncDatas) {
+			try (CloseableHttpClient client = HttpClientBuilder.create().build()) {
+				HttpPost post = new HttpPost(String.format(URL_DATA_SYNC, accessToken));
+				post.addHeader("user-agent", USER_AGENT);
+				post.addHeader("appid", "NIKEPLUSGPS");
 
-				HttpEntity httpEntity = MultipartEntityBuilder.create()
-						.addPart("run", new StringBody(new Gson().toJson(runJsonElement), ContentType.APPLICATION_JSON))
-						.addBinaryBody("gpxXML", byteArrayOutputStream.toByteArray(), ContentType.TEXT_PLAIN, null)
-						.build();
-				post.setEntity(httpEntity);
+				try (ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream()) {
+					JAXBObject.GPX_TYPE.getMarshaller().marshal(new ObjectFactory().createGpx(nikePlusSyncData.getGpxXML()), byteArrayOutputStream);
 
-				logger.out("Posting to nikeplus...");
-				try (CloseableHttpResponse response = client.execute(post)) {
-					int statusCode = response.getStatusLine().getStatusCode();
-					logger.out("Nike+ sync response: %s - %s", statusCode, EntityUtils.toString(response.getEntity()));
-					return (URL_DATA_SYNC_SUCCESS == statusCode);
+					HttpEntity httpEntity = MultipartEntityBuilder.create()
+							.addPart("run", new StringBody(new Gson().toJson(nikePlusSyncData.getRunJson()), ContentType.APPLICATION_JSON))
+							.addBinaryBody("gpxXML", byteArrayOutputStream.toByteArray(), ContentType.TEXT_PLAIN, null)
+							.build();
+					post.setEntity(httpEntity);
+
+					logger.out("Posting to nikeplus...");
+					try (CloseableHttpResponse response = client.execute(post)) {
+						int statusCode = response.getStatusLine().getStatusCode();
+						logger.out("Nike+ sync response: %s - %s", statusCode, EntityUtils.toString(response.getEntity()));
+						if (statusCode != URL_DATA_SYNC_SUCCESS) {
+							success = false;
+						}
+					}
 				}
 			}
 		}
+
+		return success;
 	}
 
 	void endSync(@Nonnull String accessToken) throws IOException {

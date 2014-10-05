@@ -19,7 +19,7 @@ import java.util.Calendar;
 public class GarminDataTypeSlowTest {
 
 	private static final @Nonnull String ACTIVITY_148656142_TCX = "/garmin/tcx/activity_148656142.tcx";
-	private static final @Nonnull String ACTIVITY_148656142_GPX = "/garmin/gpx/activity_148656142.gpx";
+	public static final @Nonnull String ACTIVITY_148656142_GPX = "/garmin/gpx/activity_148656142.gpx";
 
 	@Test
 	public void testDownloadGarminTcx() throws IOException, JAXBException, URISyntaxException {

@@ -1,15 +1,16 @@
 package com.awsmithson.tcx2nikeplus.test;
 
-import java.io.File;
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
-import org.apache.commons.math.ArgumentOutsideDomainException;
-import org.apache.commons.math.analysis.interpolation.SplineInterpolator;
-import org.apache.commons.math.analysis.polynomials.PolynomialSplineFunction;
+
+import org.apache.commons.math3.analysis.interpolation.SplineInterpolator;
+import org.apache.commons.math3.analysis.polynomials.PolynomialSplineFunction;
 import org.w3c.dom.Document;
 import org.w3c.dom.Node;
 
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import java.io.File;
 
+@Deprecated
 public class SnapShotPace {
 
 	public SnapShotPace() {
@@ -78,7 +79,7 @@ public class SnapShotPace {
 	}
 
 
-	private double getPace(PolynomialSplineFunction distanceToMillis, PolynomialSplineFunction millisToDistance, double endKm, double periodMillis) throws ArgumentOutsideDomainException {
+	private double getPace(PolynomialSplineFunction distanceToMillis, PolynomialSplineFunction millisToDistance, double endKm, double periodMillis) {
 
 		/*
 		double periodDistance = 0.08;				// distance in km

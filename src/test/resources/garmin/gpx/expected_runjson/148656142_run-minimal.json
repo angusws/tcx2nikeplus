@@ -1,0 +1,193 @@
+{
+  "distance": 4.996503,
+  "duration": 1032000.000000,
+  "startTime": 1328952665000,
+  "timeZoneId": "Europe/London",
+  "type": "run",
+  "detail": [
+    {
+      "metricType": "distance",
+      "intervalType": "time",
+      "intervalUnit": "sec",
+      "startTimeOffset": 0,
+      "intervalMetric": "10",
+      "objType": "dataStream",
+      "value": [
+        0.046,
+        0.102,
+        0.155,
+        0.210,
+        0.261,
+        0.312,
+        0.363,
+        0.413,
+        0.461,
+        0.511,
+        0.560,
+        0.608,
+        0.657,
+        0.707,
+        0.755,
+        0.804,
+        0.852,
+        0.899,
+        0.947,
+        0.995,
+        1.044,
+        1.092,
+        1.140,
+        1.188,
+        1.235,
+        1.285,
+        1.332,
+        1.380,
+        1.429,
+        1.479,
+        1.527,
+        1.575,
+        1.623,
+        1.671,
+        1.719,
+        1.767,
+        1.814,
+        1.861,
+        1.909,
+        1.957,
+        2.005,
+        2.053,
+        2.100,
+        2.149,
+        2.195,
+        2.243,
+        2.292,
+        2.340,
+        2.389,
+        2.435,
+        2.485,
+        2.532,
+        2.578,
+        2.622,
+        2.672,
+        2.720,
+        2.767,
+        2.817,
+        2.864,
+        2.912,
+        2.960,
+        3.008,
+        3.055,
+        3.103,
+        3.150,
+        3.197,
+        3.244,
+        3.291,
+        3.338,
+        3.386,
+        3.437,
+        3.482,
+        3.528,
+        3.574,
+        3.624,
+        3.671,
+        3.719,
+        3.766,
+        3.813,
+        3.860,
+        3.908,
+        3.955,
+        4.001,
+        4.049,
+        4.097,
+        4.144,
+        4.191,
+        4.239,
+        4.290,
+        4.341,
+        4.389,
+        4.437,
+        4.484,
+        4.533,
+        4.580,
+        4.626,
+        4.669,
+        4.718,
+        4.766,
+        4.818,
+        4.877,
+        4.932,
+        4.985
+      ]
+    }
+  ],
+  "summary": {
+    "snapshots": [
+      {
+        "name": "mileSplit",
+        "dataSeries": [
+          {
+            "metrics": {
+              "distance": 1,
+              "duration": 327074
+            },
+            "objType": "dataPoint"
+          },
+          {
+            "metrics": {
+              "distance": 2,
+              "duration": 664589
+            },
+            "objType": "dataPoint"
+          },
+          {
+            "metrics": {
+              "distance": 3,
+              "duration": 1001760
+            },
+            "objType": "dataPoint"
+          }
+        ]
+      },
+      {
+        "name": "kmSplit",
+        "dataSeries": [
+          {
+            "metrics": {
+              "distance": 1,
+              "duration": 200999
+            },
+            "objType": "dataPoint"
+          },
+          {
+            "metrics": {
+              "distance": 2,
+              "duration": 408889
+            },
+            "objType": "dataPoint"
+          },
+          {
+            "metrics": {
+              "distance": 3,
+              "duration": 618520
+            },
+            "objType": "dataPoint"
+          },
+          {
+            "metrics": {
+              "distance": 4,
+              "duration": 829848
+            },
+            "objType": "dataPoint"
+          }
+        ]
+      }
+    ],
+    "deviceConfig": [
+      {
+        "component": {
+          "type": "iphone",
+          "category": "device"
+        }
+      }
+    ]
+  }
+}
