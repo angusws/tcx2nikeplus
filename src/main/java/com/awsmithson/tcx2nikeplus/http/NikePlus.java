@@ -213,7 +213,7 @@ public class NikePlus {
 				post.addHeader("appid", "NIKEPLUSGPS");
 
 				try (ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream()) {
-					JAXBObject.GPX_TYPE.getMarshaller().marshal(new ObjectFactory().createGpx(nikePlusSyncData.getGpxXML()), byteArrayOutputStream);
+					JAXBObject.GPX_TYPE.marshal(new ObjectFactory().createGpx(nikePlusSyncData.getGpxXML()), byteArrayOutputStream);
 
 					HttpEntity httpEntity = MultipartEntityBuilder.create()
 							.addPart("run", new StringBody(new Gson().toJson(nikePlusSyncData.getRunJson()), ContentType.APPLICATION_JSON))

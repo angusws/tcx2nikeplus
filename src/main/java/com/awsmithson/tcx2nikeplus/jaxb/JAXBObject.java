@@ -7,10 +7,12 @@ import com.topografix.gpx._1._1.GpxType;
 
 import javax.annotation.Nonnull;
 import javax.xml.bind.JAXBContext;
+import javax.xml.bind.JAXBElement;
 import javax.xml.bind.JAXBException;
 import javax.xml.bind.Marshaller;
 import javax.xml.bind.Unmarshaller;
 import javax.xml.transform.stream.StreamSource;
+import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
 
 public enum JAXBObject {
@@ -61,12 +63,18 @@ public enum JAXBObject {
 		}
 	};
 
-	public @Nonnull Marshaller getMarshaller() {
+	private @Nonnull Marshaller getMarshaller() {
 		return MARSHALLER.get();
 	}
 
-	@Nonnull Unmarshaller getUnmarshaller() {
+	private @Nonnull Unmarshaller getUnmarshaller() {
 		return UNMARSHALLER.get();
+	}
+
+	public void marshal(@Nonnull JAXBElement<?> jaxbElement, @Nonnull ByteArrayOutputStream byteArrayOutputStream) throws JAXBException {
+		Preconditions.checkNotNull(jaxbElement, "jaxbElement argument is null.");
+		Preconditions.checkNotNull(byteArrayOutputStream, "byteArrayOutputStream argument is null.");
+		getMarshaller().marshal(jaxbElement, byteArrayOutputStream);
 	}
 
 	public @Nonnull <T> T unmarshall(@Nonnull InputStream inputStream) throws JAXBException {
