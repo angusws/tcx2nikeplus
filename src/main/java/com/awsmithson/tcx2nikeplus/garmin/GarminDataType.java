@@ -96,13 +96,13 @@ public enum GarminDataType {
 		// 1 - Initial attempt to view activities, which will set cookies and redirect us to sign-in page.
 		HttpGet get = new HttpGet(URL_ACTIVITIES);
 		try (CloseableHttpResponse response1 = client.execute(get)) {
-			EntityUtils.consume(response1.getEntity());
+			EntityUtils.consumeQuietly(response1.getEntity());
 
 			// 2 - Sign-in attempt
 			HttpPost post = new HttpPost(URL_SIGN_IN);
 			post.setEntity(GARMIN_LOGIN_FORM_ENGITY);
 			try (CloseableHttpResponse response2 = client.execute(post)) {
-				EntityUtils.consume(response2.getEntity());
+				EntityUtils.consumeQuietly(response2.getEntity());
 			}
 
 			return client;
@@ -127,7 +127,9 @@ public enum GarminDataType {
 
 		try (CloseableHttpResponse response = executeGarminHttpRequest(httpClient, activityId)) {
 			try (InputStream inputStream = response.getEntity().getContent()) {
-				return getJAXBObject().unmarshall(inputStream);
+				T output = getJAXBObject().unmarshall(inputStream);
+				EntityUtils.consumeQuietly(response.getEntity());
+				return output;
 			}
 		}
 	}
