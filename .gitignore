@@ -1,5 +1,9 @@
 *~
 *nohup.out
+*.iml
+*.ipr
+*.iws
+*.idea/
 target/
 etc/
 etc-test/
