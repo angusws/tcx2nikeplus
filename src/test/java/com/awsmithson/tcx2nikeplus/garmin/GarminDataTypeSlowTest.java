@@ -1,7 +1,6 @@
 package com.awsmithson.tcx2nikeplus.garmin;
 
 
-import com.awsmithson.tcx2nikeplus.convert.ConvertTcxV2;
 import com.awsmithson.tcx2nikeplus.jaxb.JAXBObject;
 import com.garmin.xmlschemas.trainingcenterdatabase.v2.TrainingCenterDatabaseT;
 import com.topografix.gpx._1._1.GpxType;
@@ -15,6 +14,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.URISyntaxException;
 import java.util.Calendar;
+import java.util.Date;
 
 public class GarminDataTypeSlowTest {
 
@@ -46,7 +46,8 @@ public class GarminDataTypeSlowTest {
 			Calendar expected = Calendar.getInstance();
 			expected.set(2012, 1, 11, 9, 31, 5);
 			expected.set(Calendar.MILLISECOND, 0);
-			Assert.assertEquals("activity start time incorrect", expected.getTime(), ConvertTcxV2.getActivityStartTime(trainingCenterDatabase.getActivities().getActivity().get(0)));
+			Date startTime = trainingCenterDatabase.getActivities().getActivity().get(0).getId().toGregorianCalendar().getTime();
+			Assert.assertEquals("activity start time incorrect", expected.getTime(), startTime);
 		}
 	}
 
