@@ -267,7 +267,7 @@ public class GpxToRunJson implements Converter<GpxType, RunJson> {
 	}
 
 
-	private class SplineFunctions {
+	private static class SplineFunctions {
 		private final @Nonnull PolynomialSplineFunction durationToDistance;
 		private final @Nonnull PolynomialSplineFunction distanceToDuration;
 		private final @Nullable PolynomialSplineFunction durationToHeartRate;
