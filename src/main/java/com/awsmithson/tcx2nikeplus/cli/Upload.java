@@ -8,7 +8,7 @@ import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import java.io.File;
 
-
+@Deprecated
 public class Upload
 {
 	public static void main(String[] args) {
@@ -19,7 +19,6 @@ public class Upload
 
 
 
-		NikePlus np = new NikePlus();
 		try {
 			DocumentBuilder documentBuilder = DocumentBuilderFactory.newInstance().newDocumentBuilder();
 			Document runXML = documentBuilder.parse(tcxFile);
@@ -27,7 +26,7 @@ public class Upload
 
 			NikeActivityData nikeActivityData = new NikeActivityData(runXML, gpxXML);
 
-			np.fullSync(nikePlusEmail, nikePlusPassword.toCharArray(), nikeActivityData);
+			NikePlus.fullSync(nikePlusEmail, nikePlusPassword.toCharArray(), nikeActivityData);
 		}
 		catch (Throwable t) {
 			t.printStackTrace();

@@ -21,7 +21,7 @@ public class NikePlusFastTest {
 		// Test we handle null input correctly.
 		expectedException.expect(NullPointerException.class);
 		expectedException.expectMessage("inputKeyValues argument is null.");
-		new NikePlus().generateFormNameValuePairs(null);
+		NikePlus.generateFormNameValuePairs(null);
 	}
 
 	@Test
@@ -29,17 +29,15 @@ public class NikePlusFastTest {
 		// Test we handle no input correctly.
 		expectedException.expect(IllegalArgumentException.class);
 		expectedException.expectMessage("No input key/values specified.");
-		new NikePlus().generateFormNameValuePairs();
+		NikePlus.generateFormNameValuePairs();
 	}
 
 	@Test
 	public void testGenerateFormNameValuePairsInputLengthOdd() throws UnsupportedEncodingException {
-		NikePlus nikePlus = new NikePlus();
-
 		// Test we handle 'null' input correctly (actually a single-element array, where the element value is null).
 		try {
 			String input = null;
-			nikePlus.generateFormNameValuePairs(input);
+			NikePlus.generateFormNameValuePairs(input);
 			Assert.fail(String.format("Expected %s", IllegalArgumentException.class.getCanonicalName()));
 		} catch (IllegalArgumentException iae) {
 			Assert.assertEquals("Odd number of name-value pairs: 1.", iae.getMessage());
@@ -47,7 +45,7 @@ public class NikePlusFastTest {
 
 		// Test we handle a one--element String[] correctly.
 		try {
-			nikePlus.generateFormNameValuePairs("test");
+			NikePlus.generateFormNameValuePairs("test");
 			Assert.fail(String.format("Expected %s", IllegalArgumentException.class.getCanonicalName()));
 		} catch (IllegalArgumentException iae) {
 			Assert.assertEquals("Odd number of name-value pairs: 1.", iae.getMessage());
@@ -55,7 +53,7 @@ public class NikePlusFastTest {
 
 		// Test we handle a three-element String[] correctly.
 		try {
-			nikePlus.generateFormNameValuePairs("test1", "test2", "test3");
+			NikePlus.generateFormNameValuePairs("test1", "test2", "test3");
 			Assert.fail(String.format("Expected %s", IllegalArgumentException.class.getCanonicalName()));
 		} catch (IllegalArgumentException iae) {
 			Assert.assertEquals("Odd number of name-value pairs: 3.", iae.getMessage());
@@ -64,14 +62,13 @@ public class NikePlusFastTest {
 
 	@Test
 	public void testGenerateFormNameValuePairsInput() throws IOException {
-		NikePlus nikePlus = new NikePlus();
-		verifyFormNameValuePairsOutput("key=value", nikePlus, "key", "value");
-		verifyFormNameValuePairsOutput("key1=value1&key2=value2", nikePlus, "key1", "value1", "key2", "value2");
-		verifyFormNameValuePairsOutput("key1=value1&test%3C%3Ehello=some%26other%40characters%24", nikePlus, "key1", "value1", "test<>hello", "some&other@characters$");
+		verifyFormNameValuePairsOutput("key=value", "key", "value");
+		verifyFormNameValuePairsOutput("key1=value1&key2=value2", "key1", "value1", "key2", "value2");
+		verifyFormNameValuePairsOutput("key1=value1&test%3C%3Ehello=some%26other%40characters%24", "key1", "value1", "test<>hello", "some&other@characters$");
 	}
 
-	private void verifyFormNameValuePairsOutput(@Nonnull String expected, @Nonnull NikePlus nikePlus, @Nonnull String ... input) throws IOException {
-		UrlEncodedFormEntity urlEncodedFormEntity = nikePlus.generateFormNameValuePairs(input);
+	private void verifyFormNameValuePairsOutput(@Nonnull String expected, @Nonnull String ... input) throws IOException {
+		UrlEncodedFormEntity urlEncodedFormEntity = NikePlus.generateFormNameValuePairs(input);
 		Assert.assertEquals("application/x-www-form-urlencoded; charset=UTF-8", urlEncodedFormEntity.getContentType().getValue());
 		Assert.assertEquals(expected, IOUtils.toString(urlEncodedFormEntity.getContent()));
 	}

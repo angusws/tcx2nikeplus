@@ -122,7 +122,7 @@ public enum GarminDataType {
 		return closeableHttpResponse;
 	}
 
-	@Nonnull <T> T downloadAndUnmarshall(@Nonnull CloseableHttpClient httpClient, int activityId) throws JAXBException, IOException, URISyntaxException {
+	public @Nonnull <T> T downloadAndUnmarshall(@Nonnull CloseableHttpClient httpClient, int activityId) throws JAXBException, IOException, URISyntaxException {
 		Preconditions.checkNotNull(httpClient, "httpClient argument is null.");
 
 		try (CloseableHttpResponse response = executeGarminHttpRequest(httpClient, activityId)) {

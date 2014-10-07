@@ -70,7 +70,7 @@ public class NikePlus {
 
 
 
-	@Nonnull UrlEncodedFormEntity generateFormNameValuePairs(@Nonnull String ... inputKeyValues) throws UnsupportedEncodingException {
+	static @Nonnull UrlEncodedFormEntity generateFormNameValuePairs(@Nonnull String ... inputKeyValues) throws UnsupportedEncodingException {
 		Preconditions.checkNotNull(inputKeyValues, "inputKeyValues argument is null.");
 		int inputLength = inputKeyValues.length;
 		Preconditions.checkArgument(inputLength > 0, "No input key/values specified.");
@@ -85,7 +85,7 @@ public class NikePlus {
 	}
 
 
-	private @Nonnull SetCookie createCookie(@Nonnull String key, @Nonnull String value) {
+	private static @Nonnull SetCookie createCookie(@Nonnull String key, @Nonnull String value) {
 		SetCookie cookie = new BasicClientCookie(key, value);
 		cookie.setPath("/");
 		cookie.setDomain(URL_LOGIN_DOMAIN);
@@ -99,7 +99,7 @@ public class NikePlus {
 	 * @return nike+ access_token..
 	 * @throws IOException If we are unable to successfully authenticate with Nike+.
 	 */
-	public @Nonnull String login(@Nonnull String nikeEmail, @Nonnull char[] nikePassword) throws IOException {
+	public static @Nonnull String login(@Nonnull String nikeEmail, @Nonnull char[] nikePassword) throws IOException {
 		Preconditions.checkNotNull(nikeEmail, "nikeEmail argument is null.");
 		Preconditions.checkNotNull(nikePassword, "nikePassword argument is null.");
 
@@ -108,7 +108,6 @@ public class NikePlus {
 		cookieStore.addCookie(createCookie("app", nikePlusProperties.getProperty("NIKEPLUS_APP")));
 		cookieStore.addCookie(createCookie("client_id", nikePlusProperties.getProperty("NIKEPLUS_CLIENT_ID")));
 		cookieStore.addCookie(createCookie("client_secret", nikePlusProperties.getProperty("NIKEPLUS_CLIENT_SECRET")));
-
 
 		// Create the HttpClient, setting the cookie store.
 		try (CloseableHttpClient client = HttpClientBuilder.create()
@@ -122,6 +121,7 @@ public class NikePlus {
 
 			// Send the HTTP request.
 			HttpClientContext httpClientContext = HttpClientContext.create();
+			logger.out("Authenticating against Nike+");
 			try (CloseableHttpResponse response = client.execute(post, httpClientContext)) {
 				HttpEntity httpEntity = response.getEntity();
 				// Get the response and iterate through the cookies for "access_token".
@@ -139,7 +139,7 @@ public class NikePlus {
 
 		// If we reach here, we haven't got an access-token back for whatever reason.
 		// Throw IOException with this (rather crude) error message.
-		throw new IOException("Unable to authenticate with nike+.<br />Please check email and nikePassword.<br /><br />" +
+		throw new IOException("Unable to authenticate with Nike+.<br />Please check email and nikePassword.<br /><br />" +
 				"The Nike+ service I connect to seems to not like certain complex characters in the nikePassword, so if you have issues please try simplifying your nikePassword on their website.  " +
 				"Apologies, but this is out of my control.");
 	}
@@ -151,31 +151,36 @@ public class NikePlus {
 	 * @param nikeActivitiesData Nike activities data to upload.
 	 * @throws IOException If there was a problem communicating with nike+.
 	 */
-	public void fullSync(@Nonnull String nikeEmail, @Nonnull char[] nikePassword, @Nonnull NikeActivityData... nikeActivitiesData) throws IOException {
+	@Deprecated
+	public static void fullSync(@Nonnull String nikeEmail, @Nonnull char[] nikePassword, @Nonnull NikeActivityData... nikeActivitiesData) throws IOException {
 		Preconditions.checkNotNull(nikeEmail, "nikeEmail argument is null.");
 		Preconditions.checkNotNull(nikePassword, "nikePassword argument is null.");
 		Preconditions.checkNotNull(nikeActivitiesData, "garminActivitiesData argument is null.");
 
 		logger.out("Uploading to Nike+...");
 		logger.out(" - Authenticating...");
-		String accessToken = login(nikeEmail, nikePassword);
+		String nikeAccessToken = login(nikeEmail, nikePassword);
+		fullSync(nikeAccessToken, nikeActivitiesData);
+	}
 
+	@Deprecated
+	public static void fullSync(@Nonnull String nikeAccessToken, @Nonnull NikeActivityData... nikeActivitiesData) throws IOException {
 		try {
 			logger.out(" - Syncing data...");
 			for (NikeActivityData nikeActivityData : nikeActivitiesData) {
-				if (!syncData(accessToken, nikeActivityData)) {
+				if (!syncData(nikeAccessToken, nikeActivityData)) {
 					throw new IOException("There was a problem uploading to nike+.  Please try again later, if the problem persists contact me with details of the activity-id or tcx file.");
 				}
 			}
 		}
 		finally {
 			logger.out(" - Ending sync...");
-			endSync(accessToken);
+			endSync(nikeAccessToken);
 		}
 	}
 
 	@Deprecated
-	private boolean syncData(@Nonnull String accessToken, @Nonnull NikeActivityData nikeActivityData) throws IOException {
+	private static boolean syncData(@Nonnull String accessToken, @Nonnull NikeActivityData nikeActivityData) throws IOException {
 		try (CloseableHttpClient client = HttpClientBuilder.create().build()) {
 			HttpPost post = new HttpPost(String.format(URL_DATA_SYNC, accessToken));
 			post.addHeader("user-agent", USER_AGENT);
@@ -198,7 +203,7 @@ public class NikePlus {
 		}
 	}
 
-	boolean syncData(@Nonnull String accessToken, @Nonnull NikePlusSyncData... nikePlusSyncDatas) throws IOException, JAXBException {
+	public static boolean syncData(@Nonnull String accessToken, @Nonnull NikePlusSyncData... nikePlusSyncDatas) throws IOException, JAXBException {
 		Preconditions.checkNotNull(accessToken, "accessToken argument is null.");
 		Preconditions.checkNotNull(nikePlusSyncDatas, "nikePlusSyncDatas argument is null.");
 		Preconditions.checkArgument(nikePlusSyncDatas.length > 0, "No nikePlusSyncData to sync");
@@ -221,10 +226,10 @@ public class NikePlus {
 							.build();
 					post.setEntity(httpEntity);
 
-					logger.out("Posting to nikeplus...");
+					logger.out("Posting to Nike+");
 					try (CloseableHttpResponse response = client.execute(post)) {
 						int statusCode = response.getStatusLine().getStatusCode();
-						logger.out("Nike+ sync response: %s - %s", statusCode, EntityUtils.toString(response.getEntity()));
+						logger.out(" - Nike+ sync response: %s - %s", statusCode, EntityUtils.toString(response.getEntity()));
 						if (statusCode != URL_DATA_SYNC_SUCCESS) {
 							success = false;
 						}
@@ -236,7 +241,7 @@ public class NikePlus {
 		return success;
 	}
 
-	void endSync(@Nonnull String accessToken) throws IOException {
+	public static void endSync(@Nonnull String accessToken) throws IOException {
 		Preconditions.checkNotNull(accessToken, "accessToken argument is null.");
 
 		try (CloseableHttpClient client = HttpClientBuilder.create().build()) {

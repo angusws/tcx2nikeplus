@@ -28,6 +28,15 @@ public class RunJson {
 		this.summary = Preconditions.checkNotNull(summary, "summary argument is null.");
 	}
 
+
+	public @Nonnull BigDecimal getDistance() {
+		return distance;
+	}
+
+	public @Nonnull BigDecimal getDuration() {
+		return duration;
+	}
+
 	public static class Detail {
 		private final @Nonnull String metricType;
 		private final @Nonnull String intervalType;
@@ -71,7 +80,7 @@ public class RunJson {
 				this.name = Preconditions.checkNotNull(name, "value argument is null.");
 				this.dataSeries = Preconditions.checkNotNull(dataSeries, "dataSeries argument is null.");
 			}
-			
+
 			public static class DataSeries {
 				private final @Nonnull Metrics metrics;
 				private final @Nonnull String objType;
@@ -81,15 +90,15 @@ public class RunJson {
 					this.objType = Preconditions.checkNotNull(objType, "objType argument is null.");
 				}
 
-                public static class Metrics {
-                    private final int distance;
-                    private final long duration;
+				public static class Metrics {
+					private final int distance;
+					private final long duration;
 
-                    public Metrics(int distance, long duration) {
-                        this.distance = distance;
-                        this.duration = duration;
-                    }
-                }
+					public Metrics(int distance, long duration) {
+						this.distance = distance;
+						this.duration = duration;
+					}
+				}
 			}
 		}
 
@@ -105,8 +114,8 @@ public class RunJson {
 				private final @Nonnull String category;
 
 				public Component(@Nonnull String type, @Nonnull String category) {
-					this.type = Preconditions.checkNotNull(type, "type argument is null.");;
-					this.category = Preconditions.checkNotNull(category, "category argument is null.");;
+					this.type = Preconditions.checkNotNull(type, "type argument is null.");
+					this.category = Preconditions.checkNotNull(category, "category argument is null.");
 				}
 			}
 		}

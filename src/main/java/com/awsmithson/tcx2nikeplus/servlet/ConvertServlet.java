@@ -2,29 +2,43 @@ package com.awsmithson.tcx2nikeplus.servlet;
 
 import com.awsmithson.tcx2nikeplus.convert.ConvertGpx;
 import com.awsmithson.tcx2nikeplus.convert.ConvertTcx;
+import com.awsmithson.tcx2nikeplus.convert.Converter;
+import com.awsmithson.tcx2nikeplus.convert.GpxToRunJson;
 import com.awsmithson.tcx2nikeplus.garmin.GarminActivityData;
 import com.awsmithson.tcx2nikeplus.garmin.GarminDataType;
 import com.awsmithson.tcx2nikeplus.http.Garmin;
 import com.awsmithson.tcx2nikeplus.http.NikePlus;
 import com.awsmithson.tcx2nikeplus.nike.NikeActivityData;
+import com.awsmithson.tcx2nikeplus.nike.NikePlusSyncData;
+import com.awsmithson.tcx2nikeplus.nike.RunJson;
 import com.awsmithson.tcx2nikeplus.util.Log;
 import com.awsmithson.tcx2nikeplus.util.Util;
+import com.google.common.annotations.Beta;
 import com.google.common.collect.Lists;
+import com.google.gson.Gson;
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import com.topografix.gpx._1._1.GpxType;
 import org.apache.commons.fileupload.FileItemFactory;
 import org.apache.commons.fileupload.disk.DiskFileItem;
 import org.apache.commons.fileupload.disk.DiskFileItemFactory;
 import org.apache.commons.fileupload.servlet.ServletFileUpload;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.w3c.dom.Document;
+import org.xml.sax.SAXException;
 
+import javax.annotation.Nonnull;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import javax.xml.bind.JAXBException;
+import javax.xml.parsers.ParserConfigurationException;
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.math.BigDecimal;
+import java.net.URISyntaxException;
 import java.util.List;
 import java.util.logging.Level;
 
@@ -97,11 +111,27 @@ public class ConvertServlet extends HttpServlet
 					}
 				}
 
+
+				if (nikeEmail == null) {
+					throw new NullPointerException("nikeEmail form field is null");
+				}
+				if (nikePassword == null) {
+					throw new NullPointerException("nikePassword form field is null");
+				}
+
+				// Log into nikeplus.
+				String nikeAccessToken = NikePlus.login(nikeEmail, nikePassword);
+
+
 				List<GarminActivityData> garminActivitiesData = Lists.newArrayList();
 
 				if (garminActivityId != null) {
-					// If we have a garmin actvity ID, download the garmin tcx & gpx data and add to our garmin-activities list..
+					// If we have a garmin actvity ID, download the garmin tcx & gpx data and add to our garmin-activities list.
 					log.out("Received convert-activity-id request, id: %d", garminActivityId);
+					if (processGpx(garminActivityId, nikeAccessToken, jout, out)) {
+						return;
+					}
+
 					try (CloseableHttpClient client = GarminDataType.getGarminHttpSession()) {
 						garminActivitiesData.add(new GarminActivityData(
 								Garmin.downloadGarminTcx(client, garminActivityId),
@@ -136,8 +166,7 @@ public class ConvertServlet extends HttpServlet
 				}
 
 				// Upload to nikeplus.
-				NikePlus u = new NikePlus();
-				u.fullSync(nikeEmail, nikePassword, nikeActivitiesData);
+				NikePlus.fullSync(nikeAccessToken, nikeActivitiesData);
 				String message = "Conversion & Upload Successful.";
 				succeed(out, jout, message, convertTcx.getTotalDurationMillis(), convertTcx.getTotalDistanceMetres());
 
@@ -151,7 +180,42 @@ public class ConvertServlet extends HttpServlet
 			out.close();
 		}
 	}
-	
+
+	@Beta
+	private boolean processGpx(int garminActivityId,
+							   @Nonnull String nikeAccessToken,
+							   @Nonnull JsonObject jout,
+							   @Nonnull PrintWriter out) throws IOException, JAXBException, URISyntaxException, ParserConfigurationException, SAXException, ServletException {
+
+		log.out("Processing (GPX beta) activity-id %d", garminActivityId);
+		String errorMessage = String.format("Failed (GPX beta), activity-id %d", garminActivityId);
+		try (CloseableHttpClient closeableHttpClient = GarminDataType.getGarminHttpSession()) {
+			GpxType gpxXml = GarminDataType.GPX.downloadAndUnmarshall(closeableHttpClient, garminActivityId);
+			Converter<GpxType, RunJson> gpxToRunJson = new GpxToRunJson();
+			RunJson runJson = gpxToRunJson.convert(gpxXml);
+			JsonElement runJsonElement = new Gson().toJsonTree(runJson);
+
+
+
+			try {
+				boolean success = NikePlus.syncData(nikeAccessToken, new NikePlusSyncData(runJsonElement, gpxXml));
+				if (success) {
+					log.out("Conversion & Upload Successful (GPX beta), activity-id %d", garminActivityId);
+					String message = "Conversion & Upload Successful.";
+					succeed(out, jout, message, runJson.getDuration().longValue(), runJson.getDistance().multiply(new BigDecimal("1000")).doubleValue());
+				} else {
+					log.out(errorMessage);
+				}
+				return success;
+			}
+			finally {
+				NikePlus.endSync(nikeAccessToken);
+			}
+		} catch (Throwable t) {
+			log.out(Level.INFO, errorMessage, t);
+			return false;
+		}
+	}
 
 	/**
 	 * Check if the DiskFileItem fieldName matches that of requiredFieldName and that the item value has non-zero length.
@@ -228,39 +292,37 @@ public class ConvertServlet extends HttpServlet
 		out.println(jout);
 	}
 
-    /** 
-     * Handles the HTTP <code>GET</code> method.
-     * @param request servlet request
-     * @param response servlet response
-     * @throws ServletException if a servlet-specific error occurs
-     * @throws IOException if an I/O error occurs
-     */
-    @Override
-    protected void doGet(HttpServletRequest request, HttpServletResponse response)
-    throws ServletException, IOException {
-        processRequest(request, response);
-    } 
+	/**
+	* Handles the HTTP <code>GET</code> method.
+	* @param request servlet request
+	* @param response servlet response
+	* @throws ServletException if a servlet-specific error occurs
+	* @throws IOException if an I/O error occurs
+	*/
+	@Override
+	protected void doGet(HttpServletRequest request, HttpServletResponse response)
+	throws ServletException, IOException {
+		processRequest(request, response);
+	}
 
-    /** 
-     * Handles the HTTP <code>POST</code> method.
-     * @param request servlet request
-     * @param response servlet response
-     * @throws ServletException if a servlet-specific error occurs
-     * @throws IOException if an I/O error occurs
-     */
-    @Override
-    protected void doPost(HttpServletRequest request, HttpServletResponse response)
-    throws ServletException, IOException {
-        processRequest(request, response);
-    }
+	/**
+	* Handles the HTTP <code>POST</code> method.
+	* @param request servlet request
+	* @param response servlet response
+	* @throws ServletException if a servlet-specific error occurs
+	* @throws IOException if an I/O error occurs
+	*/
+	@Override
+	protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+		processRequest(request, response);
+	}
 
-    /** 
-     * Returns a short description of the servlet.
-     * @return a String containing servlet description
-     */
-    @Override
-    public String getServletInfo() {
-        return "Short description";
-    }
-
+	/**
+	* Returns a short description of the servlet.
+	* @return a String containing servlet description
+	*/
+	@Override
+	public String getServletInfo() {
+		return "Short description";
+	}
 }

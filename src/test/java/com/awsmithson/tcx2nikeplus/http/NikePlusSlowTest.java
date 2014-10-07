@@ -40,11 +40,10 @@ public class NikePlusSlowTest {
 
 	@Test
 	public void testLoginSuccess() throws IOException, ParserConfigurationException, SAXException {
-		NikePlus nikePlus = new NikePlus();
-		String accessToken = nikePlus.login(testProperties.getProperty(PROPERTY_NIKEPLUS_EMAIL), testProperties.getProperty(PROPERTY_NIKEPLUS_PASSWORD).toCharArray());
+		String accessToken = NikePlus.login(testProperties.getProperty(PROPERTY_NIKEPLUS_EMAIL), testProperties.getProperty(PROPERTY_NIKEPLUS_PASSWORD).toCharArray());
 		Assert.assertNotNull("accessToken was null", accessToken);
 		Assert.assertTrue("accessToken length was 0", accessToken.length() > 0);
-		nikePlus.endSync(accessToken);
+		NikePlus.endSync(accessToken);
 	}
 
 	@Test
@@ -62,8 +61,7 @@ public class NikePlusSlowTest {
 	}
 
 	private void testNikePlusUpload(@Nonnull InputStream gpxXMLInputStream, @Nonnull InputStream runJsonInputStream) throws IOException, JAXBException {
-		NikePlus nikePlus = new NikePlus();
-		String accessToken = nikePlus.login(testProperties.getProperty(PROPERTY_NIKEPLUS_EMAIL), testProperties.getProperty(PROPERTY_NIKEPLUS_PASSWORD).toCharArray());
+		String accessToken = NikePlus.login(testProperties.getProperty(PROPERTY_NIKEPLUS_EMAIL), testProperties.getProperty(PROPERTY_NIKEPLUS_PASSWORD).toCharArray());
 		Assert.assertNotNull("accessToken was null", accessToken);
 		Assert.assertTrue("accessToken length was 0", accessToken.length() > 0);
 
@@ -71,10 +69,10 @@ public class NikePlusSlowTest {
 			JsonElement runJson = new JsonParser().parse(new InputStreamReader(runJsonInputStream));
 			GpxType gpxXml = JAXBObject.GPX_TYPE.unmarshall(gpxXMLInputStream);
 			Assert.assertEquals("trk size incorrect", 1, gpxXml.getTrk().size());
-			Assert.assertTrue("Got bad status-code from NikePlus", nikePlus.syncData(accessToken, new NikePlusSyncData(runJson, gpxXml)));
+			Assert.assertTrue("Got bad status-code from NikePlus", NikePlus.syncData(accessToken, new NikePlusSyncData(runJson, gpxXml)));
 		}
 		finally {
-			nikePlus.endSync(accessToken);
+			NikePlus.endSync(accessToken);
 		}
 	}
 }

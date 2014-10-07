@@ -36,8 +36,8 @@ import java.util.TimeZone;
 
 public class GpxToRunJson implements Converter<GpxType, RunJson> {
 
-    private static final @Nonnull List<RunJson.Summary.DeviceConfig> DEFAULT_DEVICE_CONFIGS = ImmutableList.of(new RunJson.Summary.DeviceConfig(new RunJson.Summary.DeviceConfig.Component("iphone", "device")));
-    private static final @Nonnull String METRIC_DATA_POINT = "dataPoint";
+	private static final @Nonnull List<RunJson.Summary.DeviceConfig> DEFAULT_DEVICE_CONFIGS = ImmutableList.of(new RunJson.Summary.DeviceConfig(new RunJson.Summary.DeviceConfig.Component("iphone", "device")));
+	private static final @Nonnull String METRIC_DATA_POINT = "dataPoint";
 
 	/*
 	Required output for json:
@@ -54,7 +54,7 @@ public class GpxToRunJson implements Converter<GpxType, RunJson> {
 
 		SplineFunctions splineFunctions = generateSplines(gpxDocument);
 
-        ImmutableList.Builder<RunJson.Detail> runJsonDetailBuilder = ImmutableList.<RunJson.Detail>builder().add(
+		ImmutableList.Builder<RunJson.Detail> runJsonDetailBuilder = ImmutableList.<RunJson.Detail>builder().add(
 				generateRunJsonDetail("distance", "time", "sec", 0L, 10L, "dataStream", splineFunctions.durationToDistance, 3)
 		);
 		if (splineFunctions.durationToHeartRate != null) {
@@ -63,13 +63,13 @@ public class GpxToRunJson implements Converter<GpxType, RunJson> {
 			);
 		}
 
-        RunJson.Summary runJsonSummary = new RunJson.Summary(
-                ImmutableList.of(
-                        generateSnaphot("mileSplit", splineFunctions.distanceToDuration, DistanceUtils.MILES_TO_KM),
-                        generateSnaphot("kmSplit", splineFunctions.distanceToDuration, 1)
-                ),
-                DEFAULT_DEVICE_CONFIGS
-        );
+		RunJson.Summary runJsonSummary = new RunJson.Summary(
+				ImmutableList.of(
+						generateSnaphot("mileSplit", splineFunctions.distanceToDuration, DistanceUtils.MILES_TO_KM),
+						generateSnaphot("kmSplit", splineFunctions.distanceToDuration, 1)
+				),
+				DEFAULT_DEVICE_CONFIGS
+		);
 
 		BigDecimal maxDistance = new BigDecimal(getMaxX(splineFunctions.distanceToDuration)).setScale(6, RoundingMode.HALF_EVEN);
 		BigDecimal maxDuration = new BigDecimal(getMaxX(splineFunctions.durationToDistance)).setScale(6, RoundingMode.HALF_EVEN);
@@ -77,7 +77,7 @@ public class GpxToRunJson implements Converter<GpxType, RunJson> {
 		WptType firstTrkpt = getFirstTrkpt(gpxDocument);
 		TimeZone timezone = Geonames.getTimeZone(firstTrkpt.getLon(), firstTrkpt.getLat());
 		long startTime = firstTrkpt.getTime().toGregorianCalendar().getTimeInMillis();
-        return new RunJson(maxDistance, maxDuration, startTime, timezone.getID(), "run", runJsonDetailBuilder.build(), runJsonSummary);
+		return new RunJson(maxDistance, maxDuration, startTime, timezone.getID(), "run", runJsonDetailBuilder.build(), runJsonSummary);
 	}
 
 	private double getMaxX(@Nonnull PolynomialSplineFunction splineFunction) {
@@ -86,18 +86,18 @@ public class GpxToRunJson implements Converter<GpxType, RunJson> {
 	}
 
 	private @Nonnull RunJson.Detail generateRunJsonDetail(@Nonnull String metricType,
-														  @Nonnull String intervalType,
-														  @Nonnull String intervalUnit,
-														  long startTimeOffset,
-														  long intervalMetric,
-														  @Nonnull String objType,
-														  @Nonnull PolynomialSplineFunction splineFunction,
-														  int roundingScale) {
+										 @Nonnull String intervalType,
+										 @Nonnull String intervalUnit,
+										 long startTimeOffset,
+										 long intervalMetric,
+										 @Nonnull String objType,
+										 @Nonnull PolynomialSplineFunction splineFunction,
+										 int roundingScale) {
 		double[] knots = splineFunction.getKnots();
-        double maxValue = knots[knots.length - 1];
+		double maxValue = knots[knots.length - 1];
 
-        // IntervalMetric is seconds, we have our data stored as milliseconds, so multiply by 1000.
-        long loopIncrement = intervalMetric * 1000;
+		// IntervalMetric is seconds, we have our data stored as milliseconds, so multiply by 1000.
+		long loopIncrement = intervalMetric * 1000;
 
 		List<BigDecimal> values = new ArrayList<>();
 		for (long i = loopIncrement; i <= maxValue; i += loopIncrement) {
@@ -108,38 +108,38 @@ public class GpxToRunJson implements Converter<GpxType, RunJson> {
 		return new RunJson.Detail(metricType, intervalType, intervalUnit, startTimeOffset, String.valueOf(intervalMetric), objType, values);
 	}
 
-    private @Nonnull RunJson.Summary.Snapshot generateSnaphot(@Nonnull String name, @Nonnull PolynomialSplineFunction splineFunction, double metricInterval) {
+	private @Nonnull RunJson.Summary.Snapshot generateSnaphot(@Nonnull String name, @Nonnull PolynomialSplineFunction splineFunction, double metricInterval) {
 		double[] knots = splineFunction.getKnots();
-		int dataSeriesLength = (int) (knots[knots.length - 1]  / metricInterval);
+		int dataSeriesLength = (int) (knots[knots.length - 1] / metricInterval);
 
-        List<RunJson.Summary.Snapshot.DataSeries> dataSeries = new ArrayList<>(dataSeriesLength);
+		List<RunJson.Summary.Snapshot.DataSeries> dataSeries = new ArrayList<>(dataSeriesLength);
 
-        for (int i = 1; i <= dataSeriesLength; ++i) {
-            long value = (long) splineFunction.value(i * metricInterval);
-            dataSeries.add(createDataSeries(i, value, METRIC_DATA_POINT));
-        }
+		for (int i = 1; i <= dataSeriesLength; ++i) {
+			long value = (long) splineFunction.value(i * metricInterval);
+			dataSeries.add(createDataSeries(i, value, METRIC_DATA_POINT));
+		}
 
-        return new RunJson.Summary.Snapshot(name, dataSeries);
-    }
+		return new RunJson.Summary.Snapshot(name, dataSeries);
+	}
 
-    private @Nonnull RunJson.Summary.Snapshot.DataSeries createDataSeries(int distance, long duration, @Nonnull String objType) {
-        RunJson.Summary.Snapshot.DataSeries.Metrics metric = new RunJson.Summary.Snapshot.DataSeries.Metrics(distance, duration);
-        return new RunJson.Summary.Snapshot.DataSeries(metric, objType);
-    }
+	private @Nonnull RunJson.Summary.Snapshot.DataSeries createDataSeries(int distance, long duration, @Nonnull String objType) {
+		RunJson.Summary.Snapshot.DataSeries.Metrics metric = new RunJson.Summary.Snapshot.DataSeries.Metrics(distance, duration);
+		return new RunJson.Summary.Snapshot.DataSeries(metric, objType);
+	}
 
-    private @Nonnull WptType getFirstTrkpt(@Nonnull GpxType gpxDocument) {
-        for (TrkType trks : gpxDocument.getTrk()) {
-            for (TrksegType trkSeg : trks.getTrkseg()) {
+	private @Nonnull WptType getFirstTrkpt(@Nonnull GpxType gpxDocument) {
+		for (TrkType trks : gpxDocument.getTrk()) {
+			for (TrksegType trkSeg : trks.getTrkseg()) {
 				for (WptType trkpt : trkSeg.getTrkpt()) {
 					if (isValidTrkpt(trkpt)) {
 						return trkpt;
 					}
 				}
-            }
-        }
+			}
+		}
 
-        throw new IllegalStateException("GPX document doesn't have any <trkpt/> elements, which are required.");
-    }
+		throw new IllegalStateException("GPX document doesn't have any <trkpt/> elements, which are required.");
+	}
 
 
 	private static boolean isValidTrkpt(@Nonnull WptType trkpt) {
@@ -154,64 +154,64 @@ public class GpxToRunJson implements Converter<GpxType, RunJson> {
 	};
 
 	@Nonnull SplineFunctions generateSplines(@Nonnull GpxType gpxDocument) {
-        Preconditions.checkNotNull(gpxDocument, "gpxDocument argument is null.");
+		Preconditions.checkNotNull(gpxDocument, "gpxDocument argument is null.");
 
-        List<Long> durations = Lists.newArrayList(0L);
-        List<Double> distances = Lists.newArrayList(0d);
-        List<Short> heartRates = new ArrayList<>();
+		List<Long> durations = Lists.newArrayList(0L);
+		List<Double> distances = Lists.newArrayList(0d);
+		List<Short> heartRates = new ArrayList<>();
 
-        DistanceCalculator distanceCalculator = new GeodesicSphereDistCalc.Vincenty();
+		DistanceCalculator distanceCalculator = new GeodesicSphereDistCalc.Vincenty();
 
-        long totalPausedTime = 0;
-        double totalDistance = 0;
-        long workoutStartTime = 0;
-        long previousDuration = 0;
-        Point previousPoint = null;
+		long totalPausedTime = 0;
+		double totalDistance = 0;
+		long workoutStartTime = 0;
+		long previousDuration = 0;
+		Point previousPoint = null;
 
 
-        for (TrkType trks : gpxDocument.getTrk()) {
+		for (TrkType trks : gpxDocument.getTrk()) {
 
-            for (TrksegType trkSeg : trks.getTrkseg()) {
-                // Each <trkseg /> element  represents a period where the device is not paused.
-                // We need at least 2 <trkpt /> elemnts to calculate anything useful.
-                if (trkSeg.getTrkpt().size() > 1) {
+			for (TrksegType trkSeg : trks.getTrkseg()) {
+				// Each <trkseg /> element  represents a period where the device is not paused.
+				// We need at least 2 <trkpt /> elemnts to calculate anything useful.
+				if (trkSeg.getTrkpt().size() > 1) {
 
-                    Iterator<WptType> trkptIt = Iterators.filter(trkSeg.getTrkpt().iterator(), IS_VALID_TRKPT);
+					Iterator<WptType> trkptIt = Iterators.filter(trkSeg.getTrkpt().iterator(), IS_VALID_TRKPT);
 
-                    // Get the first <trkpt /> in this <trkSeg />
-                    WptType trkpt = trkptIt.next();
+					// Get the first <trkpt /> in this <trkSeg />
+					WptType trkpt = trkptIt.next();
 
-                    // If this is our very first <trkpt /> in our workout...
-                    if (previousPoint == null) {
-                        workoutStartTime = trkpt.getTime().toGregorianCalendar().getTimeInMillis();
-                        previousPoint = getPoint(trkpt);
+					// If this is our very first <trkpt /> in our workout...
+					if (previousPoint == null) {
+						workoutStartTime = trkpt.getTime().toGregorianCalendar().getTimeInMillis();
+						previousPoint = getPoint(trkpt);
 
 						// If we have heart rate data, add it
 						Short heartRate = getHeartRate(trkpt);
 						if (heartRate != null) {
 							heartRates.add(heartRate);
 						}
-                    } else {
-                        long duration = getMillisSinceWorkoutStart(trkpt.getTime(), workoutStartTime, totalPausedTime);
-                        long pausedTime = duration - previousDuration;
-                        totalPausedTime += pausedTime;
-                        previousPoint = getPoint(trkpt);
-                    }
+					} else {
+						long duration = getMillisSinceWorkoutStart(trkpt.getTime(), workoutStartTime, totalPausedTime);
+						long pausedTime = duration - previousDuration;
+						totalPausedTime += pausedTime;
+						previousPoint = getPoint(trkpt);
+					}
 
-                    // Iterate through the remaining <trkpt />'s in this <trkseg />, adding the duration/distance for each.
-                    while (trkptIt.hasNext()) {
-                        trkpt = trkptIt.next();
+					// Iterate through the remaining <trkpt />'s in this <trkseg />, adding the duration/distance for each.
+					while (trkptIt.hasNext()) {
+						trkpt = trkptIt.next();
 
-                        long duration = getMillisSinceWorkoutStart(trkpt.getTime(), workoutStartTime, totalPausedTime);
+						long duration = getMillisSinceWorkoutStart(trkpt.getTime(), workoutStartTime, totalPausedTime);
 
-                        if (duration > previousDuration) {
-                            Point point = getPoint(trkpt);
-                            if (!point.equals(previousPoint)) {
-                                durations.add(duration);
+						if (duration > previousDuration) {
+							Point point = getPoint(trkpt);
+							if (!point.equals(previousPoint)) {
+								durations.add(duration);
 
-                                double distanceKm = distanceCalculator.distance(previousPoint, point) * DistanceUtils.DEG_TO_KM;
-                                totalDistance += distanceKm;
-                                distances.add(totalDistance);
+								double distanceKm = distanceCalculator.distance(previousPoint, point) * DistanceUtils.DEG_TO_KM;
+								totalDistance += distanceKm;
+								distances.add(totalDistance);
 
 								// If we have heart rate data, add it
 								Short heartRate = getHeartRate(trkpt);
@@ -222,20 +222,20 @@ public class GpxToRunJson implements Converter<GpxType, RunJson> {
 								previousDuration = duration;
 								previousPoint = point;
 							}
-                        }
-                    }
-                }
-            }
-        }
+						}
+					}
+				}
+			}
+		}
 
-        SplineInterpolator interpolator = new SplineInterpolator();
-        PolynomialSplineFunction durationToDistanceFunction = interpolator.interpolate(Doubles.toArray(durations), Doubles.toArray(distances));
+		SplineInterpolator interpolator = new SplineInterpolator();
+		PolynomialSplineFunction durationToDistanceFunction = interpolator.interpolate(Doubles.toArray(durations), Doubles.toArray(distances));
 		PolynomialSplineFunction distanceToDurationFunction = interpolator.interpolate(Doubles.toArray(distances), Doubles.toArray(durations));
 		PolynomialSplineFunction durationToHeartRateFunction = (heartRates.size() == durations.size())
 				? interpolator.interpolate(Doubles.toArray(durations), Doubles.toArray(heartRates))
 				: null;
 
-        return new SplineFunctions(durationToDistanceFunction, distanceToDurationFunction, durationToHeartRateFunction);
+		return new SplineFunctions(durationToDistanceFunction, distanceToDurationFunction, durationToHeartRateFunction);
 	}
 
 
@@ -263,7 +263,7 @@ public class GpxToRunJson implements Converter<GpxType, RunJson> {
 	}
 
 	private long getMillisSinceWorkoutStart(@Nonnull XMLGregorianCalendar currentTime, long workoutStartTime, long totalTimePaused) {
-        return currentTime.toGregorianCalendar().getTimeInMillis() - workoutStartTime - totalTimePaused;
+		return currentTime.toGregorianCalendar().getTimeInMillis() - workoutStartTime - totalTimePaused;
 	}
 
 
@@ -277,5 +277,5 @@ public class GpxToRunJson implements Converter<GpxType, RunJson> {
 			this.distanceToDuration = Preconditions.checkNotNull(distanceToDuration, "distanceToDuration argument is null.");
 			this.durationToHeartRate = durationToHeartRate;
 		}
-    }
+	}
 }
