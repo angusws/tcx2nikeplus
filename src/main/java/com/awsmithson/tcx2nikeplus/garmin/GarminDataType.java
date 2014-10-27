@@ -127,11 +127,15 @@ public enum GarminDataType {
 
 		try (CloseableHttpResponse response = executeGarminHttpRequest(httpClient, activityId)) {
 			try (InputStream inputStream = response.getEntity().getContent()) {
-				T output = getJAXBObject().unmarshall(inputStream);
+				T output = unmarshall(inputStream);
 				EntityUtils.consumeQuietly(response.getEntity());
 				return output;
 			}
 		}
+	}
+
+	public @Nonnull <T> T unmarshall(@Nonnull InputStream inputStream) throws JAXBException {
+		return getJAXBObject().unmarshall(inputStream);
 	}
 
 	@Nonnull URI generateDownloadUri(int activityId) throws URISyntaxException {

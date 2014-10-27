@@ -18,11 +18,15 @@ import java.io.File;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.text.SimpleDateFormat;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.Iterator;
+import java.util.TimeZone;
 import java.util.logging.Level;
 
 
-
+@Deprecated
 public class ConvertTcx
 {
 
@@ -78,16 +82,20 @@ public class ConvertTcx
 	}
 
 
-	public Document generateNikePlusXml(Document inDoc, String empedID) throws Throwable {
+	public Document generateNikePlusXml(Document inDoc, String empedID) throws SAXException, ParserConfigurationException, DatatypeConfigurationException, IOException {
 		return generateNikePlusXml(inDoc, empedID, null);
 	}
 
 
-	public Document generateNikePlusXml(Document inDoc, String empedID, Integer clientTimeZoneOffset) throws Throwable {
+	public Document generateNikePlusXml(Document inDoc,
+										String empedID,
+										Integer clientTimeZoneOffset) throws SAXException, ParserConfigurationException, DatatypeConfigurationException, IOException {
 		return generateNikePlusXml(inDoc, empedID, clientTimeZoneOffset, false);
 	}
 
-	public Document generateNikePlusXml(Document inDoc, String empedID, Integer clientTimeZoneOffset, boolean forceExcludeHeartRateData) throws Throwable {
+	public Document generateNikePlusXml(Document inDoc,
+										String empedID,
+										Integer clientTimeZoneOffset, boolean forceExcludeHeartRateData) throws ParserConfigurationException, DatatypeConfigurationException, IOException, SAXException {
 		_forceExcludeHeartRateData = forceExcludeHeartRateData;
 		DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
 

@@ -6,7 +6,7 @@ import org.w3c.dom.Document;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
-
+@Deprecated
 public class GarminActivityData {
 	private final @Nonnull Document tcxDocument;
 	private final @Nullable Document gpxDocument;

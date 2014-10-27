@@ -4,6 +4,7 @@ import com.garmin.xmlschemas.trackpointextension.v1.TrackPointExtensionT;
 import com.garmin.xmlschemas.trainingcenterdatabase.v2.TrainingCenterDatabaseT;
 import com.google.common.base.Preconditions;
 import com.topografix.gpx._1._1.GpxType;
+import org.w3c.dom.Document;
 
 import javax.annotation.Nonnull;
 import javax.xml.bind.JAXBContext;
@@ -75,6 +76,13 @@ public enum JAXBObject {
 		Preconditions.checkNotNull(jaxbElement, "jaxbElement argument is null.");
 		Preconditions.checkNotNull(byteArrayOutputStream, "byteArrayOutputStream argument is null.");
 		getMarshaller().marshal(jaxbElement, byteArrayOutputStream);
+	}
+
+	@Deprecated
+	public void marshal(@Nonnull JAXBElement<?> jaxbElement, @Nonnull Document document) throws JAXBException {
+		Preconditions.checkNotNull(jaxbElement, "jaxbElement argument is null.");
+		Preconditions.checkNotNull(document, "document argument is null.");
+		getMarshaller().marshal(jaxbElement, document);
 	}
 
 	public @Nonnull <T> T unmarshall(@Nonnull InputStream inputStream) throws JAXBException {

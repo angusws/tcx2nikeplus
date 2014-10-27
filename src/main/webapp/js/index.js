@@ -357,6 +357,7 @@ Ext.onReady(function() {
 			
 			// Submit form.
 			form.submit({
+				method:'POST',
 				url: 'tcx2nikeplus/convert',
 				params:{clientTimeZoneOffset : (0 - (new Date().getTimezoneOffset()))},
 				timeout: 60000,

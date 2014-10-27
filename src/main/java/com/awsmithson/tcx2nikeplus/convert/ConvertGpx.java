@@ -2,20 +2,25 @@ package com.awsmithson.tcx2nikeplus.convert;
 
 import com.awsmithson.tcx2nikeplus.util.Log;
 import com.awsmithson.tcx2nikeplus.util.Util;
-import java.io.File;
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.NamedNodeMap;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
+import org.xml.sax.SAXException;
+
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
+import java.io.File;
+import java.io.IOException;
 
 
 /**
  * Converts a garmin gpx file to one that can be uploaded to nike+.
  * @author angus
  */
+@Deprecated
 public class ConvertGpx
 {
 	private static final Log log = Log.getInstance();
@@ -24,13 +29,13 @@ public class ConvertGpx
 	}
 
 
-	public Document generateNikePlusGpx(File tcxFile) throws Throwable {
+	public Document generateNikePlusGpx(File tcxFile) throws IOException, SAXException, ParserConfigurationException {
 		Document tcxDoc = Util.generateDocument(tcxFile);
 		return generateNikePlusGpx(tcxDoc);
 	}
 
-	public Document generateNikePlusGpx(Document inDoc) throws Throwable {
-		
+	public Document generateNikePlusGpx(Document inDoc) throws ParserConfigurationException {
+
 		// Create output document
 		DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
 		DocumentBuilder db = dbf.newDocumentBuilder();
