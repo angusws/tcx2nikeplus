@@ -3,6 +3,7 @@ package com.awsmithson.tcx2nikeplus.convert;
 
 import com.awsmithson.tcx2nikeplus.http.Geonames;
 import com.awsmithson.tcx2nikeplus.nike.RunJson;
+import com.awsmithson.tcx2nikeplus.util.Log;
 import com.garmin.xmlschemas.trackpointextension.v1.TrackPointExtensionT;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
@@ -33,8 +34,11 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.TimeZone;
+import java.util.logging.Level;
 
 public class GpxToRunJson implements Converter<GpxType, RunJson> {
+
+	private static final Log logger = Log.getInstance();
 
 	private static final @Nonnull List<RunJson.Summary.DeviceConfig> DEFAULT_DEVICE_CONFIGS = ImmutableList.of(new RunJson.Summary.DeviceConfig(new RunJson.Summary.DeviceConfig.Component("iphone", "device")));
 	private static final @Nonnull String METRIC_DATA_POINT = "dataPoint";
@@ -51,6 +55,7 @@ public class GpxToRunJson implements Converter<GpxType, RunJson> {
 	public RunJson convert(@Nonnull GpxType gpxDocument) throws ParserConfigurationException, SAXException, IOException {
 		Preconditions.checkNotNull(gpxDocument, "gpxDocument argument is null.");
 
+		logger.out("Converting GpxType to RunJson");
 
 		SplineFunctions splineFunctions = generateSplines(gpxDocument);
 

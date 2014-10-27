@@ -89,7 +89,7 @@ public enum GarminDataType {
 
 
 	public static @Nonnull CloseableHttpClient getGarminHttpSession() throws IOException {
-		logger.out(Level.FINE, "Opening garmin HTTP session");
+		logger.out(Level.INFO, "Opening garmin HTTP session");
 
 		CloseableHttpClient client = HttpClientBuilder.create().build();
 
@@ -105,6 +105,7 @@ public enum GarminDataType {
 				EntityUtils.consumeQuietly(response2.getEntity());
 			}
 
+			logger.out(Level.INFO, " - opened garmin HTTP session");
 			return client;
 		}
 	}
@@ -135,6 +136,7 @@ public enum GarminDataType {
 	}
 
 	public @Nonnull <T> T unmarshall(@Nonnull InputStream inputStream) throws JAXBException {
+		logger.out(Level.INFO, "Unmarshalling InputStream to %s", getJAXBObject().name());
 		return getJAXBObject().unmarshall(inputStream);
 	}
 
