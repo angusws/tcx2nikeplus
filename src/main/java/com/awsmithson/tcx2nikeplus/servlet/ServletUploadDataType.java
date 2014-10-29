@@ -105,9 +105,9 @@ public enum ServletUploadDataType {
 	private static final String PART_GARMIN_TCX_FILE = "garminTcxFile";
 	private static final String PARAMETER_CLIENT_TIME_ZONE_OFFSET = "clientTimeZoneOffset";
 
-	private static final String LOG_PROCESSING_FORMAT_STRING = "%s: Processing (GPX beta)";
-	private static final String LOG_SUCCESS_FORMAT_STRING = "%s: Conversion & Upload Successful (GPX beta)";
-	private static final String LOG_FAILED_FORMAT_STRING = "%s: Conversion & Upload Failed (GPX beta)";
+	private static final String LOG_PROCESSING_FORMAT_STRING = "Processing (GPX beta)";
+	private static final String LOG_SUCCESS_FORMAT_STRING = "Conversion & Upload Successful (GPX beta)";
+	private static final String LOG_FAILED_FORMAT_STRING = "Conversion & Upload Failed (GPX beta)";
 
 	abstract void processInputType(@Nonnull HttpServletRequest request,
 								   @Nonnull PrintWriter out,
@@ -125,20 +125,18 @@ public enum ServletUploadDataType {
 	private static boolean processGpx(int garminActivityId,
 									  @Nonnull String nikeAccessToken,
 									  @Nonnull PrintWriter out) {
-		String logMessageID = String.format("garmin-id %d", garminActivityId);
-		logger.out(LOG_PROCESSING_FORMAT_STRING, logMessageID);
+		logger.out(LOG_PROCESSING_FORMAT_STRING);
 		try (CloseableHttpClient closeableHttpClient = GarminDataType.getGarminHttpSession()) {
 			GpxType gpxXml = GarminDataType.GPX.downloadAndUnmarshall(closeableHttpClient, garminActivityId);
-			return processGpx(gpxXml, logMessageID, nikeAccessToken, out);
+			return processGpx(gpxXml, nikeAccessToken, out);
 		} catch (Throwable t) {
-			logger.out(Level.INFO, String.format(LOG_FAILED_FORMAT_STRING, logMessageID), t);
+			logger.out(Level.INFO, t, String.format(LOG_FAILED_FORMAT_STRING));
 			return false;
 		}
 	}
 
 	@Beta
 	private static boolean processGpx(@Nonnull GpxType gpxXml,
-									  @Nonnull String logMessageID,
 									  @Nonnull String nikeAccessToken,
 									  @Nonnull PrintWriter out) throws IOException, SAXException, ParserConfigurationException, JAXBException {
 		RunJson runJson = new GpxToRunJson().convert(gpxXml);
@@ -147,12 +145,12 @@ public enum ServletUploadDataType {
 		try {
 			boolean success = NikePlus.syncData(nikeAccessToken, new NikePlusSyncData(runJsonElement, gpxXml));
 			if (success) {
-				logger.out(LOG_SUCCESS_FORMAT_STRING, logMessageID);
+				logger.out(LOG_SUCCESS_FORMAT_STRING);
 				String message = "Conversion & Upload Successful.";
 				// TODO - something like "view your workout at https://secure-nikeplus.nike.com/plus/activity/running/detail/<workout-id>
 				ConvertServlet.succeed(out, message, runJson.getDuration().longValue(), runJson.getDistance().multiply(new BigDecimal("1000")).doubleValue());
 			} else {
-				logger.out(LOG_FAILED_FORMAT_STRING, logMessageID);
+				logger.out(LOG_FAILED_FORMAT_STRING);
 			}
 			return success;
 		}

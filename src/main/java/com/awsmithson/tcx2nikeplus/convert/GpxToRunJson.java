@@ -56,15 +56,14 @@ public class GpxToRunJson implements Converter<GpxType, RunJson> {
 		Preconditions.checkNotNull(gpxDocument, "gpxDocument argument is null.");
 
 		logger.out("Converting GpxType to RunJson");
-
 		SplineFunctions splineFunctions = generateSplines(gpxDocument);
 
 		ImmutableList.Builder<RunJson.Detail> runJsonDetailBuilder = ImmutableList.<RunJson.Detail>builder().add(
-				generateRunJsonDetail("distance", "time", "sec", 0L, 10L, "dataStream", splineFunctions.durationToDistance, 3)
+				generateDetail("distance", "time", "sec", 0L, 10L, "dataStream", splineFunctions.durationToDistance, 3)
 		);
 		if (splineFunctions.durationToHeartRate != null) {
 			runJsonDetailBuilder.add(
-					generateRunJsonDetail("heartrate", "time", "sec", 0L, 10L, "dataStream", splineFunctions.durationToHeartRate, 0)
+					generateDetail("heartrate", "time", "sec", 0L, 10L, "dataStream", splineFunctions.durationToHeartRate, 0)
 			);
 		}
 
@@ -90,14 +89,15 @@ public class GpxToRunJson implements Converter<GpxType, RunJson> {
 		return knots[knots.length - 1];
 	}
 
-	private @Nonnull RunJson.Detail generateRunJsonDetail(@Nonnull String metricType,
-										 @Nonnull String intervalType,
-										 @Nonnull String intervalUnit,
-										 long startTimeOffset,
-										 long intervalMetric,
-										 @Nonnull String objType,
-										 @Nonnull PolynomialSplineFunction splineFunction,
-										 int roundingScale) {
+	private @Nonnull RunJson.Detail generateDetail(@Nonnull String metricType,
+												   @Nonnull String intervalType,
+												   @Nonnull String intervalUnit,
+												   long startTimeOffset,
+												   long intervalMetric,
+												   @Nonnull String objType,
+												   @Nonnull PolynomialSplineFunction splineFunction,
+												   int roundingScale) {
+		logger.out(" - generating detail for %s", metricType);
 		double[] knots = splineFunction.getKnots();
 		double maxValue = knots[knots.length - 1];
 
@@ -114,6 +114,7 @@ public class GpxToRunJson implements Converter<GpxType, RunJson> {
 	}
 
 	private @Nonnull RunJson.Summary.Snapshot generateSnaphot(@Nonnull String name, @Nonnull PolynomialSplineFunction splineFunction, double metricInterval) {
+		logger.out(" - generating snapshot for %s", name);
 		double[] knots = splineFunction.getKnots();
 		int dataSeriesLength = (int) (knots[knots.length - 1] / metricInterval);
 
@@ -160,6 +161,7 @@ public class GpxToRunJson implements Converter<GpxType, RunJson> {
 
 	@Nonnull SplineFunctions generateSplines(@Nonnull GpxType gpxDocument) {
 		Preconditions.checkNotNull(gpxDocument, "gpxDocument argument is null.");
+		logger.out(" - generating splines");
 
 		List<Long> durations = Lists.newArrayList(0L);
 		List<Double> distances = Lists.newArrayList(0d);
