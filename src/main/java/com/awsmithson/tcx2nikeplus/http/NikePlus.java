@@ -23,6 +23,7 @@ import org.apache.http.entity.mime.MultipartEntityBuilder;
 import org.apache.http.entity.mime.content.StringBody;
 import org.apache.http.impl.client.BasicCookieStore;
 import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.DefaultServiceUnavailableRetryStrategy;
 import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.impl.cookie.BasicClientCookie;
 import org.apache.http.message.BasicNameValuePair;
@@ -211,8 +212,15 @@ public class NikePlus {
 		// TODO: we must return some object which details which workouts succeeded/failed.
 		boolean success = true;
 
+		// The "URL_DATA_SYNC" nike+ service seems to intermittently return 503, HttpComponents can deal with that nicely.
+		int serviceUnavailableMaxRetries = 5;
+		int serviceUnavailableRetryIntervalMillis = 200;
+
 		for (NikePlusSyncData nikePlusSyncData : nikePlusSyncDatas) {
-			try (CloseableHttpClient client = HttpClientBuilder.create().build()) {
+			try (CloseableHttpClient client = HttpClientBuilder
+					.create()
+					.setServiceUnavailableRetryStrategy(new DefaultServiceUnavailableRetryStrategy(serviceUnavailableMaxRetries, serviceUnavailableRetryIntervalMillis))
+					.build()) {
 				HttpPost post = new HttpPost(String.format(URL_DATA_SYNC, accessToken));
 				post.addHeader("user-agent", USER_AGENT);
 				post.addHeader("appid", "NIKEPLUSGPS");
@@ -226,7 +234,7 @@ public class NikePlus {
 							.build();
 					post.setEntity(httpEntity);
 
-					logger.out("Posting to Nike+");
+					logger.out("Posting to Nike+ (max retries on 503 response: %d)", serviceUnavailableMaxRetries);
 					try (CloseableHttpResponse response = client.execute(post)) {
 						int statusCode = response.getStatusLine().getStatusCode();
 						logger.out(" - Nike+ sync response: %s - %s", statusCode, EntityUtils.toString(response.getEntity()));
