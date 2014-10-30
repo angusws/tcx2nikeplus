@@ -48,7 +48,6 @@ public enum ServletUploadDataType {
 		void processInputType(@Nonnull HttpServletRequest request,
 							  @Nonnull PrintWriter out,
 							  @Nonnull String nikeAccessToken) throws IOException, ParserConfigurationException, SAXException, JAXBException, DatatypeConfigurationException {
-
 			int garminActivityId = Servlets.getGarminActivityId(Servlets.getRequiredParameter(request, PARAMETER_GARMIN_ACTIVITY_ID));
 			logger.out("Received convert-activity-id request, id: %d", garminActivityId);
 
@@ -115,10 +114,13 @@ public enum ServletUploadDataType {
 
 	void process(@Nonnull HttpServletRequest request, @Nonnull PrintWriter out, @Nonnull String nikeEmail, @Nonnull char[] nikePassword)
 			throws IOException, ParserConfigurationException, JAXBException, SAXException, DatatypeConfigurationException, ServletException {
-		// Log into nikeplus.
+		// Log into nikeplus, process our input and always end-sync to end our session with Nike+.
 		String nikeAccessToken = NikePlus.login(nikeEmail, nikePassword);
-
-		processInputType(request, out, nikeAccessToken);
+		try {
+			processInputType(request, out, nikeAccessToken);
+		} finally {
+			NikePlus.endSync(nikeAccessToken);
+		}
 	}
 
 	@Beta
