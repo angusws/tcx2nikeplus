@@ -10,7 +10,7 @@ public class LogFormatter extends Formatter
 {
 
 	private static final String FORMAT_NORMAL = "%1$tF %1$tT (%2$s) [thread-%3$d]\t%4$s\n";
-	private static final String FORMAT_EXCEPTION = "%1$tF %1$tT (%2$s) [thread-%3$d]\t%4$s\n%4$s\n";
+	private static final String FORMAT_EXCEPTION = "%1$tF %1$tT (%2$s) [thread-%3$d]\t%4$s\n%5$s\n";
 
 	@Override
 	public String format(LogRecord record) {
