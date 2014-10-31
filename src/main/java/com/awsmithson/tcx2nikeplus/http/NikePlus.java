@@ -6,9 +6,11 @@ import com.awsmithson.tcx2nikeplus.nike.NikePlusSyncData;
 import com.awsmithson.tcx2nikeplus.util.Log;
 import com.awsmithson.tcx2nikeplus.util.Util;
 import com.google.common.base.Preconditions;
+import com.google.common.base.Predicate;
 import com.google.gson.Gson;
 import com.topografix.gpx._1._1.ObjectFactory;
 import org.apache.http.HttpEntity;
+import org.apache.http.HttpResponse;
 import org.apache.http.HttpStatus;
 import org.apache.http.NameValuePair;
 import org.apache.http.client.CookieStore;
@@ -32,6 +34,7 @@ import org.w3c.dom.Document;
 import org.xml.sax.SAXException;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import javax.xml.bind.JAXBException;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
@@ -67,7 +70,13 @@ public class NikePlus {
 
 	private static final int URL_DATA_SYNC_SUCCESS = HttpStatus.SC_OK;
 
-	private static final @Nonnull Log logger = Log.getInstance();
+	// The "URL_DATA_SYNC" nike+ service seems to intermittently return 503, HttpComponents can deal with that nicely.
+	private static @Nonnull HttpStatusCodeRetryStrategy DATA_SYNC_RETRY_STRATEGY = new HttpStatusCodeRetryStrategy(5, 200, new Predicate<HttpResponse>() {
+		@Override
+		public boolean apply(@Nullable HttpResponse httpResponse) {
+			return (httpResponse == null) || (httpResponse.getStatusLine().getStatusCode() == HttpStatus.SC_SERVICE_UNAVAILABLE);
+		}
+	});
 
 
 
@@ -212,14 +221,10 @@ public class NikePlus {
 		// TODO: we must return some object which details which workouts succeeded/failed.
 		boolean success = true;
 
-		// The "URL_DATA_SYNC" nike+ service seems to intermittently return 503, HttpComponents can deal with that nicely.
-		int serviceUnavailableMaxRetries = 5;
-		int serviceUnavailableRetryIntervalMillis = 200;
-
 		for (NikePlusSyncData nikePlusSyncData : nikePlusSyncDatas) {
 			try (CloseableHttpClient client = HttpClientBuilder
 					.create()
-					.setServiceUnavailableRetryStrategy(new DefaultServiceUnavailableRetryStrategy(serviceUnavailableMaxRetries, serviceUnavailableRetryIntervalMillis))
+					.setServiceUnavailableRetryStrategy(DATA_SYNC_RETRY_STRATEGY)
 					.build()) {
 				HttpPost post = new HttpPost(String.format(URL_DATA_SYNC, accessToken));
 				post.addHeader("user-agent", USER_AGENT);
