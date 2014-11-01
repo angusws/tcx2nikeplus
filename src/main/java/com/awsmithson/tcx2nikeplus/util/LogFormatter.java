@@ -9,17 +9,21 @@ import java.util.logging.LogRecord;
 public class LogFormatter extends Formatter
 {
 
-	private static final String FORMAT_NORMAL = "%1$tF %1$tT (%2$s) [thread-%3$d]\t%4$s\n";
-	private static final String FORMAT_EXCEPTION = "%1$tF %1$tT (%2$s) [thread-%3$d]\t%4$s\n%5$s\n";
+	private static final String FORMAT_NORMAL = "%1$tFT%1$tTZ [thread-%2$d] (%3$s) %4$s.%5$s:\t%6$s\n";
+	private static final String FORMAT_EXCEPTION = "%1$tFT%1$tTZ [thread-%2$d] (%3$s) %4$s.%5$s:\t%6$s\n%7$s\n";
 
 	@Override
 	public String format(LogRecord record) {
-		Throwable t = record.getThrown();
-		if (t != null) {
+
+
+		@SuppressWarnings("ThrowableResultOfMethodCallIgnored")
+		Throwable throwable = record.getThrown();
+		if (throwable != null) {
 			StringWriter sw = new StringWriter();
-			t.printStackTrace(new PrintWriter(sw));
-			return String.format(FORMAT_EXCEPTION, record.getMillis(), record.getLevel(), record.getThreadID(), record.getMessage(), sw.toString());
+			throwable.printStackTrace(new PrintWriter(sw));
+			return String.format(FORMAT_EXCEPTION, record.getMillis(), record.getThreadID(), record.getLevel(), record.getSourceClassName(), record.getSourceMethodName(), record.getMessage(), sw.toString());
+		} else {
+			return String.format(FORMAT_NORMAL, record.getMillis(), record.getThreadID(), record.getLevel(), record.getSourceClassName(), record.getSourceMethodName(), record.getMessage());
 		}
-		else return String.format(FORMAT_NORMAL, record.getMillis(), record.getLevel(), record.getThreadID(), record.getMessage());
 	}
 }
