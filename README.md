@@ -1,8 +1,8 @@
 Development/Build Prerequisites
 ===============================
-*nix system
-java sdk (1.7+)
-maven 3
+* *nix system
+* java sdk (1.7+)
+* maven 3
 
 
 Directory Setup
