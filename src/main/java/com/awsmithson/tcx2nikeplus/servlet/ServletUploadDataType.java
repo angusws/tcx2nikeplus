@@ -90,7 +90,7 @@ public enum ServletUploadDataType {
 				// Create a list of GarminActivityData to upload to nike+.
 				ImmutableList.Builder<GarminActivityData> garminActivities = ImmutableList.builder();
 				for (Document doc : Util.parseMultipleWorkouts(tcxDocument)) {
-					garminActivities.add(new GarminActivityData(tcxDocument, null));
+					garminActivities.add(new GarminActivityData(doc, null));
 				}
 				processGarminActivityData(request, garminActivities.build(), nikeAccessToken, out);
 			}
