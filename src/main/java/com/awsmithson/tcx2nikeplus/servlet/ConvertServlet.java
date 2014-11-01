@@ -50,7 +50,6 @@ public class ConvertServlet extends HttpServlet {
 				// This seems horrible (to look through checkbox paramter names rather than a group, but it's what
 				// the client sends at the moment, so it'll do until we change that.
 				if (Servlets.requestParameterEquals(request, PARAMETER_GARMIN_ID_CHECKBOX, "on")) {
-					//int garminId = Integer.parseInt(getRequiredParameter(request, PARAMETER_GARMIN_ACTIVITY_ID));
 					ServletUploadDataType.GARMIN_ACTIVITY_ID.process(request, out, nikeEmail, nikePassword);
 				} else if (Servlets.requestParameterEquals(request, PARAMETER_TCX_FILE_CHECKBOX, "on")) {
 					ServletUploadDataType.TCX_FILE.process(request, out, nikeEmail, nikePassword);
