@@ -5,6 +5,7 @@ import com.google.common.base.Preconditions;
 import com.google.gson.JsonObject;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import javax.servlet.ServletException;
 import javax.servlet.annotation.MultipartConfig;
 import javax.servlet.http.HttpServlet;
@@ -78,10 +79,10 @@ public class ConvertServlet extends HttpServlet {
 
 		JsonObject jsonOutput = new JsonObject();
 		jsonOutput.addProperty("success", false);
-		exit(out, jsonOutput, -1, errorMessage);
+		exit(out, jsonOutput, -1, errorMessage, null);
 	}
 
-	static void succeed(@Nonnull PrintWriter out, @Nonnull String message, long workoutDuration, double workoutDistance) {
+	static void succeed(@Nonnull PrintWriter out, @Nonnull String message, @Nullable String nikeActivityId, long workoutDuration, double workoutDistance) {
 		Preconditions.checkNotNull(out, "out argument is null.");
 		Preconditions.checkNotNull(message, "message argument is null.");
 
@@ -89,11 +90,11 @@ public class ConvertServlet extends HttpServlet {
 		log.out("success distance: %d", Math.round(workoutDistance));
 		JsonObject jsonOutput = new JsonObject();
 		jsonOutput.addProperty("success", true);
-		exit(out, jsonOutput, 0, message);
+		exit(out, jsonOutput, 0, message, nikeActivityId);
 	}
 
 
-	private static void exit(@Nonnull PrintWriter out, @Nonnull JsonObject jsonOutput, int errorCode, @Nonnull String message) {
+	private static void exit(@Nonnull PrintWriter out, @Nonnull JsonObject jsonOutput, int errorCode, @Nonnull String message, @Nullable String nikeActivityId) {
 		Preconditions.checkNotNull(out, "out argument is null.");
 		Preconditions.checkNotNull(jsonOutput, "jsonOutput argument is null.");
 		Preconditions.checkNotNull(message, "message argument is null.");
@@ -101,6 +102,7 @@ public class ConvertServlet extends HttpServlet {
 		JsonObject data = new JsonObject();
 		data.addProperty("errorCode", errorCode);
 		data.addProperty("errorMessage", message);
+		data.addProperty("nikeActivityId", nikeActivityId);
 
 		jsonOutput.add("data", data);
 		log.out("%s", jsonOutput);

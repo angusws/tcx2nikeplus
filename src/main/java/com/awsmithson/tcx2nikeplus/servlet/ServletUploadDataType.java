@@ -144,12 +144,25 @@ public enum ServletUploadDataType {
 		RunJson runJson = new GpxToRunJson().convert(gpxXml);
 		JsonElement runJsonElement = new Gson().toJsonTree(runJson);
 
-		boolean success = NikePlus.syncData(nikeAccessToken, new NikePlusSyncData(runJsonElement, gpxXml));
+		NikePlusSyncData nikePlusSyncData = new NikePlusSyncData(runJsonElement, gpxXml);
+		boolean success = NikePlus.syncData(nikeAccessToken, nikePlusSyncData);
 		if (success) {
 			logger.out(LOG_SUCCESS_FORMAT_STRING);
 			String message = "Conversion & Upload Successful.";
-			// TODO - something like "view your workout at https://secure-nikeplus.nike.com/plus/activity/running/detail/<workout-id>
-			ConvertServlet.succeed(out, message, runJson.getDuration().longValue(), runJson.getDistance().multiply(new BigDecimal("1000")).doubleValue());
+			String nikeActivityId = null;
+
+			// Attempt to generate something like "view your workout at https://secure-nikeplus.nike.com/plus/activity/running/detail/<workout-id>
+			String responseData = nikePlusSyncData.getResponseEntityContent();
+			if (responseData != null) {
+				try {
+					logger.out(Level.FINER, " - Nike+ sync response: %s", responseData);
+					nikeActivityId = Util.getSimpleNodeValue(Util.generateDocument(responseData), "activityId");
+				} catch (Throwable t) {
+					logger.out(Level.WARNING, t, "Ignoring exception - occured whilst trying to get nike+ activity-id.");
+				}
+			}
+
+			ConvertServlet.succeed(out, message, nikeActivityId, runJson.getDuration().longValue(), runJson.getDistance().multiply(new BigDecimal("1000")).doubleValue());
 		} else {
 			logger.out(LOG_FAILED_FORMAT_STRING);
 		}
@@ -179,7 +192,7 @@ public enum ServletUploadDataType {
 		// Upload to nikeplus.
 		NikePlus.fullSync(nikeAccessToken, nikeActivitiesData);
 		String message = "Conversion & Upload Successful.";
-		ConvertServlet.succeed(out, message, convertTcx.getTotalDurationMillis(), convertTcx.getTotalDistanceMetres());
+		ConvertServlet.succeed(out, message, null, convertTcx.getTotalDurationMillis(), convertTcx.getTotalDistanceMetres());
 	}
 
 	@Deprecated

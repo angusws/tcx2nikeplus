@@ -25,7 +25,6 @@ import org.apache.http.entity.mime.MultipartEntityBuilder;
 import org.apache.http.entity.mime.content.StringBody;
 import org.apache.http.impl.client.BasicCookieStore;
 import org.apache.http.impl.client.CloseableHttpClient;
-import org.apache.http.impl.client.DefaultServiceUnavailableRetryStrategy;
 import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.impl.cookie.BasicClientCookie;
 import org.apache.http.message.BasicNameValuePair;
@@ -244,8 +243,9 @@ public class NikePlus {
 					logger.out("Posting to Nike+");
 					try (CloseableHttpResponse response = client.execute(post)) {
 						int statusCode = response.getStatusLine().getStatusCode();
+						nikePlusSyncData.setResponseEntityContent(EntityUtils.toString(response.getEntity()));
+						nikePlusSyncData.setResponseStatusCode(statusCode);
 						logger.out(Level.FINE, " - response code: %d", response.getStatusLine().getStatusCode());
-						logger.out(Level.FINER, " - Nike+ sync response: %s - %s", statusCode, EntityUtils.toString(response.getEntity()));
 						if (statusCode != URL_DATA_SYNC_SUCCESS) {
 							success = false;
 						}

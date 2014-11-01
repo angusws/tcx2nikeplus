@@ -27,9 +27,18 @@ Ext.onReady(function() {
 	/*
 	 * Messages
 	 */
-	var msgSuccess = function(title, msg) {
+	var msgSuccess = function(title, msg, nikeActivityId) {
 
 		msg = '<div style="text-align: center; font-weight: bold;">' + msg + '</div>';
+
+		// Show Nike+ URL
+		if (nikeActivityId) {
+			var nikeActivityUrl = "https://secure-nikeplus.nike.com/plus/activity/running/detail/" + nikeActivityId;
+			msg = msg.concat('<div style="text-align: center;">' +
+				'View your workout at:<br />' +
+				'<a href="' + nikeActivityUrl + '" target="_blank">' + nikeActivityUrl + '</a>' +
+				'</div>');
+		}
 
 		// Show paypal donation option.
 		if (Math.floor(Math.random() * 4) == 0) {
@@ -57,7 +66,7 @@ Ext.onReady(function() {
 		Ext.Msg.show({
 			title: title,
 			msg: msg,
-			minWidth: 420,
+			minWidth: 700,
 			modal: true,
 			buttons: Ext.Msg.OK
 		});
@@ -386,7 +395,7 @@ Ext.onReady(function() {
 						Ext.util.Cookies.clear('nikeEmail');
 					}
 
-					msgSuccess('Success', o.result.data.errorMessage);
+					msgSuccess('Success', o.result.data.errorMessage, o.result.data.nikeActivityId);
 				},
 				failure: function(converterForm, o) {
 					msgFailure('Failure', o.result.data.errorMessage);
