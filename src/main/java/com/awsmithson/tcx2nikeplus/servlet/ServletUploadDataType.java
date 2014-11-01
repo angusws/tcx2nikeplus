@@ -132,7 +132,7 @@ public enum ServletUploadDataType {
 			GpxType gpxXml = GarminDataType.GPX.downloadAndUnmarshall(closeableHttpClient, garminActivityId);
 			return processGpx(gpxXml, nikeAccessToken, out);
 		} catch (Throwable t) {
-			logger.out(Level.INFO, t, String.format(LOG_FAILED_FORMAT_STRING));
+			logger.out(Level.WARNING, t, String.format(LOG_FAILED_FORMAT_STRING));
 			return false;
 		}
 	}
@@ -144,21 +144,16 @@ public enum ServletUploadDataType {
 		RunJson runJson = new GpxToRunJson().convert(gpxXml);
 		JsonElement runJsonElement = new Gson().toJsonTree(runJson);
 
-		try {
-			boolean success = NikePlus.syncData(nikeAccessToken, new NikePlusSyncData(runJsonElement, gpxXml));
-			if (success) {
-				logger.out(LOG_SUCCESS_FORMAT_STRING);
-				String message = "Conversion & Upload Successful.";
-				// TODO - something like "view your workout at https://secure-nikeplus.nike.com/plus/activity/running/detail/<workout-id>
-				ConvertServlet.succeed(out, message, runJson.getDuration().longValue(), runJson.getDistance().multiply(new BigDecimal("1000")).doubleValue());
-			} else {
-				logger.out(LOG_FAILED_FORMAT_STRING);
-			}
-			return success;
+		boolean success = NikePlus.syncData(nikeAccessToken, new NikePlusSyncData(runJsonElement, gpxXml));
+		if (success) {
+			logger.out(LOG_SUCCESS_FORMAT_STRING);
+			String message = "Conversion & Upload Successful.";
+			// TODO - something like "view your workout at https://secure-nikeplus.nike.com/plus/activity/running/detail/<workout-id>
+			ConvertServlet.succeed(out, message, runJson.getDuration().longValue(), runJson.getDistance().multiply(new BigDecimal("1000")).doubleValue());
+		} else {
+			logger.out(LOG_FAILED_FORMAT_STRING);
 		}
-		finally {
-			NikePlus.endSync(nikeAccessToken);
-		}
+		return success;
 	}
 
 	@Deprecated

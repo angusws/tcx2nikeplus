@@ -50,10 +50,14 @@ import java.util.logging.Level;
 
 public class NikePlus {
 
+	private static final @Nonnull Log logger = Log.getInstance();
+
 	// Load "nikeplus.properties" file.
 	private static final @Nonnull Properties nikePlusProperties = new Properties();
 	static {
-		try (InputStream inputStream = NikePlus.class.getResourceAsStream("/nikeplus.properties")) {
+		String propertiesFile = "/nikeplus.properties";
+		logger.out(Level.FINER, "loading %s", propertiesFile);
+		try (InputStream inputStream = NikePlus.class.getResourceAsStream(propertiesFile)) {
 			nikePlusProperties.load(inputStream);
 		}
 		catch (IOException ioe) {
@@ -77,8 +81,6 @@ public class NikePlus {
 			return (httpResponse == null) || (httpResponse.getStatusLine().getStatusCode() == HttpStatus.SC_SERVICE_UNAVAILABLE);
 		}
 	});
-
-
 
 	static @Nonnull UrlEncodedFormEntity generateFormNameValuePairs(@Nonnull String ... inputKeyValues) throws UnsupportedEncodingException {
 		Preconditions.checkNotNull(inputKeyValues, "inputKeyValues argument is null.");
@@ -239,10 +241,11 @@ public class NikePlus {
 							.build();
 					post.setEntity(httpEntity);
 
-					logger.out("Posting to Nike+ (max retries on 503 response: %d)", serviceUnavailableMaxRetries);
+					logger.out("Posting to Nike+");
 					try (CloseableHttpResponse response = client.execute(post)) {
 						int statusCode = response.getStatusLine().getStatusCode();
-						logger.out(" - Nike+ sync response: %s - %s", statusCode, EntityUtils.toString(response.getEntity()));
+						logger.out(Level.FINE, " - response code: %d", response.getStatusLine().getStatusCode());
+						logger.out(Level.FINER, " - Nike+ sync response: %s - %s", statusCode, EntityUtils.toString(response.getEntity()));
 						if (statusCode != URL_DATA_SYNC_SUCCESS) {
 							success = false;
 						}
@@ -262,7 +265,9 @@ public class NikePlus {
 			post.addHeader("user-agent", USER_AGENT);
 			post.addHeader("appId", "NIKEPLUSGPS");
 
+			logger.out("Ending Nike+ sync");
 			try (CloseableHttpResponse response = client.execute(post)) {
+				logger.out(Level.FINE, " - response code: %d", response.getStatusLine().getStatusCode());
 				HttpEntity httpEntity = response.getEntity();
 				if (httpEntity != null) {
 					try (InputStream inputStream = httpEntity.getContent()) {

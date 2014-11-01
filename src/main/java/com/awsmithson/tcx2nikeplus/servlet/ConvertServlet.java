@@ -104,7 +104,7 @@ public class ConvertServlet extends HttpServlet {
 		data.addProperty("errorMessage", message);
 
 		jsonOutput.add("data", data);
-		log.out("%s\n", jsonOutput);
+		log.out("%s", jsonOutput);
 		out.println(jsonOutput);
 	}
 

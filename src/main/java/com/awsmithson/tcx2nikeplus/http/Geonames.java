@@ -42,6 +42,7 @@ public class Geonames {
 			HttpPost post = new HttpPost(String.format(URL_TIMEZONE, latitudeDegrees, longitudeDegrees));
 
 			try (CloseableHttpResponse response = client.execute(post)) {
+				logger.out(Level.FINE, " - response code: %d", response.getStatusLine().getStatusCode());
 				HttpEntity httpEntity = response.getEntity();
 				if (httpEntity != null) {
 					try (InputStream inputStream = httpEntity.getContent()) {

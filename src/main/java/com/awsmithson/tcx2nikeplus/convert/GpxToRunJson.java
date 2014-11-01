@@ -34,11 +34,10 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.TimeZone;
-import java.util.logging.Level;
 
 public class GpxToRunJson implements Converter<GpxType, RunJson> {
 
-	private static final Log logger = Log.getInstance();
+	private static final @Nonnull Log logger = Log.getInstance();
 
 	private static final @Nonnull List<RunJson.Summary.DeviceConfig> DEFAULT_DEVICE_CONFIGS = ImmutableList.of(new RunJson.Summary.DeviceConfig(new RunJson.Summary.DeviceConfig.Component("iphone", "device")));
 	private static final @Nonnull String METRIC_DATA_POINT = "dataPoint";

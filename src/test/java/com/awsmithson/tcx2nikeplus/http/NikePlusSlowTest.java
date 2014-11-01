@@ -3,6 +3,7 @@ package com.awsmithson.tcx2nikeplus.http;
 
 import com.awsmithson.tcx2nikeplus.jaxb.JAXBObject;
 import com.awsmithson.tcx2nikeplus.nike.NikePlusSyncData;
+import com.awsmithson.tcx2nikeplus.util.Log;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonParser;
 import com.topografix.gpx._1._1.GpxType;
@@ -17,8 +18,11 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.Properties;
+import java.util.logging.Level;
 
 public class NikePlusSlowTest {
+
+	private static final @Nonnull Log logger = Log.getInstance();
 
 	public static final @Nonnull String GPX_XML_2014_06_14 = "/nikeplus/gpxXML/2014-06-14_gpxXML-original.xml";
 	private static final @Nonnull String RUN_2014_06_14 = "/nikeplus/run/2014-06-14_run-original.json";
@@ -27,7 +31,9 @@ public class NikePlusSlowTest {
 	// Load "test.properties" file.
 	private static final @Nonnull Properties testProperties = new Properties();
 	static {
-		try (InputStream inputStream = NikePlus.class.getResourceAsStream("/test.properties")) {
+		String propertiesFile = "/test.properties";
+		logger.out(Level.FINER, "loading %s", propertiesFile);
+		try (InputStream inputStream = NikePlus.class.getResourceAsStream(propertiesFile)) {
 			testProperties.load(inputStream);
 		}
 		catch (IOException ioe) {

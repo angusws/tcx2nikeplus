@@ -59,7 +59,9 @@ public enum GarminDataType {
 	// Load "garmin.properties" file.
 	private static final @Nonnull Properties garminProperties = new Properties();
 	static {
-		try (InputStream inputStream = GarminDataType.class.getResourceAsStream("/garmin.properties")) {
+		String propertiesFile = "/garmin.properties";
+		logger.out(Level.FINER, "loading %s", propertiesFile);
+		try (InputStream inputStream = GarminDataType.class.getResourceAsStream(propertiesFile)) {
 			garminProperties.load(inputStream);
 		}
 		catch (IOException ioe) {
@@ -94,19 +96,19 @@ public enum GarminDataType {
 		CloseableHttpClient client = HttpClientBuilder.create().build();
 
 		// 1 - Initial attempt to view activities, which will set cookies and redirect us to sign-in page.
-		logger.out(" - getting cookie");
+		logger.out(Level.FINER," - getting cookie");
 		HttpGet get = new HttpGet(URL_ACTIVITIES);
 		try (CloseableHttpResponse response1 = client.execute(get)) {
 			EntityUtils.consumeQuietly(response1.getEntity());
-			logger.out("   - response code: %d", response1.getStatusLine().getStatusCode());
+			logger.out(Level.FINE, "   - response code: %d", response1.getStatusLine().getStatusCode());
 
 			// 2 - Sign-in attempt
-			logger.out(" - signing in");
+			logger.out(Level.FINE, " - signing in");
 			HttpPost post = new HttpPost(URL_SIGN_IN);
 			post.setEntity(GARMIN_LOGIN_FORM_ENGITY);
 			try (CloseableHttpResponse response2 = client.execute(post)) {
 				EntityUtils.consumeQuietly(response2.getEntity());
-				logger.out("   - response code: %d", response2.getStatusLine().getStatusCode());
+				logger.out(Level.FINE, "   - response code: %d", response2.getStatusLine().getStatusCode());
 			}
 
 			logger.out(" - opened garmin HTTP session");
@@ -121,7 +123,7 @@ public enum GarminDataType {
 		logger.out("Executing garmin HTTP request: %s", uri);
 		HttpGet get = new HttpGet(uri);
 		CloseableHttpResponse closeableHttpResponse = httpClient.execute(get);
-		logger.out(" - response code: %d", closeableHttpResponse.getStatusLine().getStatusCode());
+		logger.out(Level.FINE, " - response code: %d", closeableHttpResponse.getStatusLine().getStatusCode());
 		if (closeableHttpResponse.getEntity() == null) {
 			throw new IOException(String.format("Response entity is null for %s", uri));
 		}
