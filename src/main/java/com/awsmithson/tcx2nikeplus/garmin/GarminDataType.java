@@ -54,7 +54,7 @@ public enum GarminDataType {
 
 	private static final @Nonnull Log logger = Log.getInstance();
 	private static final @Nonnull String URL_ACTIVITIES = "https://connect.garmin.com/activities";
-	private static final @Nonnull String URL_SIGN_IN = "https://connect.garmin.com/signin";
+	private static final @Nonnull String URL_SIGN_IN = "http://connect.garmin.com/en-US/signin";
 
 	// Load "garmin.properties" file.
 	private static final @Nonnull Properties garminProperties = new Properties();
@@ -89,23 +89,27 @@ public enum GarminDataType {
 
 
 	public static @Nonnull CloseableHttpClient getGarminHttpSession() throws IOException {
-		logger.out(Level.INFO, "Opening garmin HTTP session");
+		logger.out("Opening garmin HTTP session");
 
 		CloseableHttpClient client = HttpClientBuilder.create().build();
 
 		// 1 - Initial attempt to view activities, which will set cookies and redirect us to sign-in page.
+		logger.out(" - getting cookie");
 		HttpGet get = new HttpGet(URL_ACTIVITIES);
 		try (CloseableHttpResponse response1 = client.execute(get)) {
 			EntityUtils.consumeQuietly(response1.getEntity());
+			logger.out("   - response code: %d", response1.getStatusLine().getStatusCode());
 
 			// 2 - Sign-in attempt
+			logger.out(" - signing in");
 			HttpPost post = new HttpPost(URL_SIGN_IN);
 			post.setEntity(GARMIN_LOGIN_FORM_ENGITY);
 			try (CloseableHttpResponse response2 = client.execute(post)) {
 				EntityUtils.consumeQuietly(response2.getEntity());
+				logger.out("   - response code: %d", response2.getStatusLine().getStatusCode());
 			}
 
-			logger.out(Level.INFO, " - opened garmin HTTP session");
+			logger.out(" - opened garmin HTTP session");
 			return client;
 		}
 	}
@@ -114,12 +118,14 @@ public enum GarminDataType {
 		Preconditions.checkNotNull(httpClient, "httpClient argument is null.");
 
 		URI uri = generateDownloadUri(activityId);
-		logger.out(Level.INFO, "Executing garmin HTTP request: %s", uri);
+		logger.out("Executing garmin HTTP request: %s", uri);
 		HttpGet get = new HttpGet(uri);
 		CloseableHttpResponse closeableHttpResponse = httpClient.execute(get);
+		logger.out(" - response code: %d", closeableHttpResponse.getStatusLine().getStatusCode());
 		if (closeableHttpResponse.getEntity() == null) {
 			throw new IOException(String.format("Response entity is null for %s", uri));
 		}
+
 		return closeableHttpResponse;
 	}
 
@@ -136,7 +142,7 @@ public enum GarminDataType {
 	}
 
 	public @Nonnull <T> T unmarshall(@Nonnull InputStream inputStream) throws JAXBException {
-		logger.out(Level.INFO, "Unmarshalling InputStream to %s", getJAXBObject().name());
+		logger.out("Unmarshalling InputStream to %s", getJAXBObject().name());
 		return getJAXBObject().unmarshall(inputStream);
 	}
 
