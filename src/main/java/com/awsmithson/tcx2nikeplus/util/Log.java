@@ -57,13 +57,15 @@ public class Log {
 	}
 
 	public void out(Level level, Throwable throwable, String message, Object ... args) {
-		if (args != null) {
-			message = String.format(message, args);
-		}
+		if (_log.isLoggable(level)) {
+			if (args != null) {
+				message = String.format(message, args);
+			}
 
-		// Get the caller class and method name (this is a *disgusting* hack which I've been forced into because I've
-		// mis-used java.util.logging.  Maybe I'll fix this one day, but it's not important for now.
-		StackTraceElement caller = Iterables.find(Arrays.asList(Thread.currentThread().getStackTrace()), CALLER_PREDICATE);
-		_log.logp(level, caller.getClassName(), caller.getMethodName(), message, throwable);
+			// Get the caller class and method name (this is a *disgusting* hack which I've been forced into because I've
+			// mis-used java.util.logging.  Maybe I'll fix this one day, but it's not important for now.
+			StackTraceElement caller = Iterables.find(Arrays.asList(Thread.currentThread().getStackTrace()), CALLER_PREDICATE);
+			_log.logp(level, caller.getClassName(), caller.getMethodName(), message, throwable);
+		}
 	}
 }
