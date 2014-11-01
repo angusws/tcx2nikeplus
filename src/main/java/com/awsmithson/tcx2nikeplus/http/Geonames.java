@@ -48,7 +48,7 @@ public class Geonames {
 					try (InputStream inputStream = httpEntity.getContent()) {
 						Document document = DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(inputStream);
 						document.normalize();
-						logger.out(Level.FINER, "\t%s", Util.documentToString(document));
+						logger.out(Level.FINEST, "\t%s", Util.documentToString(document));
 
 						String timeZoneId = Util.getSimpleNodeValue(document, "timezoneId");
 						logger.out(" - lon: %.4f, lat: %.4f = %s", longitudeDegrees, latitudeDegrees, timeZoneId);
