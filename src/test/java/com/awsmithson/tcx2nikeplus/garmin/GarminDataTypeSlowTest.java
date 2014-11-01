@@ -44,7 +44,7 @@ public class GarminDataTypeSlowTest {
 			TrainingCenterDatabaseT trainingCenterDatabase = JAXBObject.TRAINING_CENTER_DATABASE.unmarshall(inputStream);
 			Assert.assertEquals("activities size incorrect", 1, trainingCenterDatabase.getActivities().getActivity().size());
 			Calendar expected = Calendar.getInstance();
-			expected.set(2012, 1, 11, 9, 31, 5);
+			expected.set(2012, Calendar.FEBRUARY, 11, 9, 31, 5);
 			expected.set(Calendar.MILLISECOND, 0);
 			Date startTime = trainingCenterDatabase.getActivities().getActivity().get(0).getId().toGregorianCalendar().getTime();
 			Assert.assertEquals("activity start time incorrect", expected.getTime(), startTime);
@@ -57,7 +57,7 @@ public class GarminDataTypeSlowTest {
 		try (InputStream inputStream = getClass().getResourceAsStream(ACTIVITY_148656142_GPX)) {
 			GpxType gpxType = JAXBObject.GPX_TYPE.unmarshall(inputStream);
 			Calendar expected = Calendar.getInstance();
-			expected.set(2012, 1, 11, 9, 31, 5);
+			expected.set(2012, Calendar.FEBRUARY, 11, 9, 31, 5);
 			expected.set(Calendar.MILLISECOND, 0);
 
 			Assert.assertEquals("trk size incorrect", 1, gpxType.getTrk().size());
