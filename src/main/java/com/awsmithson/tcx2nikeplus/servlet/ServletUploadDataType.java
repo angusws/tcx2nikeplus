@@ -45,9 +45,9 @@ import java.util.logging.Level;
 public enum ServletUploadDataType {
 	GARMIN_ACTIVITY_ID {
 		@Override
-		void processInputType(@Nonnull HttpServletRequest request,
-							  @Nonnull PrintWriter out,
-							  @Nonnull String nikeAccessToken) throws IOException, ParserConfigurationException, SAXException, JAXBException, DatatypeConfigurationException {
+		void process(@Nonnull HttpServletRequest request,
+					 @Nonnull PrintWriter out,
+					 @Nonnull String nikeAccessToken) throws IOException, ParserConfigurationException, SAXException, JAXBException, DatatypeConfigurationException {
 			int garminActivityId = Servlets.getGarminActivityId(Servlets.getRequiredParameter(request, PARAMETER_GARMIN_ACTIVITY_ID));
 			logger.out("Received convert-activity-id request, id: %d", garminActivityId);
 
@@ -65,15 +65,15 @@ public enum ServletUploadDataType {
 	},
 	GPX_FILE {
 		@Override
-		void processInputType(@Nonnull HttpServletRequest request, @Nonnull PrintWriter out, @Nonnull String nikeAccessToken) {
+		void process(@Nonnull HttpServletRequest request, @Nonnull PrintWriter out, @Nonnull String nikeAccessToken) {
 			throw new UnsupportedOperationException(String.format("%s not supported yet!", name()));
 		}
 	},
 	TCX_FILE {
 		@Override
-		void processInputType(@Nonnull HttpServletRequest request,
-							  @Nonnull PrintWriter out,
-							  @Nonnull String nikeAccessToken) throws IOException, ServletException, JAXBException, ParserConfigurationException, SAXException, DatatypeConfigurationException {
+		void process(@Nonnull HttpServletRequest request,
+					 @Nonnull PrintWriter out,
+					 @Nonnull String nikeAccessToken) throws IOException, ServletException, JAXBException, ParserConfigurationException, SAXException, DatatypeConfigurationException {
 			Part part = request.getPart(PART_GARMIN_TCX_FILE);
 			logger.out("Received tcx-file request: %s (%d bytes)", part.getSubmittedFileName(), part.getSize());
 
@@ -108,18 +108,24 @@ public enum ServletUploadDataType {
 	private static final String LOG_SUCCESS_FORMAT_STRING = "Conversion & Upload Successful (GPX beta)";
 	private static final String LOG_FAILED_FORMAT_STRING = "Conversion & Upload Failed (GPX beta)";
 
-	abstract void processInputType(@Nonnull HttpServletRequest request,
-								   @Nonnull PrintWriter out,
-								   @Nonnull String nikeAccessToken) throws IOException, ParserConfigurationException, SAXException, JAXBException, DatatypeConfigurationException, ServletException;
+	abstract void process(@Nonnull HttpServletRequest request,
+						  @Nonnull PrintWriter out,
+						  @Nonnull String nikeAccessToken) throws IOException, ParserConfigurationException, SAXException, JAXBException, DatatypeConfigurationException, ServletException;
 
-	void process(@Nonnull HttpServletRequest request, @Nonnull PrintWriter out, @Nonnull String nikeEmail, @Nonnull char[] nikePassword)
-			throws IOException, ParserConfigurationException, JAXBException, SAXException, DatatypeConfigurationException, ServletException {
-		// Log into nikeplus, process our input and always end-sync to end our session with Nike+.
-		String nikeAccessToken = NikePlus.login(nikeEmail, nikePassword);
-		try {
-			processInputType(request, out, nikeAccessToken);
-		} finally {
-			NikePlus.endSync(nikeAccessToken);
+	void process(@Nonnull HttpServletRequest request,
+				 @Nonnull PrintWriter out,
+				 @Nonnull String nikeEmail,
+				 @Nonnull char[] nikePassword) throws IOException, ParserConfigurationException, JAXBException, SAXException, DatatypeConfigurationException, ServletException {
+		if (NikePlus.isPasswordValid(nikePassword)) {
+			// Log into nikeplus, process our input and always end-sync to end our session with Nike+.
+			String nikeAccessToken = NikePlus.login(nikeEmail, nikePassword);
+			try {
+				process(request, out, nikeAccessToken);
+			} finally {
+				NikePlus.endSync(nikeAccessToken);
+			}
+		} else {
+			ConvertServlet.fail(out, NikePlus.INVALID_PASSWORD_ERROR_MESSAGE);
 		}
 	}
 

@@ -40,11 +40,12 @@ import javax.xml.parsers.ParserConfigurationException;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.UnsupportedEncodingException;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
 import java.util.logging.Level;
+import java.util.regex.Pattern;
 
 
 public class NikePlus {
@@ -71,17 +72,36 @@ public class NikePlus {
 
 	private static final @Nonnull String USER_AGENT = "NPConnect";
 
+	public static final @Nonnull String INVALID_PASSWORD_ERROR_MESSAGE = "Nike+'s upload service does not support passwords containing the following characters:" +
+			"<pre>\" & ' < ></pre>" +
+			"<br />Please change your password on the Nike+ website, apologies this is out of my control";
+
 	private static final int URL_DATA_SYNC_SUCCESS = HttpStatus.SC_OK;
 
 	// The "URL_DATA_SYNC" nike+ service seems to intermittently return 503, HttpComponents can deal with that nicely.
-	private static @Nonnull HttpStatusCodeRetryStrategy DATA_SYNC_RETRY_STRATEGY = new HttpStatusCodeRetryStrategy(5, 200, new Predicate<HttpResponse>() {
+	private static final @Nonnull HttpStatusCodeRetryStrategy DATA_SYNC_RETRY_STRATEGY = new HttpStatusCodeRetryStrategy(5, 200, new Predicate<HttpResponse>() {
 		@Override
 		public boolean apply(@Nullable HttpResponse httpResponse) {
 			return (httpResponse == null) || (httpResponse.getStatusLine().getStatusCode() == HttpStatus.SC_SERVICE_UNAVAILABLE);
 		}
 	});
 
-	static @Nonnull UrlEncodedFormEntity generateFormNameValuePairs(@Nonnull String ... inputKeyValues) throws UnsupportedEncodingException {
+	// From http://support-en-us.nikeplus.com/app/answers/detail/a_id/31352/p/3169,3195
+	// If you receive a notification that "Your Email or Password Was Entered Incorrectly", make sure your password
+	// does not contain a greater than symbol, ampersand or apostrophe (>, & or `). If your password contains any of
+	// these symbols, reset your password.
+	// That message seems to be incorrect.  In reality, they are unable to process the "Predefined entities in XML":
+	// http://en.wikipedia.org/wiki/List_of_XML_and_HTML_character_entity_references#Predefined_entities_in_XML
+	private static final @Nonnull Pattern INVALID_NIKEPLUS_PASSWORD = Pattern.compile("[\"&'<>]");
+
+	private static final @Nonnull Predicate<char[]> PASSWORD_INVALID = new Predicate<char[]>() {
+		@Override
+		public boolean apply(@Nullable char[] password) {
+			return password == null || INVALID_NIKEPLUS_PASSWORD.matcher(new String(password)).find();
+		}
+	};
+
+	static @Nonnull UrlEncodedFormEntity generateFormNameValuePairs(@Nonnull String... inputKeyValues) {
 		Preconditions.checkNotNull(inputKeyValues, "inputKeyValues argument is null.");
 		int inputLength = inputKeyValues.length;
 		Preconditions.checkArgument(inputLength > 0, "No input key/values specified.");
@@ -92,7 +112,7 @@ public class NikePlus {
 			formParams.add(new BasicNameValuePair(inputKeyValues[i++], inputKeyValues[i++]));
 		}
 
-		return new UrlEncodedFormEntity(formParams, "UTF-8");
+		return new UrlEncodedFormEntity(formParams, StandardCharsets.UTF_8);
 	}
 
 
@@ -101,6 +121,11 @@ public class NikePlus {
 		cookie.setPath("/");
 		cookie.setDomain(URL_LOGIN_DOMAIN);
 		return cookie;
+	}
+
+	public static boolean isPasswordValid(@Nonnull char[] nikePassword) {
+		Preconditions.checkNotNull(nikePassword, "nikePassword argument is null.");
+		return (!PASSWORD_INVALID.apply(nikePassword));
 	}
 
 	/**
@@ -113,6 +138,7 @@ public class NikePlus {
 	public static @Nonnull String login(@Nonnull String nikeEmail, @Nonnull char[] nikePassword) throws IOException {
 		Preconditions.checkNotNull(nikeEmail, "nikeEmail argument is null.");
 		Preconditions.checkNotNull(nikePassword, "nikePassword argument is null.");
+		Preconditions.checkArgument(isPasswordValid(nikePassword), INVALID_PASSWORD_ERROR_MESSAGE);
 
 		// Create CookieStore for the nikeEmail request.
 		CookieStore cookieStore = new BasicCookieStore();
@@ -135,6 +161,7 @@ public class NikePlus {
 			logger.out("Authenticating against Nike+");
 			try (CloseableHttpResponse response = client.execute(post, httpClientContext)) {
 				HttpEntity httpEntity = response.getEntity();
+
 				// Get the response and iterate through the cookies for "access_token".
 				if (httpEntity != null) {
 					for (Cookie cookie : httpClientContext.getCookieStore().getCookies()) {
@@ -149,10 +176,7 @@ public class NikePlus {
 		}
 
 		// If we reach here, we haven't got an access-token back for whatever reason.
-		// Throw IOException with this (rather crude) error message.
-		throw new IOException("Unable to authenticate with Nike+.<br />Please check email and nikePassword.<br /><br />" +
-				"The Nike+ service I connect to seems to not like certain complex characters in the nikePassword, so if you have issues please try simplifying your nikePassword on their website.  " +
-				"Apologies, but this is out of my control.");
+		throw new IOException("Unable to authenticate with Nike+.<br />Please check email and nikePassword.");
 	}
 
 	/**
@@ -209,6 +233,7 @@ public class NikePlus {
 			post.setEntity(multipartEntityBuilder.build());
 			try (CloseableHttpResponse response = client.execute(post)) {
 				int statusCode = response.getStatusLine().getStatusCode();
+				logger.out(Level.FINE, " - response code: %d", statusCode);
 				return (URL_DATA_SYNC_SUCCESS == statusCode);
 			}
 		}

@@ -62,7 +62,13 @@ public class ConvertServlet extends HttpServlet {
 		}
 	}
 
-	private static void fail(@Nonnull PrintWriter out, @Nonnull String errorMessage, @Nonnull Throwable t) {
+	static void fail(@Nonnull PrintWriter out, @Nonnull String errorMessage) {
+		Preconditions.checkNotNull(out, "out argument is null.");
+		Preconditions.checkNotNull(errorMessage, "errorMessage argument is null.");
+		fail(out, errorMessage, null);
+	}
+
+	private static void fail(@Nonnull PrintWriter out, @Nonnull String errorMessage, @Nullable Throwable throwable) {
 		log.out("Failing... Error message: %s", errorMessage);
 
 		//errorMessage = String.format("Nike+ are making ongoing changes to their site which may affect the converter.  Please try again later - I am modifying the converter to keep up with the changes<br /><br />Error message: %s", errorMessage);
@@ -71,10 +77,12 @@ public class ConvertServlet extends HttpServlet {
 		//errorMessage = String.format("Error message: %s<br /><br />Please check the FAQ, if you can't find an answer there and your problem persists please contact me.", errorMessage);
 		errorMessage = String.format("Error message: %s", errorMessage);
 
-		if (t.getMessage() == null) {
-			log.out(t);
-		} else {
-			log.out(Level.SEVERE, t, t.getMessage());
+		if (throwable != null) {
+			if (throwable.getMessage() == null) {
+				log.out(throwable);
+			} else {
+				log.out(Level.SEVERE, throwable, throwable.getMessage());
+			}
 		}
 
 		JsonObject jsonOutput = new JsonObject();
@@ -105,7 +113,7 @@ public class ConvertServlet extends HttpServlet {
 		data.addProperty("nikeActivityId", nikeActivityId);
 
 		jsonOutput.add("data", data);
-		log.out("%s", jsonOutput);
+		log.out("Returning: %s", jsonOutput);
 		out.println(jsonOutput);
 	}
 

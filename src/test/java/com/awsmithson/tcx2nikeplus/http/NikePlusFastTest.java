@@ -10,6 +10,7 @@ import org.junit.rules.ExpectedException;
 import javax.annotation.Nonnull;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
+import java.util.Random;
 
 public class NikePlusFastTest {
 
@@ -72,4 +73,39 @@ public class NikePlusFastTest {
 		Assert.assertEquals("application/x-www-form-urlencoded; charset=UTF-8", urlEncodedFormEntity.getContentType().getValue());
 		Assert.assertEquals(expected, IOUtils.toString(urlEncodedFormEntity.getContent()));
 	}
+
+	@Test
+	public void testIsPasswordValid() {
+		testIsPasswordValid(true, "test");
+		testIsPasswordValid(true, "te`st");
+		testIsPasswordValid(false, "te\"st");
+		testIsPasswordValid(false, "te&st");
+		testIsPasswordValid(false, "te'st");
+		testIsPasswordValid(false, "te<st");
+		testIsPasswordValid(false, "te>st");
+
+		// Test with a random 50-char ACSCII password, our illegal chars removed (replace them with spaces).
+		String randomASCIIPassword = generateRandomASCIIPassword(50)
+				.replace('"', ' ')
+				.replace('&', ' ')
+				.replace('\'', ' ')
+				.replace('<', ' ')
+				.replace('>', ' ');
+
+		testIsPasswordValid(true, randomASCIIPassword);
+	}
+
+	private void testIsPasswordValid(boolean expected, @Nonnull String input) {
+		Assert.assertEquals(input, expected, NikePlus.isPasswordValid(input.toCharArray()));
+	}
+
+	private @Nonnull String generateRandomASCIIPassword(int length) {
+		Random random = new Random();
+		StringBuilder output = new StringBuilder();
+		for (int i = 0; i < length; ++i) {
+			output.append((char) (random.nextInt(96) + 32));
+		}
+		return output.toString();
+	}
+
 }
