@@ -216,7 +216,10 @@ public class NikePlus {
 
 	@Deprecated
 	private static boolean syncData(@Nonnull String accessToken, @Nonnull NikeActivityData nikeActivityData) throws IOException {
-		try (CloseableHttpClient client = HttpClientBuilder.create().build()) {
+		try (CloseableHttpClient client = HttpClientBuilder
+				.create()
+				.setServiceUnavailableRetryStrategy(DATA_SYNC_RETRY_STRATEGY)
+				.build()) {
 			HttpPost post = new HttpPost(String.format(URL_DATA_SYNC, accessToken));
 			post.addHeader("user-agent", USER_AGENT);
 			post.addHeader("appid", "NIKEPLUSGPS");
