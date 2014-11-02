@@ -79,7 +79,7 @@ public class NikePlus {
 	private static final int URL_DATA_SYNC_SUCCESS = HttpStatus.SC_OK;
 
 	// The "URL_DATA_SYNC" nike+ service seems to intermittently return 503, HttpComponents can deal with that nicely.
-	private static final @Nonnull HttpStatusCodeRetryStrategy DATA_SYNC_RETRY_STRATEGY = new HttpStatusCodeRetryStrategy(5, 200, new Predicate<HttpResponse>() {
+	private static final @Nonnull HttpStatusCodeRetryStrategy DATA_SYNC_RETRY_STRATEGY = new HttpStatusCodeRetryStrategy(10, 200, new Predicate<HttpResponse>() {
 		@Override
 		public boolean apply(@Nullable HttpResponse httpResponse) {
 			return (httpResponse == null) || (httpResponse.getStatusLine().getStatusCode() == HttpStatus.SC_SERVICE_UNAVAILABLE);
