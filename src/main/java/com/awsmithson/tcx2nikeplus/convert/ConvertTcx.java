@@ -498,11 +498,11 @@ public class ConvertTcx
 			tp.setPreviousTrackpoint(previousTp);
 
 			if ((tp.getDistance() == null) || (tp.isRepeatDistance())) {
-				log.out(Level.FINE, "Removing invalid distance trackpoint:\t%s", tp);
+				log.out(Level.FINEST, "Removing invalid distance trackpoint:\t%s", tp);
 				tpsIt.remove();
 			}
 			else if ((tp.getDuration() == null) || (tp.isRepeatDuration())) {
-				log.out(Level.FINE, "Removing invalid duration trackpoint:\t%s", tp);
+				log.out(Level.FINEST, "Removing invalid duration trackpoint:\t%s", tp);
 				tpsIt.remove();
 			}
 			else {
@@ -510,7 +510,7 @@ public class ConvertTcx
 					tp.setHeartRate(previousTp.getHeartRate());
 
 				previousTp = tp;
-				log.out(Level.FINER, "Duration: %d\tDistance: %.4f", tp.getDuration(), tp.getDistance());
+				log.out(Level.FINEST, "Duration: %d\tDistance: %.4f", tp.getDuration(), tp.getDistance());
 			}
 		}
 
@@ -700,7 +700,7 @@ public class ConvertTcx
 
 				// If we haven't found any zero-distance trackpiont increases then decrement all future trackpoints/pause-resumes from the slowest pace trackpoint pair of the lap.
 				if ((paceWorstTp != null) && !(modified)) {
-					log.out(Level.FINE, "Slowest-pace decrement:\tDuration %d\tDistance %.4f", paceWorstTp.getPreviousDuration(), paceWorstTp.getPreviousDistance());
+					log.out(Level.FINEST, "Slowest-pace decrement:\tDuration %d\tDistance %.4f", paceWorstTp.getPreviousDuration(), paceWorstTp.getPreviousDistance());
 					modified = true;
 					tpsIt = lapTrackpointStore.iterator();
 					while (tpsIt.hasNext()) {
