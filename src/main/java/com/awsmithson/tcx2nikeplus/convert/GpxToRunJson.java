@@ -51,7 +51,7 @@ public class GpxToRunJson implements Converter<GpxType, RunJson> {
 	    type - run
 	 */
 	@Override
-	public RunJson convert(@Nonnull GpxType gpxDocument) throws ParserConfigurationException, SAXException, IOException {
+	public RunJson convert(@Nonnull GpxType gpxDocument) throws ConverterException {
 		Preconditions.checkNotNull(gpxDocument, "gpxDocument argument is null.");
 
 		logger.out("Converting GpxType to RunJson");
@@ -78,9 +78,13 @@ public class GpxToRunJson implements Converter<GpxType, RunJson> {
 		BigDecimal maxDuration = new BigDecimal(getMaxX(splineFunctions.durationToDistance)).setScale(6, RoundingMode.HALF_EVEN);
 
 		WptType firstTrkpt = getFirstTrkpt(gpxDocument);
-		TimeZone timezone = Geonames.getTimeZone(firstTrkpt.getLon(), firstTrkpt.getLat());
-		long startTime = firstTrkpt.getTime().toGregorianCalendar().getTimeInMillis();
-		return new RunJson(maxDistance, maxDuration, startTime, timezone.getID(), "run", runJsonDetailBuilder.build(), runJsonSummary);
+		try {
+			TimeZone timezone = Geonames.getTimeZone(firstTrkpt.getLon(), firstTrkpt.getLat());
+			long startTime = firstTrkpt.getTime().toGregorianCalendar().getTimeInMillis();
+			return new RunJson(maxDistance, maxDuration, startTime, timezone.getID(), "run", runJsonDetailBuilder.build(), runJsonSummary);
+		} catch (Throwable throwable) {
+			throw new ConverterException(throwable.getMessage(), throwable);
+		}
 	}
 
 	private double getMaxX(@Nonnull PolynomialSplineFunction splineFunction) {
@@ -158,7 +162,7 @@ public class GpxToRunJson implements Converter<GpxType, RunJson> {
 		}
 	};
 
-	@Nonnull SplineFunctions generateSplines(@Nonnull GpxType gpxDocument) {
+	@Nonnull SplineFunctions generateSplines(@Nonnull GpxType gpxDocument) throws ConverterException {
 		Preconditions.checkNotNull(gpxDocument, "gpxDocument argument is null.");
 		logger.out(" - generating splines");
 
@@ -234,14 +238,19 @@ public class GpxToRunJson implements Converter<GpxType, RunJson> {
 			}
 		}
 
-		SplineInterpolator interpolator = new SplineInterpolator();
-		PolynomialSplineFunction durationToDistanceFunction = interpolator.interpolate(Doubles.toArray(durations), Doubles.toArray(distances));
-		PolynomialSplineFunction distanceToDurationFunction = interpolator.interpolate(Doubles.toArray(distances), Doubles.toArray(durations));
-		PolynomialSplineFunction durationToHeartRateFunction = (heartRates.size() == durations.size())
-				? interpolator.interpolate(Doubles.toArray(durations), Doubles.toArray(heartRates))
-				: null;
+		// If we less than 3 points we can't interpolate
+		if (durations.size() > 2) {
+			SplineInterpolator interpolator = new SplineInterpolator();
+			PolynomialSplineFunction durationToDistanceFunction = interpolator.interpolate(Doubles.toArray(durations), Doubles.toArray(distances));
+			PolynomialSplineFunction distanceToDurationFunction = interpolator.interpolate(Doubles.toArray(distances), Doubles.toArray(durations));
+			PolynomialSplineFunction durationToHeartRateFunction = (heartRates.size() == durations.size())
+					? interpolator.interpolate(Doubles.toArray(durations), Doubles.toArray(heartRates))
+					: null;
 
-		return new SplineFunctions(durationToDistanceFunction, distanceToDurationFunction, durationToHeartRateFunction);
+			return new SplineFunctions(durationToDistanceFunction, distanceToDurationFunction, durationToHeartRateFunction);
+		} else {
+			throw new ConverterException("Unable to extract GPS data which is required for conversion.");
+		}
 	}
 
 

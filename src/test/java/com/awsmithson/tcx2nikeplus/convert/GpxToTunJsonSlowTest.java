@@ -7,11 +7,9 @@ import com.awsmithson.tcx2nikeplus.nike.RunJson;
 import com.topografix.gpx._1._1.GpxType;
 import org.junit.Assert;
 import org.junit.Test;
-import org.xml.sax.SAXException;
 
 import javax.annotation.Nonnull;
 import javax.xml.bind.JAXBException;
-import javax.xml.parsers.ParserConfigurationException;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -27,7 +25,7 @@ public class GpxToTunJsonSlowTest {
 	private static final @Nonnull String RUN_JSON_170865319 = "/garmin/gpx/expected_runjson/170865319_run-minimal.json";
 
 	@Test
-	public void testConvert34448379() throws IOException, JAXBException, ParserConfigurationException, SAXException {
+	public void testConvert34448379() throws IOException, JAXBException, ConverterException {
 		Assert.assertNotNull("Test file missing", getClass().getResource(ACTIVITY_34448379_GPX));
 		Assert.assertNotNull("Test file missing", getClass().getResource(RUN_JSON_34448379));
 
@@ -43,7 +41,7 @@ public class GpxToTunJsonSlowTest {
 	}
 
 	@Test
-	public void testConvert148656142() throws IOException, JAXBException, ParserConfigurationException, SAXException {
+	public void testConvert148656142() throws IOException, JAXBException, ConverterException {
 		Assert.assertNotNull("Test file missing", getClass().getResource(GarminDataTypeSlowTest.ACTIVITY_148656142_GPX));
 		Assert.assertNotNull("Test file missing", getClass().getResource(RUN_JSON_148656142));
 
@@ -59,7 +57,7 @@ public class GpxToTunJsonSlowTest {
 	}
 
 	@Test
-	public void testConvert170865319() throws IOException, JAXBException, ParserConfigurationException, SAXException {
+	public void testConvert170865319() throws IOException, JAXBException, ConverterException {
 		Assert.assertNotNull("Test file missing", getClass().getResource(ACTIVITY_170865319_GPX));
 		Assert.assertNotNull("Test file missing", getClass().getResource(RUN_JSON_170865319));
 

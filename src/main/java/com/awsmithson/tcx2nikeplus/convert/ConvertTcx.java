@@ -82,24 +82,24 @@ public class ConvertTcx
 	}
 
 
-	public Document generateNikePlusXml(Document inDoc, String empedID) throws SAXException, ParserConfigurationException, DatatypeConfigurationException, IOException {
+	public Document generateNikePlusXml(Document inDoc, String empedID) throws ConverterException {
 		return generateNikePlusXml(inDoc, empedID, null);
 	}
 
 
 	public Document generateNikePlusXml(Document inDoc,
 										String empedID,
-										Integer clientTimeZoneOffset) throws SAXException, ParserConfigurationException, DatatypeConfigurationException, IOException {
+										Integer clientTimeZoneOffset) throws ConverterException {
 		return generateNikePlusXml(inDoc, empedID, clientTimeZoneOffset, false);
 	}
 
 	public Document generateNikePlusXml(Document inDoc,
 										String empedID,
-										Integer clientTimeZoneOffset, boolean forceExcludeHeartRateData) throws ParserConfigurationException, DatatypeConfigurationException, IOException, SAXException {
+										Integer clientTimeZoneOffset, boolean forceExcludeHeartRateData) throws ConverterException {
 		_forceExcludeHeartRateData = forceExcludeHeartRateData;
 		DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
 
-		//try {
+		try {
 			// Create output document
 			DocumentBuilder db = dbf.newDocumentBuilder();
 			Document outDoc = db.newDocument();
@@ -138,11 +138,9 @@ public class ConvertTcx
 			//return new String[] { generateString(outDoc), generateFileName() };
 			
 			return outDoc;
-		//}
-		//catch (Exception e) {
-		//	log.out(e);
-		//	return null;
-		//}
+		} catch (Throwable throwable) {
+			throw new ConverterException(throwable.getMessage(), throwable);
+		}
 	}
 
 
@@ -416,7 +414,7 @@ public class ConvertTcx
 	
 
 
-	private void appendWorkoutDetail(Document inDoc, Element sportsDataElement, Element runSummaryElement, ArrayList<Double> onDemandVPDistances) throws DatatypeConfigurationException {
+	private void appendWorkoutDetail(Document inDoc, Element sportsDataElement, Element runSummaryElement, ArrayList<Double> onDemandVPDistances) throws DatatypeConfigurationException, ConverterException {
 
 		// Generate the workout detail from the garmin Trackpoint data.
 		ArrayList<Trackpoint> trackpoints = new ArrayList<Trackpoint>();
@@ -788,7 +786,7 @@ public class ConvertTcx
 	 * @param trackpoints The Trackpoint data from which to build the PolynomialSplineFunctions.
 	 * @return A PolynomialSplineFunction array in represnting the data listed in the description above.
 	 */
-	private PolynomialSplineFunction[] generateSplineFunctions(ArrayList<Trackpoint> trackpoints) {
+	private PolynomialSplineFunction[] generateSplineFunctions(ArrayList<Trackpoint> trackpoints) throws ConverterException {
 		int tpsSize = trackpoints.size();
 		double[] durationsArray = new double[tpsSize];
 		double[] distancesArray = new double[tpsSize];
@@ -800,17 +798,22 @@ public class ConvertTcx
 		// Generate cubic splines for distance -> duration, duration -> distance & distance -> pace.
 		SplineInterpolator interpolator = new SplineInterpolator();
 
-		// Generate and return PolynomialSplineFunctions for:
-		//  1) distance -> duration
-		//  2) duration -> distance
-		//  3) duration -> pace
-		//  4) duration -> heart-rate
-		return new PolynomialSplineFunction[] {
-			interpolator.interpolate(distancesArray, durationsArray),
-			interpolator.interpolate(durationsArray, distancesArray),
-			interpolator.interpolate(durationsArray, pacesArray),
-			interpolator.interpolate(durationsArray, heartRatesArray)
-		};
+
+		if (distancesArray.length > 2 && durationsArray.length > 2) {
+			// Generate and return PolynomialSplineFunctions for:
+			//  1) distance -> duration
+			//  2) duration -> distance
+			//  3) duration -> pace
+			//  4) duration -> heart-rate
+			return new PolynomialSplineFunction[] {
+				interpolator.interpolate(distancesArray, durationsArray),
+				interpolator.interpolate(durationsArray, distancesArray),
+				interpolator.interpolate(durationsArray, pacesArray),
+				interpolator.interpolate(durationsArray, heartRatesArray)
+			};
+		} else {
+			throw new ConverterException("Unable to extract GPS data which is required for conversion.");
+		}
 
 	}
 

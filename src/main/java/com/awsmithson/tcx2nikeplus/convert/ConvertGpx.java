@@ -7,13 +7,11 @@ import org.w3c.dom.Element;
 import org.w3c.dom.NamedNodeMap;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
-import org.xml.sax.SAXException;
 
+import javax.annotation.Nonnull;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
-import javax.xml.parsers.ParserConfigurationException;
 import java.io.File;
-import java.io.IOException;
 
 
 /**
@@ -21,41 +19,43 @@ import java.io.IOException;
  * @author angus
  */
 @Deprecated
-public class ConvertGpx
-{
-	private static final Log log = Log.getInstance();
+public class ConvertGpx {
+	private static final @Nonnull Log log = Log.getInstance();
 
-	public ConvertGpx() {
+	public Document generateNikePlusGpx(File tcxFile) throws ConverterException {
+		try {
+			Document tcxDoc = Util.generateDocument(tcxFile);
+			return generateNikePlusGpx(tcxDoc);
+		} catch (Throwable throwable) {
+			throw new ConverterException(throwable.getMessage(), throwable);
+		}
 	}
 
+	public Document generateNikePlusGpx(Document inDoc) throws ConverterException {
+		try {
+			// Create output document
+			DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
+			DocumentBuilder db = dbf.newDocumentBuilder();
+			Document outDoc = db.newDocument();
 
-	public Document generateNikePlusGpx(File tcxFile) throws IOException, SAXException, ParserConfigurationException {
-		Document tcxDoc = Util.generateDocument(tcxFile);
-		return generateNikePlusGpx(tcxDoc);
-	}
+			// gpx (root)
+			Element gpxElement = Util.appendElement(outDoc, "gpx", null, "xmlns", "http://www.topografix.com/GPX/1/1", "creator", "NikePlus", "version", "1.1");
 
-	public Document generateNikePlusGpx(Document inDoc) throws ParserConfigurationException {
+			// trk
+			Element trk = Util.appendElement(gpxElement, "trk");
+			Util.appendCDATASection(trk, "name", "4c888a06");
+			Util.appendCDATASection(trk, "desc", "workout");
 
-		// Create output document
-		DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
-		DocumentBuilder db = dbf.newDocumentBuilder();
-		Document outDoc = db.newDocument();
+			// trkseg
+			Element trkSeg = Util.appendElement(trk, "trkseg");
 
-		// gpx (root)
-		Element gpxElement = Util.appendElement(outDoc, "gpx", null, "xmlns", "http://www.topografix.com/GPX/1/1", "creator", "NikePlus", "version", "1.1");
+			// trkpt's
+			appendTrkptElements(inDoc, trkSeg);
 
-		// trk
-		Element trk = Util.appendElement(gpxElement, "trk");
-		Util.appendCDATASection(trk, "name", "4c888a06");
-		Util.appendCDATASection(trk, "desc", "workout");
-
-		// trkseg
-		Element trkSeg = Util.appendElement(trk, "trkseg");
-
-		// trkpt's
-		appendTrkptElements(inDoc, trkSeg);
-
-		return outDoc;
+			return outDoc;
+		} catch (Throwable throwable) {
+			throw new ConverterException(throwable.getMessage(), throwable);
+		}
 	}
 
 

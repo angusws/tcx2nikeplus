@@ -2,6 +2,7 @@ package com.awsmithson.tcx2nikeplus.servlet;
 
 import com.awsmithson.tcx2nikeplus.convert.ConvertGpx;
 import com.awsmithson.tcx2nikeplus.convert.ConvertTcx;
+import com.awsmithson.tcx2nikeplus.convert.ConverterException;
 import com.awsmithson.tcx2nikeplus.convert.GpxToRunJson;
 import com.awsmithson.tcx2nikeplus.garmin.GarminActivityData;
 import com.awsmithson.tcx2nikeplus.garmin.GarminDataType;
@@ -31,7 +32,6 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.Part;
 import javax.xml.bind.JAXBElement;
 import javax.xml.bind.JAXBException;
-import javax.xml.datatype.DatatypeConfigurationException;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 import java.io.IOException;
@@ -47,7 +47,7 @@ public enum ServletUploadDataType {
 		@Override
 		void process(@Nonnull HttpServletRequest request,
 					 @Nonnull PrintWriter out,
-					 @Nonnull String nikeAccessToken) throws IOException, ParserConfigurationException, SAXException, JAXBException, DatatypeConfigurationException {
+					 @Nonnull String nikeAccessToken) throws IOException, ConverterException {
 			int garminActivityId = Servlets.getGarminActivityId(Servlets.getRequiredParameter(request, PARAMETER_GARMIN_ACTIVITY_ID));
 			logger.out("Received convert-activity-id request, id: %d", garminActivityId);
 
@@ -73,7 +73,7 @@ public enum ServletUploadDataType {
 		@Override
 		void process(@Nonnull HttpServletRequest request,
 					 @Nonnull PrintWriter out,
-					 @Nonnull String nikeAccessToken) throws IOException, ServletException, JAXBException, ParserConfigurationException, SAXException, DatatypeConfigurationException {
+					 @Nonnull String nikeAccessToken) throws IOException, ConverterException, ServletException, JAXBException, ParserConfigurationException, SAXException {
 			Part part = request.getPart(PART_GARMIN_TCX_FILE);
 			logger.out("Received tcx-file request: %s (%d bytes)", part.getSubmittedFileName(), part.getSize());
 
@@ -110,12 +110,12 @@ public enum ServletUploadDataType {
 
 	abstract void process(@Nonnull HttpServletRequest request,
 						  @Nonnull PrintWriter out,
-						  @Nonnull String nikeAccessToken) throws IOException, ParserConfigurationException, SAXException, JAXBException, DatatypeConfigurationException, ServletException;
+						  @Nonnull String nikeAccessToken) throws IOException, ConverterException, ServletException, JAXBException, ParserConfigurationException, SAXException;
 
 	void process(@Nonnull HttpServletRequest request,
 				 @Nonnull PrintWriter out,
 				 @Nonnull String nikeEmail,
-				 @Nonnull char[] nikePassword) throws IOException, ParserConfigurationException, JAXBException, SAXException, DatatypeConfigurationException, ServletException {
+				 @Nonnull char[] nikePassword) throws IOException, SAXException, ParserConfigurationException, ConverterException, ServletException, JAXBException {
 		if (NikePlus.isPasswordValid(nikePassword)) {
 			// Log into nikeplus, process our input and always end-sync to end our session with Nike+.
 			String nikeAccessToken = NikePlus.login(nikeEmail, nikePassword);
@@ -146,7 +146,7 @@ public enum ServletUploadDataType {
 	@Beta
 	private static boolean processGpx(@Nonnull GpxType gpxXml,
 									  @Nonnull String nikeAccessToken,
-									  @Nonnull PrintWriter out) throws IOException, SAXException, ParserConfigurationException, JAXBException {
+									  @Nonnull PrintWriter out) throws ConverterException, IOException, JAXBException {
 		RunJson runJson = new GpxToRunJson().convert(gpxXml);
 		JsonElement runJsonElement = new Gson().toJsonTree(runJson);
 
@@ -179,7 +179,7 @@ public enum ServletUploadDataType {
 	private static void processGarminActivityData(@Nonnull HttpServletRequest request,
 												  @Nonnull List<GarminActivityData> garminActivities,
 												  @Nonnull String nikeAccessToken,
-												  @Nonnull PrintWriter out) throws SAXException, ParserConfigurationException, DatatypeConfigurationException, IOException {
+												  @Nonnull PrintWriter out) throws ConverterException, IOException {
 		Preconditions.checkArgument(garminActivities.size() <= 25, String.format("Exceeded maximum activities per upload (25).  Your TCX file contains %d activities.", garminActivities.size()));
 
 		ConvertTcx convertTcx = new ConvertTcx();
@@ -202,7 +202,7 @@ public enum ServletUploadDataType {
 	}
 
 	@Deprecated
-	private static Document convertTcxDocument(ConvertTcx c, Document garminTcxDocument, int clientTimeZoneOffset) throws SAXException, ParserConfigurationException, DatatypeConfigurationException, IOException {
+	private static Document convertTcxDocument(ConvertTcx c, Document garminTcxDocument, int clientTimeZoneOffset) throws ConverterException {
 		// Generate the nike+ gpx xml.
 		Document doc = c.generateNikePlusXml(garminTcxDocument, "", clientTimeZoneOffset);
 		logger.out("Generated nike+ run xml, workout start time: %s.", c.getStartTimeHumanReadable());
@@ -210,7 +210,7 @@ public enum ServletUploadDataType {
 	}
 
 	@Deprecated
-	private static Document convertGpxDocument(ConvertGpx c, Document garminGpxDocument) throws ParserConfigurationException {
+	private static Document convertGpxDocument(ConvertGpx c, Document garminGpxDocument) throws ConverterException {
 		// Generate the nike+ gpx xml.
 		Document doc = c.generateNikePlusGpx(garminGpxDocument);
 		logger.out("Generated nike+ gpx xml.");
