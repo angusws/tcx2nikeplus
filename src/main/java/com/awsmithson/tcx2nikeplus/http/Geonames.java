@@ -8,7 +8,6 @@ import org.apache.http.HttpEntity;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.impl.client.CloseableHttpClient;
-import org.apache.http.impl.client.HttpClientBuilder;
 import org.w3c.dom.Document;
 import org.xml.sax.SAXException;
 
@@ -38,7 +37,7 @@ public class Geonames {
 		ensureInRange(latitudeDegrees, MIN_LATITUDE_DEGREES, MAX_LATITUDE_DEGREES, "latitudeDegrees");
 
 		logger.out("Looking up timezone for lon: %.4f, lat: %.4f", longitudeDegrees, latitudeDegrees);
-		try (CloseableHttpClient client = HttpClientBuilder.create().build()) {
+		try (CloseableHttpClient client = HttpClients.createDefaultHttpClientBuilder().build()) {
 			HttpPost post = new HttpPost(String.format(URL_TIMEZONE, latitudeDegrees, longitudeDegrees));
 
 			try (CloseableHttpResponse response = client.execute(post)) {

@@ -10,7 +10,6 @@ import com.google.common.base.Predicate;
 import com.google.gson.Gson;
 import com.topografix.gpx._1._1.ObjectFactory;
 import org.apache.http.HttpEntity;
-import org.apache.http.HttpResponse;
 import org.apache.http.HttpStatus;
 import org.apache.http.NameValuePair;
 import org.apache.http.client.CookieStore;
@@ -25,7 +24,6 @@ import org.apache.http.entity.mime.MultipartEntityBuilder;
 import org.apache.http.entity.mime.content.StringBody;
 import org.apache.http.impl.client.BasicCookieStore;
 import org.apache.http.impl.client.CloseableHttpClient;
-import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.impl.cookie.BasicClientCookie;
 import org.apache.http.message.BasicNameValuePair;
 import org.apache.http.util.EntityUtils;
@@ -46,7 +44,6 @@ import java.util.List;
 import java.util.Properties;
 import java.util.logging.Level;
 import java.util.regex.Pattern;
-
 
 public class NikePlus {
 
@@ -77,14 +74,6 @@ public class NikePlus {
 			"<br />Please change your password on the Nike+ website, apologies this is out of my control";
 
 	private static final int URL_DATA_SYNC_SUCCESS = HttpStatus.SC_OK;
-
-	// The "URL_DATA_SYNC" nike+ service seems to intermittently return 503, HttpComponents can deal with that nicely.
-	private static final @Nonnull HttpStatusCodeRetryStrategy DATA_SYNC_RETRY_STRATEGY = new HttpStatusCodeRetryStrategy(10, 200, new Predicate<HttpResponse>() {
-		@Override
-		public boolean apply(@Nullable HttpResponse httpResponse) {
-			return (httpResponse == null) || (httpResponse.getStatusLine().getStatusCode() == HttpStatus.SC_SERVICE_UNAVAILABLE);
-		}
-	});
 
 	// From http://support-en-us.nikeplus.com/app/answers/detail/a_id/31352/p/3169,3195
 	// If you receive a notification that "Your Email or Password Was Entered Incorrectly", make sure your password
@@ -147,10 +136,9 @@ public class NikePlus {
 		cookieStore.addCookie(createCookie("client_secret", nikePlusProperties.getProperty("NIKEPLUS_CLIENT_SECRET")));
 
 		// Create the HttpClient, setting the cookie store.
-		try (CloseableHttpClient client = HttpClientBuilder.create()
+		try (CloseableHttpClient client = HttpClients.createDefaultHttpClientBuilder()
 				.setDefaultCookieStore(cookieStore)
 				.build()) {
-
 			// Create the HttpPost, set the user-agent and nike+ credentials.
 			HttpPost post = new HttpPost(URL_LOGIN);
 			post.addHeader("user-agent", USER_AGENT);
@@ -216,10 +204,7 @@ public class NikePlus {
 
 	@Deprecated
 	private static boolean syncData(@Nonnull String accessToken, @Nonnull NikeActivityData nikeActivityData) throws IOException {
-		try (CloseableHttpClient client = HttpClientBuilder
-				.create()
-				.setServiceUnavailableRetryStrategy(DATA_SYNC_RETRY_STRATEGY)
-				.build()) {
+		try (CloseableHttpClient client = HttpClients.createDefaultHttpClientBuilder().build()) {
 			HttpPost post = new HttpPost(String.format(URL_DATA_SYNC, accessToken));
 			post.addHeader("user-agent", USER_AGENT);
 			post.addHeader("appid", "NIKEPLUSGPS");
@@ -251,10 +236,7 @@ public class NikePlus {
 		boolean success = true;
 
 		for (NikePlusSyncData nikePlusSyncData : nikePlusSyncDatas) {
-			try (CloseableHttpClient client = HttpClientBuilder
-					.create()
-					.setServiceUnavailableRetryStrategy(DATA_SYNC_RETRY_STRATEGY)
-					.build()) {
+			try (CloseableHttpClient client = HttpClients.createDefaultHttpClientBuilder().build()) {
 				HttpPost post = new HttpPost(String.format(URL_DATA_SYNC, accessToken));
 				post.addHeader("user-agent", USER_AGENT);
 				post.addHeader("appid", "NIKEPLUSGPS");
@@ -288,7 +270,7 @@ public class NikePlus {
 	public static void endSync(@Nonnull String accessToken) throws IOException {
 		Preconditions.checkNotNull(accessToken, "accessToken argument is null.");
 
-		try (CloseableHttpClient client = HttpClientBuilder.create().build()) {
+		try (CloseableHttpClient client = HttpClients.createDefaultHttpClientBuilder().build()) {
 			HttpPost post = new HttpPost(String.format("%s?%s", URL_DATA_SYNC_COMPLETE_ACCESS_TOKEN, Util.generateHttpParameter("access_token", accessToken)));
 			post.addHeader("user-agent", USER_AGENT);
 			post.addHeader("appId", "NIKEPLUSGPS");

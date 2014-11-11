@@ -1,6 +1,6 @@
 package com.awsmithson.tcx2nikeplus.garmin;
 
-
+import com.awsmithson.tcx2nikeplus.http.HttpClients;
 import com.awsmithson.tcx2nikeplus.jaxb.JAXBObject;
 import com.awsmithson.tcx2nikeplus.util.Log;
 import com.google.common.base.Preconditions;
@@ -10,7 +10,6 @@ import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.impl.client.CloseableHttpClient;
-import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.message.BasicNameValuePair;
 import org.apache.http.util.EntityUtils;
 
@@ -93,7 +92,7 @@ public enum GarminDataType {
 	public static @Nonnull CloseableHttpClient getGarminHttpSession() throws IOException {
 		logger.out("Opening garmin HTTP session");
 
-		CloseableHttpClient client = HttpClientBuilder.create().build();
+		CloseableHttpClient client = HttpClients.createDefaultHttpClientBuilder().build();
 
 		// 1 - Initial attempt to view activities, which will set cookies and redirect us to sign-in page.
 		logger.out(Level.FINER," - getting cookie");
