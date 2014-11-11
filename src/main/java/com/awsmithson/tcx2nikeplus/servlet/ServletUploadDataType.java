@@ -51,22 +51,24 @@ public enum ServletUploadDataType {
 			int garminActivityId = Servlets.getGarminActivityId(Servlets.getRequiredParameter(request, PARAMETER_GARMIN_ACTIVITY_ID));
 			logger.out("Received convert-activity-id request, id: %d", garminActivityId);
 
-			// Attempt to process the GPX with the run.json and gpxXML.xml.
-			if (!processGpx(garminActivityId, nikeAccessToken, out)) {
-
-				// If that failed for whatever reason (it is new/beta), use our legacy method.
-				ImmutableList.Builder<GarminActivityData> garminActivities = ImmutableList.builder();
-				try (CloseableHttpClient client = GarminDataType.getGarminHttpSession()) {
-					garminActivities.add(new GarminActivityData(Garmin.downloadGarminTcx(client, garminActivityId), Garmin.downloadGarminGpx(client, garminActivityId)));
-				}
-				processGarminActivityData(request, garminActivities.build(), nikeAccessToken, out);
+			// If that failed for whatever reason (it is new/beta), use our legacy method.
+			ImmutableList.Builder<GarminActivityData> garminActivities = ImmutableList.builder();
+			try (CloseableHttpClient client = GarminDataType.getGarminHttpSession()) {
+				garminActivities.add(new GarminActivityData(Garmin.downloadGarminTcx(client, garminActivityId), Garmin.downloadGarminGpx(client, garminActivityId)));
 			}
+			processGarminActivityData(request, garminActivities.build(), nikeAccessToken, out);
 		}
 	},
 	GPX_FILE {
 		@Override
-		void process(@Nonnull HttpServletRequest request, @Nonnull PrintWriter out, @Nonnull String nikeAccessToken) {
-			throw new UnsupportedOperationException(String.format("%s not supported yet!", name()));
+		void process(@Nonnull HttpServletRequest request, @Nonnull PrintWriter out, @Nonnull String nikeAccessToken) throws IOException, ServletException, JAXBException, ConverterException {
+			Part part = request.getPart(PART_GPX_FILE);
+			logger.out("Received gpx-file request: %s (%d bytes)", part.getSubmittedFileName(), part.getSize());
+
+			try (InputStream inputStream = part.getInputStream()) {
+				GpxType gpxXml = GarminDataType.GPX.unmarshall(inputStream);
+				processGpx(gpxXml, nikeAccessToken, out);
+			}
 		}
 	},
 	TCX_FILE {
@@ -86,7 +88,6 @@ public enum ServletUploadDataType {
 				Document tcxDocument = DocumentBuilderFactory.newInstance().newDocumentBuilder().newDocument();
 				JAXBObject.TRAINING_CENTER_DATABASE.marshal(jaxbElement, tcxDocument);
 
-
 				// Create a list of GarminActivityData to upload to nike+.
 				ImmutableList.Builder<GarminActivityData> garminActivities = ImmutableList.builder();
 				for (Document doc : Util.parseMultipleWorkouts(tcxDocument)) {
@@ -100,8 +101,9 @@ public enum ServletUploadDataType {
 
 	private static final Log logger = Log.getInstance();
 
-	private static final String PARAMETER_GARMIN_ACTIVITY_ID = "garminActivityId";
+	private static final String PART_GPX_FILE = "gpxFile";
 	private static final String PART_GARMIN_TCX_FILE = "garminTcxFile";
+	private static final String PARAMETER_GARMIN_ACTIVITY_ID = "garminActivityId";
 	private static final String PARAMETER_CLIENT_TIME_ZONE_OFFSET = "clientTimeZoneOffset";
 
 	private static final String LOG_PROCESSING_FORMAT_STRING = "Processing (GPX beta)";
@@ -133,7 +135,6 @@ public enum ServletUploadDataType {
 	private static boolean processGpx(int garminActivityId,
 									  @Nonnull String nikeAccessToken,
 									  @Nonnull PrintWriter out) {
-		logger.out(LOG_PROCESSING_FORMAT_STRING);
 		try (CloseableHttpClient closeableHttpClient = GarminDataType.getGarminHttpSession()) {
 			GpxType gpxXml = GarminDataType.GPX.downloadAndUnmarshall(closeableHttpClient, garminActivityId);
 			return processGpx(gpxXml, nikeAccessToken, out);
@@ -147,6 +148,7 @@ public enum ServletUploadDataType {
 	private static boolean processGpx(@Nonnull GpxType gpxXml,
 									  @Nonnull String nikeAccessToken,
 									  @Nonnull PrintWriter out) throws ConverterException, IOException, JAXBException {
+		logger.out(LOG_PROCESSING_FORMAT_STRING);
 		RunJson runJson = new GpxToRunJson().convert(gpxXml);
 		JsonElement runJsonElement = new Gson().toJsonTree(runJson);
 
@@ -170,7 +172,7 @@ public enum ServletUploadDataType {
 
 			ConvertServlet.succeed(out, message, nikeActivityId, runJson.getDuration().longValue(), runJson.getDistance().multiply(new BigDecimal("1000")).doubleValue());
 		} else {
-			logger.out(LOG_FAILED_FORMAT_STRING);
+			logger.out(Level.WARNING, LOG_FAILED_FORMAT_STRING);
 		}
 		return success;
 	}

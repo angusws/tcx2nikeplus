@@ -26,8 +26,9 @@ public class ConvertServlet extends HttpServlet {
 
 	private static final String PARAMETER_NIKE_EMAIL = "nikeEmail";
 	private static final String PARAMETER_NIKE_PASSWORD = "nikePassword";
-	private static final String PARAMETER_GARMIN_ID_CHECKBOX = "fsGarminId-checkbox";
+	private static final String PARAMETER_GPX_FILE_CHECKBOX = "fsGpxFile-checkbox";
 	private static final String PARAMETER_TCX_FILE_CHECKBOX = "fsTcxFile-checkbox";
+	private static final String PARAMETER_GARMIN_ID_CHECKBOX = "fsGarminId-checkbox";
 
 	/**
 	 * Handles the HTTP <code>POST</code> method.
@@ -50,10 +51,14 @@ public class ConvertServlet extends HttpServlet {
 
 				// This seems horrible (to look through checkbox paramter names rather than a group, but it's what
 				// the client sends at the moment, so it'll do until we change that.
-				if (Servlets.requestParameterEquals(request, PARAMETER_GARMIN_ID_CHECKBOX, "on")) {
-					ServletUploadDataType.GARMIN_ACTIVITY_ID.process(request, out, nikeEmail, nikePassword);
+				if (Servlets.requestParameterEquals(request, PARAMETER_GPX_FILE_CHECKBOX, "on")) {
+					ServletUploadDataType.GPX_FILE.process(request, out, nikeEmail, nikePassword);
 				} else if (Servlets.requestParameterEquals(request, PARAMETER_TCX_FILE_CHECKBOX, "on")) {
 					ServletUploadDataType.TCX_FILE.process(request, out, nikeEmail, nikePassword);
+				} else if (Servlets.requestParameterEquals(request, PARAMETER_GARMIN_ID_CHECKBOX, "on")) {
+					ServletUploadDataType.GARMIN_ACTIVITY_ID.process(request, out, nikeEmail, nikePassword);
+				} else {
+					throw new UnsupportedOperationException("You must provide GPX, TCX or a garmin activity-id.");
 				}
 			} catch (Throwable t) {
 				String msg = (t.getMessage() != null) ? t.getMessage() : "Unknown error, please contact me and include details of tcx-file/garmin-activity-id.";

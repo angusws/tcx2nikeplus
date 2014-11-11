@@ -19,8 +19,7 @@ public class Garmin {
 	private static final Log log = Log.getInstance();
 
 	private static final String GARMIN_ID_ERROR = "Unable to download garmin activity.  Please ensure your garmin workout is not marked as private.<br /><br />" +
-			"tcx2nikeplus is unable to get data for activities created by some non-garmin devices (including RunKeeper) - " +
-			"I am working to fix this, please try again at a later date.";
+			"If the workout was recorded on a non-garmin device and you have an original GPX file, please upload that using the 'GPX File' checkbox.";
 
 
 	@Deprecated

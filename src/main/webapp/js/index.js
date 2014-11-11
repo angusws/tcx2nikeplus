@@ -1,32 +1,22 @@
 
 Ext.onReady(function() {
 
-	/*
-	 * Add google analytics tracking to AJAX requests.
-	 */
+	// Add google analytics tracking to AJAX requests.
 	Ext.Ajax.on('beforerequest', function(connection, options) {
 		pageTracker._trackPageview('/' + options.url);
 	});
-	
 
-	/*
-	 * Charity url string
-	 */
+	// Charity url string
 	function getCharityAnchor(text) {
 		return '<a href="http://www.awsmithson.com/charity" target="_blank">' + text + '</a>';
 	}
 	
-	/*
-	 * Progress url string
-	 */
+	// Progress url string
 	function getProgressAnchor(text) {
 		return '<a href="http://www.awsmithson.com" target="_blank">' + text + '</a>';
 	}
-	
-	
-	/*
-	 * Messages
-	 */
+
+	// Messages
 	var msgSuccess = function(title, msg, nikeActivityId) {
 
 		msg = '<div style="text-align: center; font-weight: bold;">' + msg + '</div>';
@@ -45,7 +35,7 @@ Ext.onReady(function() {
 			msg = msg.concat("<br /><br />If you are regular user please consider donating to help cover the costs of domain/hosting &amp; future development.<br /><br />" +
 				"<hr />" +
 				"<b>Paypal</b>" +
-			    "<div style=\"text-align: center;\">" +
+				"<div style=\"text-align: center;\">" +
 				"  <form action=\"https://www.paypal.com/cgi-bin/webscr\" method=\"post\">" +
 				"    <input type=\"hidden\" name=\"cmd\" value=\"_s-xclick\">" +
 				"    <input type=\"hidden\" name=\"encrypted\" value=\"-----BEGIN PKCS7-----MIIHFgYJKoZIhvcNAQcEoIIHBzCCBwMCAQExggEwMIIBLAIBADCBlDCBjjELMAkGA1UEBhMCVVMxCzAJBgNVBAgTAkNBMRYwFAYDVQQHEw1Nb3VudGFpbiBWaWV3MRQwEgYDVQQKEwtQYXlQYWwgSW5jLjETMBEGA1UECxQKbGl2ZV9jZXJ0czERMA8GA1UEAxQIbGl2ZV9hcGkxHDAaBgkqhkiG9w0BCQEWDXJlQHBheXBhbC5jb20CAQAwDQYJKoZIhvcNAQEBBQAEgYCbZPhNBUkV/Y5Gf4UZQoaaArmMmte7hkEjICmWMSdFNhRvfudw8y5U0B9zHOW2nKigWSm/SpzG+io45qhdQ6bo7m9lRCTI3EKhkNS5HHDz/32wX3Fhvse4Yb1eFI6Xpm5lg7eZNo6mUwAfb+qPOcedj2pOar3EyVjSm6MuncdYdjELMAkGBSsOAwIaBQAwgZMGCSqGSIb3DQEHATAUBggqhkiG9w0DBwQIhUZzqmNlS1mAcOIcUzKpmAUsdlk90s6Vw3esjSAcBnrEcbVT1moTXoTRw9msZwYKtULC/ixLTddHd+AcaTxP/Q+bT3TgthtIMIR+ktCyyDGAGKnKiyxnVgF4VPRgQONO0E+ofE8BwPb8NW8Ox1Sw2d8Kli/HwxKCF3mgggOHMIIDgzCCAuygAwIBAgIBADANBgkqhkiG9w0BAQUFADCBjjELMAkGA1UEBhMCVVMxCzAJBgNVBAgTAkNBMRYwFAYDVQQHEw1Nb3VudGFpbiBWaWV3MRQwEgYDVQQKEwtQYXlQYWwgSW5jLjETMBEGA1UECxQKbGl2ZV9jZXJ0czERMA8GA1UEAxQIbGl2ZV9hcGkxHDAaBgkqhkiG9w0BCQEWDXJlQHBheXBhbC5jb20wHhcNMDQwMjEzMTAxMzE1WhcNMzUwMjEzMTAxMzE1WjCBjjELMAkGA1UEBhMCVVMxCzAJBgNVBAgTAkNBMRYwFAYDVQQHEw1Nb3VudGFpbiBWaWV3MRQwEgYDVQQKEwtQYXlQYWwgSW5jLjETMBEGA1UECxQKbGl2ZV9jZXJ0czERMA8GA1UEAxQIbGl2ZV9hcGkxHDAaBgkqhkiG9w0BCQEWDXJlQHBheXBhbC5jb20wgZ8wDQYJKoZIhvcNAQEBBQADgY0AMIGJAoGBAMFHTt38RMxLXJyO2SmS+Ndl72T7oKJ4u4uw+6awntALWh03PewmIJuzbALScsTS4sZoS1fKciBGoh11gIfHzylvkdNe/hJl66/RGqrj5rFb08sAABNTzDTiqqNpJeBsYs/c2aiGozptX2RlnBktH+SUNpAajW724Nv2Wvhif6sFAgMBAAGjge4wgeswHQYDVR0OBBYEFJaffLvGbxe9WT9S1wob7BDWZJRrMIG7BgNVHSMEgbMwgbCAFJaffLvGbxe9WT9S1wob7BDWZJRroYGUpIGRMIGOMQswCQYDVQQGEwJVUzELMAkGA1UECBMCQ0ExFjAUBgNVBAcTDU1vdW50YWluIFZpZXcxFDASBgNVBAoTC1BheVBhbCBJbmMuMRMwEQYDVQQLFApsaXZlX2NlcnRzMREwDwYDVQQDFAhsaXZlX2FwaTEcMBoGCSqGSIb3DQEJARYNcmVAcGF5cGFsLmNvbYIBADAMBgNVHRMEBTADAQH/MA0GCSqGSIb3DQEBBQUAA4GBAIFfOlaagFrl71+jq6OKidbWFSE+Q4FqROvdgIONth+8kSK//Y/4ihuE4Ymvzn5ceE3S/iBSQQMjyvb+s2TWbQYDwcp129OPIbD9epdr4tJOUNiSojw7BHwYRiPh58S1xGlFgHFXwrEBb3dgNbMUa+u4qectsMAXpVHnD9wIyfmHMYIBmjCCAZYCAQEwgZQwgY4xCzAJBgNVBAYTAlVTMQswCQYDVQQIEwJDQTEWMBQGA1UEBxMNTW91bnRhaW4gVmlldzEUMBIGA1UEChMLUGF5UGFsIEluYy4xEzARBgNVBAsUCmxpdmVfY2VydHMxETAPBgNVBAMUCGxpdmVfYXBpMRwwGgYJKoZIhvcNAQkBFg1yZUBwYXlwYWwuY29tAgEAMAkGBSsOAwIaBQCgXTAYBgkqhkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0xMDA2MDgxMzQ5MDZaMCMGCSqGSIb3DQEJBDEWBBQwbp4/etO8xjJl+UWo6ZJaObtFbDANBgkqhkiG9w0BAQEFAASBgKPM2Pp643oNk8uBcCviLEvHhzL/FUGEyqRUc2GBNkHEW7wYfM5lq6vHJwbjhicxavB0hXpQs2sGRhxrAUQM6OtrVBpAd2IHqn2Mk3WWci0HxkKZ5/eJBI/7OdJZUvajoX6xRAO7xE//4VX1A9VLF46i5rNNiUgzEe6wNHdLbpqU-----END PKCS7-----\">" +
@@ -72,7 +62,6 @@ Ext.onReady(function() {
 		});
 	};
 
-
 	var msgFailure = function(title, msg) {
 		Ext.Msg.show({
 			title: title,
@@ -84,17 +73,14 @@ Ext.onReady(function() {
 		});
 	};
 
-
-	/*
-	 * Tabs
-	 */
-	 new Ext.TabPanel({
-        renderTo: 'tabs',
+	// Tabs
+	new Ext.TabPanel({
+		renderTo: 'tabs',
 		width: 580,
-        activeTab: 0,
+		activeTab: 0,
 		plain: true,
 		style: 'text-align: left;',
-        
+
 		defaults: {
 			autoHeight: true
 		},
@@ -127,25 +113,25 @@ Ext.onReady(function() {
 		],
 
 		listeners: {
-            'tabchange': function(tabPanel, tab){
-                pageTracker._trackPageview('/tcx2nikeplus/' + tab.contentEl);
-            }
-        }
-    });
+			'tabchange': function(tabPanel, tab){
+				pageTracker._trackPageview('/tcx2nikeplus/' + tab.contentEl);
+			}
+		}
+	});
 
-
-	/*
-	 * TCX File validation
-	 */
-	function validateFileExtension(fileName) {
-		var exp = /^.*.(tcx|TCX)$/;
+	// GPX File validation
+	function validateFileExtensionGpx(fileName) {
+		var exp = /^.*.(gpx)$/i;
 		return exp.test(fileName);
 	}
 
+	// TCX File validation
+	function validateFileExtensionTcx(fileName) {
+		var exp = /^.*.(tcx)$/i;
+		return exp.test(fileName);
+	}
 
-	/*
-	 * Override Ext.util.Cookies.clear so it nullifies the cookie.
-	 */
+	// Override Ext.util.Cookies.clear so it nullifies the cookie.
 	Ext.util.Cookies.clear = function(name) {
 		if (!this._clearExpireDate)
 			this._clearExpireDate = new Date(0);
@@ -153,21 +139,17 @@ Ext.onReady(function() {
 		this.set(name, '', this._clearExpireDate);
 	};
 
-
-	/*
-	 * Converter Form
-	 */
+	// Converter Form
 	var converterForm = new Ext.FormPanel({
 		renderTo: 'divConverter',
 		fileUpload: true,
 		width: 480,
 		frame: true,
-		title: 'Garmin Forerunner TCX to Nike+ Converter &amp; Uploader',
+		title: '[GPX / TCX / Garmin] &rarr; Nike+ Converter &amp; Uploader',
 		autoHeight: true,
 		bodyStyle: 'padding: 10px 10px 0 10px;',
 		labelWidth: 116,
 		style: 'text-align: left;',
-
 
 		defaults: {
 			anchor: '100%',
@@ -175,15 +157,13 @@ Ext.onReady(function() {
 			msgTarget: 'side'
 		},
 
-
-        items: [
-
-			// Garmin TCX File
+		items: [
+			// GPX File
 			{
 				xtype: 'fieldset',
-				id: 'fsTcxFile',
+				id: 'fsGpxFile',
 				checkboxToggle: true,
-				title: 'Garmin TCX file',
+				title: 'GPX file',
 				autoHeight: true,
 				collapsed: true,
 
@@ -194,7 +174,8 @@ Ext.onReady(function() {
 								i.enable();
 							}
 						, this);
-						
+
+						Ext.getCmp('fsTcxFile').collapse();
 						Ext.getCmp('fsGarminId').collapse();
 					},
 
@@ -206,8 +187,49 @@ Ext.onReady(function() {
 								i.validate();
 							}
 						, this);
+					}
+				},
+
+				items: [{
+					xtype: 'fileuploadfield',
+					id: 'gpxFile',
+					anchor: '100%',
+					hideLabel: true,
+					emptyText: 'Select a gpx file',
+					allowBlank: false,
+					disabled: true
+				}]
+			},
+
+			// TCX File
+			{
+				xtype: 'fieldset',
+				id: 'fsTcxFile',
+				checkboxToggle: true,
+				title: 'TCX file',
+				autoHeight: true,
+				collapsed: true,
+
+				listeners: {
+					expand: function(p) {
+						p.items.each(
+							function(i) {
+								i.enable();
+							}
+						, this);
 						
-						Ext.getCmp('fsGarminId').expand();
+						Ext.getCmp('fsGpxFile').collapse();
+						Ext.getCmp('fsGarminId').collapse();
+					},
+
+					collapse: function(p) {
+						p.items.each(
+							function(i) {
+								i.disable();
+								i.allowBlank = true;
+								i.validate();
+							}
+						, this);
 					}
 				},
 
@@ -222,12 +244,12 @@ Ext.onReady(function() {
 				}]
 			},
 
-			// Garmin Activity (nike+ heart-rate)
+			// Garmin Activity ID
 			{
 				xtype: 'fieldset',
 				id: 'fsGarminId',
 				checkboxToggle: true,
-				title: 'Garmin Activity',
+				title: 'Garmin Activity ID',
 				autoHeight: true,
 				style: {marginBottom: '32px'},
 
@@ -239,6 +261,7 @@ Ext.onReady(function() {
 							}
 						, this);
 						
+						Ext.getCmp('fsGpxFile').collapse();
 						Ext.getCmp('fsTcxFile').collapse();
 					},
 
@@ -250,8 +273,6 @@ Ext.onReady(function() {
 								i.validate();
 							}
 						, this);
-
-						Ext.getCmp('fsTcxFile').expand();
 					}
 				},
 
@@ -284,6 +305,7 @@ Ext.onReady(function() {
 						id: 'nikeEmail',
 						allowBlank: false
 					},
+
 					// Nike+ Password
 					{
 						xtype: 'textfield',
@@ -303,32 +325,38 @@ Ext.onReady(function() {
 			}
 		],
 
-		buttons: [{
-			id: 'btnSubmit',
-			text: 'Convert &amp; Upload',
-			handler: function() {
-				submit();
-			}
-		},
-		{
-			text: 'Reset',
-			handler: function() {
-				var btnSubmit = Ext.getCmp('btnSubmit');
-				btnSubmit.setText('Convert &amp; Upload');
-				btnSubmit.enable();
-				converterForm.getForm().reset();
+		buttons: [
+			// Submit button
+			{
+				id: 'btnSubmit',
+				text: 'Convert &amp; Upload',
+				handler: function() {
+					submit();
+				}
+			},
 
-				// Ensure that the fxTcxFile and fsAuthAdvanced elements are disabled.
-				Ext.getCmp('fsTcxFile').items.each(
-					function(i) {
-						i.disable();
-						i.allowBlank = true;
-						i.validate();
-					}
-				, this);
+			// Reset button
+			{
+				text: 'Reset',
+				handler: function() {
+					var btnSubmit = Ext.getCmp('btnSubmit');
+					btnSubmit.setText('Convert &amp; Upload');
+					btnSubmit.enable();
+					converterForm.getForm().reset();
+
+					// Ensure that the fxTcxFile and fsAuthAdvanced elements are disabled.
+					Ext.getCmp('fsTcxFile').items.each(
+						function(i) {
+							i.disable();
+							i.allowBlank = true;
+							i.validate();
+						}
+					, this);
+				}
 			}
-		}],
-		
+		],
+
+		// If the user hits the enter/return key, submit.
 		keys: [{ 
 			key: Ext.EventObject.ENTER, fn: function() {
 				submit();
@@ -342,16 +370,23 @@ Ext.onReady(function() {
 		var form = converterForm.getForm();
 		
 		if (form.isValid()) {
+			// If we are dealing with a GPX file upload then ensure the file extension is gpx.
+			var gpxFile = Ext.getCmp('gpxFile');
+			if ((!gpxFile.disabled) && (!validateFileExtensionGpx(gpxFile.getValue()))) {
+				Ext.MessageBox.alert('GPX File', 'Only gpx files are accepted.');
+				return;
+			}
+
 			// If we are dealing with a TCX file upload then ensure the file extension is tcx.
 			var garminTcxFile = Ext.getCmp('garminTcxFile');
-			if ((!garminTcxFile.disabled) && (!validateFileExtension(garminTcxFile.getValue()))) {
+			if ((!garminTcxFile.disabled) && (!validateFileExtensionTcx(garminTcxFile.getValue()))) {
 				Ext.MessageBox.alert('Garmin TCX File', 'Only tcx files are accepted.');
 				return;
 			}
 
 			// Convert & Upload
 			// Construct wait message text.
-			var msg = '<div style="text-align: center;"><b>Please wait while your run is uploaded to nike+</b></div><br />';
+			var msg = '<div style="text-align: center;"><b>Please wait while your workout is uploaded to nike+</b></div><br />';
 
 			// Used to show donation options here (whilst the conversion/upload is taking place), but feel it would be confusing and
 			// users wouldn't be comfortable clicking a link in case it disturbed the upload process (which it wouldn't).
@@ -380,18 +415,17 @@ Ext.onReady(function() {
 
 						Ext.util.Cookies.set('chkSaveCookies', true, expiryDate);
 
-						if (Ext.getCmp('fsGarminId').collapsed) {
-							Ext.util.Cookies.set('fsGarminIdCollapsed', true, expiryDate);
-						}
-						else {
-							Ext.util.Cookies.set('fsGarminIdCollapsed', false, expiryDate);
-						}
+						Ext.util.Cookies.set('fsGpxFileCollapsed', Ext.getCmp('fsGpxFile').collapsed, expiryDate);
+						Ext.util.Cookies.set('fsTcxFileCollapsed', Ext.getCmp('fsTcxFile').collapsed, expiryDate);
+						Ext.util.Cookies.set('fsGarminIdCollapsed', Ext.getCmp('fsGarminId').collapsed, expiryDate);
+
 						Ext.util.Cookies.set('nikeEmail', Ext.getCmp('nikeEmail').getValue(), expiryDate);
 					}
 					else {
 						Ext.util.Cookies.set('chkSaveCookies', false);
+						Ext.util.Cookies.clear('fsGpxFileCollapsed');
+						Ext.util.Cookies.clear('fsTcxFileCollapsed');
 						Ext.util.Cookies.clear('fsGarminIdCollapsed');
-						Ext.util.Cookies.clear('fsTcxFile');
 						Ext.util.Cookies.clear('nikeEmail');
 					}
 
@@ -404,14 +438,17 @@ Ext.onReady(function() {
 		}
 	}
 
-	
-	/*
-	 * Tooltips
-	 */
+	// Tooltips
+	new Ext.ToolTip({
+		target: 'gpxFile',
+		title: 'GPX File',
+		html: 'Click Browse to select a gpx file to convert.'
+	});
+
 	new Ext.ToolTip({
 		target: 'garminTcxFile',
-		title: 'Garmin TCX File',
-		html: 'Click Browse to select a garmin tcx file to convert.'
+		title: 'TCX File',
+		html: 'Click Browse to select a tcx file to convert.'
 	});
 
 	new Ext.ToolTip({
@@ -433,9 +470,7 @@ Ext.onReady(function() {
 	});
 
 
-	/*
-	 * Default values
-	 */
+	// Default values
 	Ext.getUrlParam = function(param) {
 		var params = Ext.urlDecode(location.search.substring(1));
 		return param ? params[param] : params;
@@ -445,14 +480,21 @@ Ext.onReady(function() {
 	if ((type === 'garminActivityID') || (type === 'garminActivityID_GPS')) Ext.getCmp('fsGarminId').expand();
 
 
-	/*
-	 * Cookies (these override the default values passed as http params).
-	 */
-	var fsGarminIdCollapsedValue = (Ext.util.Cookies.get('fsGarminIdCollapsed') === 'true');
-	var nikeEmailValue = Ext.util.Cookies.get('nikeEmail');
+	// Cookies (these override the default values passed as http params).
 	if (Ext.util.Cookies.get('chkSaveCookies') === 'true') {
 		Ext.getCmp('chkSaveCookies').setValue(true);
-		if (fsGarminIdCollapsedValue) Ext.getCmp('fsGarminId').collapse();
-		if (nikeEmailValue != null ) Ext.getCmp('nikeEmail').setValue(nikeEmailValue);
+
+		if (Ext.util.Cookies.get('fsGpxFileCollapsed') === 'false') {
+			Ext.getCmp('fsGpxFile').expand();
+		} else if (Ext.util.Cookies.get('fsTcxFileCollapsed') === 'false') {
+			Ext.getCmp('fsTcxFile').expand();
+		} if (Ext.util.Cookies.get('fsGarminIdCollapsed') === 'false') {
+			Ext.getCmp('fsGarminId').expand();
+		}
+
+		var nikeEmailValue = Ext.util.Cookies.get('nikeEmail');
+		if (nikeEmailValue != null ) {
+			Ext.getCmp('nikeEmail').setValue(nikeEmailValue);
+		}
 	}
 });
