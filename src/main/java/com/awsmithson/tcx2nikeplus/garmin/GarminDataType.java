@@ -1,10 +1,12 @@
 package com.awsmithson.tcx2nikeplus.garmin;
 
 import com.awsmithson.tcx2nikeplus.http.HttpClients;
+import com.awsmithson.tcx2nikeplus.http.HttpException;
 import com.awsmithson.tcx2nikeplus.jaxb.JAXBObject;
 import com.awsmithson.tcx2nikeplus.util.Log;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
+import org.apache.http.HttpStatus;
 import org.apache.http.client.entity.UrlEncodedFormEntity;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
@@ -54,6 +56,8 @@ public enum GarminDataType {
 	private static final @Nonnull Log logger = Log.getInstance();
 	private static final @Nonnull String URL_ACTIVITIES = "https://connect.garmin.com/activities";
 	private static final @Nonnull String URL_SIGN_IN = "http://connect.garmin.com/en-US/signin";
+
+	private static final int GARMIN_DOWNLOAD_SUCCESS = HttpStatus.SC_OK;
 
 	// Load "garmin.properties" file.
 	private static final @Nonnull Properties garminProperties = new Properties();
@@ -122,13 +126,18 @@ public enum GarminDataType {
 		logger.out("Executing garmin HTTP request: %s", uri);
 		HttpGet get = new HttpGet(uri);
 		CloseableHttpResponse closeableHttpResponse = httpClient.execute(get);
-		logger.out(Level.FINE, " - response code: %d", closeableHttpResponse.getStatusLine().getStatusCode());
+
+		int statusCode = closeableHttpResponse.getStatusLine().getStatusCode();
+		logger.out(Level.FINE, " - response code: %d", statusCode);
 		if (closeableHttpResponse.getEntity() == null) {
 			throw new IOException(String.format("Response entity is null for %s", uri));
+		} else if (statusCode != GARMIN_DOWNLOAD_SUCCESS) {
+			throw new HttpException(String.format("Unable to download data for garmin activity-id %d.<br /></br />%s returned HTTP status code %d.", activityId, uri.toString(), statusCode), statusCode);
 		}
 
 		return closeableHttpResponse;
 	}
+
 
 	public @Nonnull <T> T downloadAndUnmarshall(@Nonnull CloseableHttpClient httpClient, int activityId) throws JAXBException, IOException, URISyntaxException {
 		Preconditions.checkNotNull(httpClient, "httpClient argument is null.");

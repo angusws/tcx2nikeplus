@@ -36,6 +36,8 @@ public class Garmin {
 	private static Document downloadAndCreateDocument(@Nonnull CloseableHttpClient httpClient, int garminActivityId, @Nonnull GarminDataType garminDataType) throws IOException {
 		try (CloseableHttpResponse response = garminDataType.executeGarminHttpRequest(httpClient, garminActivityId)) {
 			return DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(response.getEntity().getContent());
+		} catch (HttpException he) {
+			throw he;
 		} catch (IOException | ParserConfigurationException | SAXException | URISyntaxException e) {
 			log.out(e);
 			throw new IOException(GARMIN_ID_ERROR);

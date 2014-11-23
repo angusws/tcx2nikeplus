@@ -28,7 +28,7 @@ class HttpStatusCodeRetryStrategy implements ServiceUnavailableRetryStrategy {
 	public boolean retryRequest(HttpResponse httpResponse, int executionCount, HttpContext httpContext) {
 		boolean retry = (executionCount <= maxRetries) && (retryPredicate.apply(httpResponse));
 		if (retry) {
-			logger.out(" - retrying, response-code: %d", (httpResponse != null) ? httpResponse.getStatusLine().getStatusCode() : -1);
+			logger.out(" - retrying, response code: %d", (httpResponse != null) ? httpResponse.getStatusLine().getStatusCode() : -1);
 		}
 		return retry;
 	}
