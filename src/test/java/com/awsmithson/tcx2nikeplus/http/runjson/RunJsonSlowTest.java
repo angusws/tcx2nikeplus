@@ -62,7 +62,7 @@ public class RunJsonSlowTest {
 				),
 				ImmutableList.of(new RunJson.Summary.DeviceConfig(new RunJson.Summary.DeviceConfig.Component("iphone", "device")))
 		);
-		RunJson runJson = new RunJson(new BigDecimal("2.317167236328125"), new BigDecimal("489550.1098632812"), 1402763450520L, "Europe/London", "run", detail, summary);
+		RunJson runJson = new RunJson(new BigDecimal("2.317167236328125"), new BigDecimal("489550.1098632812"), 1402763450520L, "complete", "Europe/London", "run", detail, summary);
 
 
 		File expected = new File(getClass().getResource(RUN_2014_06_14_MINIMAL).getFile());

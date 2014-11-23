@@ -13,15 +13,24 @@ public class RunJson {
 	private final @Nonnull BigDecimal distance;
 	private final @Nonnull BigDecimal duration;
 	private final long startTime;
+	private final @Nonnull String status;
 	private final @Nonnull String timeZoneId;
 	private final @Nonnull String type;
 	private final @Nonnull List<Detail> detail;
 	private final @Nonnull Summary summary;
 
-	public RunJson(@Nonnull BigDecimal distance, @Nonnull BigDecimal duration, long startTime, @Nonnull String timeZoneId, @Nonnull String type, @Nonnull List<Detail> detail, @Nonnull Summary summary) {
+	public RunJson(@Nonnull BigDecimal distance,
+				   @Nonnull BigDecimal duration,
+				   long startTime,
+				   @Nonnull String status,
+				   @Nonnull String timeZoneId,
+				   @Nonnull String type,
+				   @Nonnull List<Detail> detail,
+				   @Nonnull Summary summary) {
 		this.distance = Preconditions.checkNotNull(distance, "distance argument is null.");
 		this.duration = Preconditions.checkNotNull(duration, "duration argument is null.");
 		this.startTime = startTime;
+		this.status = Preconditions.checkNotNull(status, "status argument is null.");
 		this.timeZoneId = Preconditions.checkNotNull(timeZoneId, "timeZoneId argument is null.");
 		this.type = Preconditions.checkNotNull(type, "type argument is null.");
 		this.detail = Preconditions.checkNotNull(detail, "detail argument is null.");

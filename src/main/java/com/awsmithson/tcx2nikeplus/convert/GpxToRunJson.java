@@ -81,7 +81,7 @@ public class GpxToRunJson implements Converter<GpxType, RunJson> {
 		try {
 			TimeZone timezone = Geonames.getTimeZone(firstTrkpt.getLon(), firstTrkpt.getLat());
 			long startTime = firstTrkpt.getTime().toGregorianCalendar().getTimeInMillis();
-			return new RunJson(maxDistance, maxDuration, startTime, timezone.getID(), "run", runJsonDetailBuilder.build(), runJsonSummary);
+			return new RunJson(maxDistance, maxDuration, startTime, "complete", timezone.getID(), "run", runJsonDetailBuilder.build(), runJsonSummary);
 		} catch (Throwable throwable) {
 			throw new ConverterException(throwable.getMessage(), throwable);
 		}
