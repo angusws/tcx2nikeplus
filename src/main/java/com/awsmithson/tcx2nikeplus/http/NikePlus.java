@@ -13,6 +13,7 @@ import org.apache.http.HttpEntity;
 import org.apache.http.HttpStatus;
 import org.apache.http.NameValuePair;
 import org.apache.http.client.CookieStore;
+import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.entity.UrlEncodedFormEntity;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpPost;
@@ -270,7 +271,13 @@ public class NikePlus {
 	public static void endSync(@Nonnull String accessToken) throws IOException {
 		Preconditions.checkNotNull(accessToken, "accessToken argument is null.");
 
-		try (CloseableHttpClient client = HttpClients.createDefaultHttpClientBuilder().build()) {
+		try (CloseableHttpClient client = HttpClients.createDefaultHttpClientBuilder()
+				.setDefaultRequestConfig(RequestConfig.custom()
+						.setConnectTimeout(16_000)
+						.setConnectionRequestTimeout(16_000)
+						.setSocketTimeout(32_000)
+						.build())
+				.build()) {
 			HttpPost post = new HttpPost(String.format("%s?%s", URL_DATA_SYNC_COMPLETE_ACCESS_TOKEN, Util.generateHttpParameter("access_token", accessToken)));
 			post.addHeader("user-agent", USER_AGENT);
 			post.addHeader("appId", "NIKEPLUSGPS");

@@ -23,9 +23,9 @@ public class HttpClients {
 		return HttpClientBuilder
 				.create()
 				.setDefaultRequestConfig(RequestConfig.custom()
-						.setConnectTimeout(2500)
-						.setConnectionRequestTimeout(2500)
-						.setSocketTimeout(2500)
+						.setConnectTimeout(5_000)
+						.setConnectionRequestTimeout(5_000)
+						.setSocketTimeout(8_000)
 						.build())
 				.setRetryHandler(new HttpTimeoutRetryHandler(10))
 				.setServiceUnavailableRetryStrategy(DEFAULT_RETRY_STRATEGY);
