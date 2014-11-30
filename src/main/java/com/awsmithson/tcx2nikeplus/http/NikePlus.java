@@ -189,17 +189,11 @@ public class NikePlus {
 
 	@Deprecated
 	public static void fullSync(@Nonnull String nikeAccessToken, @Nonnull NikeActivityData... nikeActivitiesData) throws IOException {
-		try {
-			logger.out(" - Syncing data...");
-			for (NikeActivityData nikeActivityData : nikeActivitiesData) {
-				if (!syncData(nikeAccessToken, nikeActivityData)) {
-					throw new IOException("There was a problem uploading to nike+.  Please try again later, if the problem persists contact me with details of the activity-id or tcx file.");
-				}
+		logger.out(" - Syncing data...");
+		for (NikeActivityData nikeActivityData : nikeActivitiesData) {
+			if (!syncData(nikeAccessToken, nikeActivityData)) {
+				throw new IOException("There was a problem uploading to nike+.  Please try again later, if the problem persists contact me with details of the activity-id or tcx file.");
 			}
-		}
-		finally {
-			logger.out(" - Ending sync...");
-			endSync(nikeAccessToken);
 		}
 	}
 
