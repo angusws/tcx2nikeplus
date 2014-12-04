@@ -8,6 +8,7 @@ import org.apache.http.HttpEntity;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.util.EntityUtils;
 import org.w3c.dom.Document;
 import org.xml.sax.SAXException;
 
@@ -46,6 +47,7 @@ public class Geonames {
 				if (httpEntity != null) {
 					try (InputStream inputStream = httpEntity.getContent()) {
 						Document document = DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(inputStream);
+						EntityUtils.consumeQuietly(httpEntity);
 						document.normalize();
 						logger.out(Level.FINEST, "\t%s", Util.documentToString(document));
 

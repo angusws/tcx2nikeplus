@@ -4,6 +4,7 @@ import com.awsmithson.tcx2nikeplus.garmin.GarminDataType;
 import com.awsmithson.tcx2nikeplus.util.Log;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.util.EntityUtils;
 import org.w3c.dom.Document;
 import org.xml.sax.SAXException;
 
@@ -35,7 +36,9 @@ public class Garmin {
 	@Deprecated
 	private static Document downloadAndCreateDocument(@Nonnull CloseableHttpClient httpClient, int garminActivityId, @Nonnull GarminDataType garminDataType) throws IOException {
 		try (CloseableHttpResponse response = garminDataType.executeGarminHttpRequest(httpClient, garminActivityId)) {
-			return DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(response.getEntity().getContent());
+			Document output = DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(response.getEntity().getContent());
+			EntityUtils.consumeQuietly(response.getEntity());
+			return output;
 		} catch (HttpException he) {
 			throw he;
 		} catch (IOException | ParserConfigurationException | SAXException | URISyntaxException e) {

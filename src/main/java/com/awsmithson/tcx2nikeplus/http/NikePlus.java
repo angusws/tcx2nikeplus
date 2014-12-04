@@ -149,17 +149,14 @@ public class NikePlus {
 			HttpClientContext httpClientContext = HttpClientContext.create();
 			logger.out("Authenticating against Nike+");
 			try (CloseableHttpResponse response = client.execute(post, httpClientContext)) {
-				HttpEntity httpEntity = response.getEntity();
+				// Consume the response
+				EntityUtils.consumeQuietly(response.getEntity());
 
-				// Get the response and iterate through the cookies for "access_token".
-				if (httpEntity != null) {
-					for (Cookie cookie : httpClientContext.getCookieStore().getCookies()) {
-						if (cookie.getName().equals("access_token")) {
-							return cookie.getValue();
-						}
+				// Iterate through the cookies for "access_token".
+				for (Cookie cookie : httpClientContext.getCookieStore().getCookies()) {
+					if (cookie.getName().equals("access_token")) {
+						return cookie.getValue();
 					}
-				} else {
-					throw new IOException("Http response empty");
 				}
 			}
 		}
@@ -215,6 +212,7 @@ public class NikePlus {
 
 			post.setEntity(multipartEntityBuilder.build());
 			try (CloseableHttpResponse response = client.execute(post)) {
+				EntityUtils.consumeQuietly(response.getEntity());
 				int statusCode = response.getStatusLine().getStatusCode();
 				logger.out(Level.FINE, " - response code: %d", statusCode);
 				return (URL_DATA_SYNC_SUCCESS == statusCode);
@@ -250,6 +248,7 @@ public class NikePlus {
 						int statusCode = response.getStatusLine().getStatusCode();
 						nikePlusSyncData.setResponseEntityContent(EntityUtils.toString(response.getEntity()));
 						nikePlusSyncData.setResponseStatusCode(statusCode);
+						EntityUtils.consumeQuietly(response.getEntity());
 						logger.out(Level.FINE, " - response code: %d", response.getStatusLine().getStatusCode());
 						if (statusCode != URL_DATA_SYNC_SUCCESS) {
 							success = false;
@@ -287,6 +286,8 @@ public class NikePlus {
 						logger.out(Level.FINER, "\t%s", Util.documentToString(outDoc));
 					} catch (ParserConfigurationException | SAXException e) {
 						logger.out(e);
+					} finally {
+						EntityUtils.consumeQuietly(httpEntity);
 					}
 				} else {
 					throw new NullPointerException("Http response empty");
