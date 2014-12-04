@@ -11,6 +11,12 @@ import javax.annotation.Nullable;
 
 public class HttpClients {
 
+	private static final @Nonnull RequestConfig REQUEST_CONFIG_DEFAULT = RequestConfig.custom()
+			.setConnectTimeout(5_000)
+			.setConnectionRequestTimeout(5_000)
+			.setSocketTimeout(8_000)
+			.build();
+
 	// The "URL_DATA_SYNC" nike+ service seems to intermittently return 503, HttpComponents can deal with that nicely.
 	private static final @Nonnull HttpStatusCodeRetryStrategy DEFAULT_RETRY_STRATEGY = new HttpStatusCodeRetryStrategy(10, 200, new Predicate<HttpResponse>() {
 		@Override
@@ -22,11 +28,7 @@ public class HttpClients {
 	public static HttpClientBuilder createDefaultHttpClientBuilder() {
 		return HttpClientBuilder
 				.create()
-				.setDefaultRequestConfig(RequestConfig.custom()
-						.setConnectTimeout(5_000)
-						.setConnectionRequestTimeout(5_000)
-						.setSocketTimeout(8_000)
-						.build())
+				.setDefaultRequestConfig(REQUEST_CONFIG_DEFAULT)
 				.setRetryHandler(new HttpTimeoutRetryHandler(10))
 				.setServiceUnavailableRetryStrategy(DEFAULT_RETRY_STRATEGY);
 	}
