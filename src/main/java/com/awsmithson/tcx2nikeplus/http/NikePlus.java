@@ -22,7 +22,6 @@ import org.apache.http.cookie.Cookie;
 import org.apache.http.cookie.SetCookie;
 import org.apache.http.entity.ContentType;
 import org.apache.http.entity.mime.MultipartEntityBuilder;
-import org.apache.http.entity.mime.content.StringBody;
 import org.apache.http.impl.client.BasicCookieStore;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.cookie.BasicClientCookie;
@@ -36,9 +35,9 @@ import javax.annotation.Nullable;
 import javax.xml.bind.JAXBException;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.StringWriter;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
@@ -200,6 +199,7 @@ public class NikePlus {
 			HttpPost post = new HttpPost(String.format(URL_DATA_SYNC, accessToken));
 			post.addHeader("user-agent", USER_AGENT);
 			post.addHeader("appid", "NIKEPLUSGPS");
+			post.addHeader("Accept", "application/json");
 
 			// Add "runXML" data to the request.
 			MultipartEntityBuilder multipartEntityBuilder = MultipartEntityBuilder.create()
@@ -233,23 +233,25 @@ public class NikePlus {
 				HttpPost post = new HttpPost(String.format(URL_DATA_SYNC, accessToken));
 				post.addHeader("user-agent", USER_AGENT);
 				post.addHeader("appid", "NIKEPLUSGPS");
+				post.addHeader("Accept", "application/json");
 
-				try (ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream()) {
-					JAXBObject.GPX_TYPE.marshal(new ObjectFactory().createGpx(nikePlusSyncData.getGpxXML()), byteArrayOutputStream);
+				try (StringWriter stringWriter = new StringWriter()) {
+					JAXBObject.GPX_TYPE.marshal(new ObjectFactory().createGpx(nikePlusSyncData.getGpxXML()), stringWriter);
 
 					HttpEntity httpEntity = MultipartEntityBuilder.create()
-							.addPart("run", new StringBody(new Gson().toJson(nikePlusSyncData.getRunJson()), ContentType.APPLICATION_JSON))
-							.addBinaryBody("gpxXML", byteArrayOutputStream.toByteArray(), ContentType.TEXT_PLAIN, null)
+							.addTextBody("run", new Gson().toJson(nikePlusSyncData.getRunJson()), ContentType.APPLICATION_JSON)
+							.addTextBody("gpxXML", stringWriter.toString(), ContentType.TEXT_PLAIN)
 							.build();
 					post.setEntity(httpEntity);
 
 					logger.out("Posting to Nike+");
 					try (CloseableHttpResponse response = client.execute(post)) {
 						int statusCode = response.getStatusLine().getStatusCode();
+
 						nikePlusSyncData.setResponseEntityContent(EntityUtils.toString(response.getEntity()));
 						nikePlusSyncData.setResponseStatusCode(statusCode);
 						EntityUtils.consumeQuietly(response.getEntity());
-						logger.out(Level.FINE, " - response code: %d", response.getStatusLine().getStatusCode());
+						logger.out(Level.FINE, " - response code: %d", statusCode);
 						if (statusCode != URL_DATA_SYNC_SUCCESS) {
 							success = false;
 						}

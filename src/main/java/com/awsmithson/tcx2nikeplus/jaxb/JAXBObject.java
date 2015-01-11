@@ -13,8 +13,8 @@ import javax.xml.bind.JAXBException;
 import javax.xml.bind.Marshaller;
 import javax.xml.bind.Unmarshaller;
 import javax.xml.transform.stream.StreamSource;
-import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
+import java.io.StringWriter;
 
 public enum JAXBObject {
 	GPX_TYPE {
@@ -72,10 +72,10 @@ public enum JAXBObject {
 		return UNMARSHALLER.get();
 	}
 
-	public void marshal(@Nonnull JAXBElement<?> jaxbElement, @Nonnull ByteArrayOutputStream byteArrayOutputStream) throws JAXBException {
+	public void marshal(@Nonnull JAXBElement<?> jaxbElement, @Nonnull StringWriter stringWriter) throws JAXBException {
 		Preconditions.checkNotNull(jaxbElement, "jaxbElement argument is null.");
-		Preconditions.checkNotNull(byteArrayOutputStream, "byteArrayOutputStream argument is null.");
-		getMarshaller().marshal(jaxbElement, byteArrayOutputStream);
+		Preconditions.checkNotNull(stringWriter, "stringWriter argument is null.");
+		getMarshaller().marshal(jaxbElement, stringWriter);
 	}
 
 	@Deprecated
