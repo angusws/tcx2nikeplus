@@ -4,9 +4,9 @@ import com.awsmithson.tcx2nikeplus.http.NikePlus;
 import com.awsmithson.tcx2nikeplus.nike.NikeActivityData;
 import org.w3c.dom.Document;
 
+import java.io.File;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
-import java.io.File;
 
 @Deprecated
 public class Upload

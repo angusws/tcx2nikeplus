@@ -3,8 +3,8 @@ package com.awsmithson.tcx2nikeplus.servlet;
 import org.junit.Assert;
 import org.junit.Test;
 
-import javax.annotation.Nonnull;
 import java.io.IOException;
+import javax.annotation.Nonnull;
 
 public class ServletsFastTest {
 

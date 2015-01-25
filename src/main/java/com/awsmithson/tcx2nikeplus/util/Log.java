@@ -3,11 +3,11 @@ package com.awsmithson.tcx2nikeplus.util;
 import com.google.common.base.Predicate;
 import com.google.common.collect.Iterables;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import java.util.Arrays;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
 
 public class Log {

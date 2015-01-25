@@ -4,6 +4,9 @@ import com.awsmithson.tcx2nikeplus.util.Log;
 import com.google.common.base.Preconditions;
 import com.google.gson.JsonObject;
 
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.util.logging.Level;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.servlet.ServletException;
@@ -11,9 +14,6 @@ import javax.servlet.annotation.MultipartConfig;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import java.io.IOException;
-import java.io.PrintWriter;
-import java.util.logging.Level;
 
 @MultipartConfig(
 		location="/tmp",

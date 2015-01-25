@@ -8,13 +8,13 @@ import org.apache.http.impl.client.CloseableHttpClient;
 import org.junit.Assert;
 import org.junit.Test;
 
-import javax.annotation.Nonnull;
-import javax.xml.bind.JAXBException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URISyntaxException;
 import java.util.Calendar;
 import java.util.Date;
+import javax.annotation.Nonnull;
+import javax.xml.bind.JAXBException;
 
 public class GarminDataTypeSlowTest {
 

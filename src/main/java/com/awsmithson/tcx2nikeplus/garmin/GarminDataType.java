@@ -15,8 +15,6 @@ import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.message.BasicNameValuePair;
 import org.apache.http.util.EntityUtils;
 
-import javax.annotation.Nonnull;
-import javax.xml.bind.JAXBException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
@@ -24,6 +22,8 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.Properties;
 import java.util.logging.Level;
+import javax.annotation.Nonnull;
+import javax.xml.bind.JAXBException;
 
 public enum GarminDataType {
 	TCX {

@@ -3,7 +3,6 @@ package com.awsmithson.tcx2nikeplus.test;
 import com.awsmithson.tcx2nikeplus.convert.ConvertTcx;
 import com.awsmithson.tcx2nikeplus.util.Log;
 import com.awsmithson.tcx2nikeplus.util.Util;
-
 import org.w3c.dom.Document;
 
 import java.io.File;

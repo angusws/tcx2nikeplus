@@ -4,8 +4,6 @@ package com.awsmithson.tcx2nikeplus.nike;
 import com.google.common.base.Preconditions;
 import com.google.gson.JsonElement;
 import com.topografix.gpx._1._1.GpxType;
-import org.apache.http.HttpResponse;
-import org.apache.http.client.methods.CloseableHttpResponse;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
