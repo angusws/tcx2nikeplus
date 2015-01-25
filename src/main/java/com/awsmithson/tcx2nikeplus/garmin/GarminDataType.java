@@ -58,6 +58,7 @@ public enum GarminDataType {
 	private static final @Nonnull String URL_SIGN_IN = "http://connect.garmin.com/en-US/signin";
 
 	private static final int GARMIN_DOWNLOAD_SUCCESS = HttpStatus.SC_OK;
+	private static final int GARMIN_DOWNLOAD_FORBIDDEN = HttpStatus.SC_FORBIDDEN;
 
 	// Load "garmin.properties" file.
 	private static final @Nonnull Properties garminProperties = new Properties();
@@ -131,7 +132,9 @@ public enum GarminDataType {
 		logger.out(Level.FINE, " - response code: %d", statusCode);
 		if (closeableHttpResponse.getEntity() == null) {
 			throw new IOException(String.format("Response entity is null for %s", uri));
-		} else if (statusCode != GARMIN_DOWNLOAD_SUCCESS) {
+		} else if (statusCode == GARMIN_DOWNLOAD_FORBIDDEN) {
+			throw new HttpException(String.format("Unable to download data for garmin activity-id %d.<br /></br />Please ensure your garmin activity is not marked as private.", activityId), statusCode);
+		} if (statusCode != GARMIN_DOWNLOAD_SUCCESS) {
 			throw new HttpException(String.format("Unable to download data for garmin activity-id %d.<br /></br />%s returned HTTP status code %d.", activityId, uri.toString(), statusCode), statusCode);
 		}
 
