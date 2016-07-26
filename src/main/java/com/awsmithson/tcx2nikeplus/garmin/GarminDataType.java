@@ -27,7 +27,7 @@ import javax.xml.bind.JAXBException;
 
 public enum GarminDataType {
 	TCX {
-		private static final @Nonnull String DOWNLOAD_URL = "https://connect.garmin.com/proxy/activity-service-1.0/tcx/activity/%d?full=true";
+		private static final @Nonnull String DOWNLOAD_URL = "https://connect.garmin.com/modern/proxy/download-service/export/tcx/activity/%d";
 
 		@Override
 		@Nonnull String getDownloadUrlStringFormat() {
@@ -40,7 +40,7 @@ public enum GarminDataType {
 		}
 	},
 	GPX {
-		private static final @Nonnull String DOWNLOAD_URL = "https://connect.garmin.com/proxy/activity-service-1.1/gpx/activity/%s?full=true";
+		private static final @Nonnull String DOWNLOAD_URL = "https://connect.garmin.com/modern/proxy/download-service/export/gpx/activity/%s";
 
 		@Override
 		@Nonnull String getDownloadUrlStringFormat() {
