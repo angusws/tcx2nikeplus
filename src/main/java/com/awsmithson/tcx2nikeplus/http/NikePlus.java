@@ -8,6 +8,9 @@ import com.awsmithson.tcx2nikeplus.util.Util;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.gson.Gson;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import com.topografix.gpx._1._1.ObjectFactory;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpStatus;
@@ -153,8 +156,11 @@ public class NikePlus {
 
 				// Iterate through the cookies for "access_token".
 				for (Cookie cookie : httpClientContext.getCookieStore().getCookies()) {
-					if (cookie.getName().equals("access_token")) {
-						return cookie.getValue();
+					if (cookie.getName().equals("unite_session")) {
+						JsonElement uniteSessionJson = new JsonParser().parse(cookie.getValue());
+						JsonObject uniteSessionObject = uniteSessionJson.getAsJsonObject();
+
+						return uniteSessionObject.get("access_token").getAsString();
 					}
 				}
 			}
